@@ -2,6 +2,7 @@ const PRESETS={375:812,768:1024,1440:900};
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 let captureBusy=false;
 async function cdp(target,method,params={}){return chrome.debugger.sendCommand(target,method,params)}
+async function waitForTab(tabId,timeout=45000){return new Promise((resolve,reject)=>{let done=false;const cleanup=()=>{chrome.tabs.onUpdated.removeListener(onUpdate);clearTimeout(timer)};const finish=error=>{if(done)return;done=true;cleanup();error?reject(error):resolve()};const onUpdate=(id,change)=>{if(id===tabId&&change.status==='complete')finish()};const timer=setTimeout(()=>finish(Error('Page load timed out')),timeout);chrome.tabs.onUpdated.addListener(onUpdate);chrome.tabs.get(tabId).then(tab=>{if(tab.status==='complete')finish()}).catch(finish)})}
 async function capture(url,widths,format,subpage='',returnImages=false){
  const parsed=new URL(url);
  if(!['http:','https:'].includes(parsed.protocol))throw Error('Enter an HTTP(S) website URL.');
@@ -10,11 +11,11 @@ async function capture(url,widths,format,subpage='',returnImages=false){
  const tab=await chrome.tabs.create({url:parsed.href,active:false});
  const target={tabId:tab.id};let attached=false,count=0;const images=[];
  try{
-  await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('Page load timed out')),45000);const listener=(id,change)=>{if(id===tab.id&&change.status==='complete'){clearTimeout(timer);chrome.tabs.onUpdated.removeListener(listener);resolve()}};chrome.tabs.onUpdated.addListener(listener);chrome.tabs.get(tab.id).then(t=>{if(t.status==='complete'){clearTimeout(timer);chrome.tabs.onUpdated.removeListener(listener);resolve()}}).catch(reject)});
+  await waitForTab(tab.id);
   await chrome.debugger.attach(target,'1.3');attached=true;
   await cdp(target,'Page.enable');
   for(const page of pages){
-   if(page.href!==parsed.href){await cdp(target,'Page.navigate',{url:page.href});await wait(2500);}
+   if(page.href!==parsed.href){await chrome.tabs.update(tab.id,{url:page.href});await waitForTab(tab.id);await wait(1200);}
   for(const width of widths){
    await cdp(target,'Emulation.setDeviceMetricsOverride',{width,height:PRESETS[width],deviceScaleFactor:1,mobile:width===375});
    await wait(1100);
