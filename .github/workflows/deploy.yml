@@ -12,6 +12,8 @@ jobs:
           node-version: '22'
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+      - name: Run MCP and screenshot regression tests
+        run: node --test tests/mcp.test.mjs
       - name: Validate Worker
         run: |
           node --check src/worker.js
