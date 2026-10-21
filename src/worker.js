@@ -11,6 +11,7 @@ const json=(body,status=200)=>Response.json(body,{status,headers:{'cache-control
 export default {
  async fetch(request,env){
   const path=new URL(request.url).pathname;
+  if(path==='/api/health')return json({ok:true,service:'MiCirql Export',presets:PRESETS.length,browserConfigured:!!env.BROWSER});
   if(path==='/api/presets')return json(PRESETS);
   if(path==='/api/discover'&&request.method==='POST'){
    try{
