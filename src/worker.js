@@ -52,7 +52,6 @@ async function mcp(request,env){
 }
 
 async function exportHandler(request,env){
- async fetch(request,env){
   const path=new URL(request.url).pathname;
   if(path==='/mcp')return mcp(request,env);
   if(path==='/api/health')return json({ok:true,service:'MiCirql Export',presets:PRESETS.length,browserConfigured:!!env.BROWSER});
