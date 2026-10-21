@@ -151,4 +151,5 @@ async function exportHandler(request,env){
   if(path.startsWith('/api/'))return json({error:'Not found'},404);
   return env.ASSETS.fetch(request);
  }
+export {exportHandler};
 export default {fetch:exportHandler};
