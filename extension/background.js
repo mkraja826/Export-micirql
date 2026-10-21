@@ -1,5 +1,6 @@
 const PRESETS={375:812,768:1024,1440:900};
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+let captureBusy=false;
 async function cdp(target,method,params={}){return chrome.debugger.sendCommand(target,method,params)}
 async function capture(url,widths,format,subpage='',returnImages=false){
  const parsed=new URL(url);
