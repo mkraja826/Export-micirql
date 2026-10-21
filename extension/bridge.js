@@ -12,6 +12,15 @@ window.addEventListener('message',async event=>{
  }catch(error){response={ok:false,error:error.message||'Extension capture failed'}}
  window.postMessage({source:'micirql-extension',type:'MICIRQL_CAPTURE_RESULT',id,...response},ORIGIN);
 });
+window.addEventListener('message',async event=>{
+ if(event.source!==window||event.origin!==ORIGIN||event.data?.source!=='micirql-web'||event.data?.type!=='MICIRQL_SEO_READ')return;
+ const {id,url}=event.data;
+ if(typeof id!=='string'||id.length>100||typeof url!=='string')return;
+ let result;
+ try{result=await chrome.runtime.sendMessage({type:'READ_SEO_HTML',url})}
+ catch(error){result={ok:false,error:error.message||'Local inspection failed'}}
+ window.postMessage({source:'micirql-extension',type:'MICIRQL_SEO_RESULT',id,...result},ORIGIN);
+});
 window.postMessage({source:'micirql-extension',type:'MICIRQL_EXTENSION_READY'},ORIGIN);
 
 window.addEventListener('message',event=>{if(event.source===window&&event.origin===ORIGIN&&event.data?.source==='micirql-web'&&event.data?.type==='MICIRQL_EXTENSION_PING')window.postMessage({source:'micirql-extension',type:'MICIRQL_EXTENSION_READY'},ORIGIN)});
