@@ -64,3 +64,21 @@ test('Screenshot API propagates Cloudflare rate limiting',async()=>{
  const body=await response.json();
  assert.equal(body.code,'BROWSER_RATE_LIMITED');
 });
+
+test('Capture readiness reports browser binding presence',async()=>{
+ const response=await worker.fetch(new Request('https://export.micirql.com/api/capture-readiness'),env);
+ const body=await response.json();
+ assert.equal(response.status,200);
+ assert.equal(body.browserConfigured,true);
+});
+test('Screenshot API returns 503 if browser binding is missing',async()=>{
+ const response=await worker.fetch(new Request('https://export.micirql.com/api/screenshot',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({url:'https://example.com',width:375,format:'jpg'})}),{...env,BROWSER:undefined});
+ assert.equal(response.status,503);
+ assert.equal((await response.json()).code,'BROWSER_NOT_CONFIGURED');
+});
+test('429 response includes cooldown guidance',async()=>{
+ const mocked={...env,BROWSER:{quickAction:async()=>({ok:false,status:429})}};
+ const response=await worker.fetch(new Request('https://export.micirql.com/api/screenshot',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({url:'https://example.com',width:375,format:'jpg'})}),mocked);
+ assert.equal(response.headers.get('retry-after'),'120');
+ assert.equal((await response.json()).retryAfterSeconds,120);
+});
