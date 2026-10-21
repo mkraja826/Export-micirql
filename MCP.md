@@ -17,6 +17,7 @@ Clients must send `Authorization: Bearer <token>`. Without the secret, the endpo
 - `list_viewports`: lists 8 widths.
 - `discover_pages`: reads links on the homepage and the site's sitemap, capped at 40 pages.
 - `capture_screenshot`: captures a full-page JPG/PNG at one supported width and returns an MCP image (up to 6 MB).
+- `capture_responsive`: captures a single page at 1–4 distinct supported widths, returning labeled MCP image blocks. Failed widths are reported without stopping other captures.
 
 ## Manual protocol smoke test
 
