@@ -125,7 +125,7 @@ async function exportHandler(request,env){
      gotoOptions:{waitUntil:'domcontentloaded',timeout:30000},
      waitForTimeout:1200
     });
-    if(!result.ok){console.error('Browser screenshot failed',{status:result.status,width:preset.width,host:new URL(url).hostname});return json({error:'Screenshot rendering failed (browser status '+(result.status??'unknown')+'). Please retry or use a smaller width.',code:'BROWSER_CAPTURE_FAILED'},502);}
+    if(!result.ok){console.error('Browser screenshot failed',{status:result.status,width:preset.width,host:new URL(url).hostname});return json({error:result.status===429?'Browser Rendering rate limit reached. Pause captures and retry later.':'Screenshot rendering failed (browser status '+(result.status??'unknown')+').',code:result.status===429?'BROWSER_RATE_LIMITED':'BROWSER_CAPTURE_FAILED',retryable:result.status===429},result.status===429?429:502);}
     return new Response(result.body,{headers:{'content-type':body.format==='jpg'?'image/jpeg':'image/png','content-disposition':'attachment; filename="export-micirql-'+preset.width+'px.'+body.format+'"','cache-control':'no-store'}});
    }catch(e){console.error('Screenshot request error',{message:e?.message});return json({error:e.message||'Screenshot request failed',code:'CAPTURE_ERROR'},/Invalid URL|Only public|Use a public|Unsupported/.test(e.message||'')?400:502);}
   }
