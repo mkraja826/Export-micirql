@@ -125,9 +125,9 @@ async function exportHandler(request,env){
      gotoOptions:{waitUntil:'domcontentloaded',timeout:30000},
      waitForTimeout:1200
     });
-    if(!result.ok)return json({error:'Screenshot service failed',status:result.status},502);
+    if(!result.ok){console.error('Browser screenshot failed',{status:result.status,width:preset.width,host:new URL(url).hostname});return json({error:'Screenshot rendering failed (browser status '+(result.status??'unknown')+'). Please retry or use a smaller width.',code:'BROWSER_CAPTURE_FAILED'},502);}
     return new Response(result.body,{headers:{'content-type':body.format==='jpg'?'image/jpeg':'image/png','content-disposition':'attachment; filename="export-micirql-'+preset.width+'px.'+body.format+'"','cache-control':'no-store'}});
-   }catch(e){return json({error:e.message||'Invalid request'},400);}
+   }catch(e){console.error('Screenshot request error',{message:e?.message});return json({error:e.message||'Screenshot request failed',code:'CAPTURE_ERROR'},/Invalid URL|Only public|Use a public|Unsupported/.test(e.message||'')?400:502);}
   }
   if(path.startsWith('/api/'))return json({error:'Not found'},404);
   return env.ASSETS.fetch(request);
