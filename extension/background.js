@@ -21,11 +21,12 @@ async function capture(url,widths,format,subpage='',returnImages=false){
    await wait(1100);
    const metrics=await cdp(target,'Page.getLayoutMetrics');
    const fullHeight=Math.ceil(metrics.cssContentSize?.height||PRESETS[width]);
+   if(!Number.isFinite(fullHeight)||fullHeight<1)throw Error('Invalid page height returned by Chrome');
    if(fullHeight>16000)throw Error('Page exceeds 16,000px height safety limit');
    const result=await cdp(target,'Page.captureScreenshot',{format,quality:format==='jpeg'?85:undefined,captureBeyondViewport:true,fromSurface:true,clip:{x:0,y:0,width,height:Math.max(PRESETS[width],fullHeight),scale:1}});
    const slug=page.pathname.replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'')||'home';
    const filename='micirql/'+parsed.hostname+'-'+slug+'-'+width+'px.'+(format==='jpeg'?'jpg':'png');
-   if(returnImages){images.push({name:filename.split('/').pop(),data:result.data,mime:'image/'+format});}else{await chrome.downloads.download({url:'data:image/'+format+';base64,'+result.data,filename,saveAs:false,conflictAction:'uniquify'}); }
+   if(returnImages){images.push({name:filename.split('/').pop(),data:result.data,mime:'image/'+format});}else{const downloadId=await chrome.downloads.download({url:'data:image/'+format+';base64,'+result.data,filename,saveAs:false,conflictAction:'uniquify'});if(!Number.isInteger(downloadId))throw Error('Chrome did not accept screenshot download'); }
    count++;
   }
   }
