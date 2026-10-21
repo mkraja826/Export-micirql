@@ -1,0 +1,28 @@
+<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Export Micirql — Website Screenshots</title><style>
+:root{font-family:Inter,system-ui,sans-serif;color:#e8edf7;background:#0b1020}*{box-sizing:border-box}body{margin:0}main{max-width:1050px;margin:55px auto;padding:20px}h1{font-size:clamp(2rem,5vw,3.5rem);letter-spacing:-.05em;margin-bottom:10px}p{color:#9baac3}.panel{background:#151e32;border:1px solid #2b3751;border-radius:18px;padding:24px;margin-top:24px}label{display:block;margin:16px 0 8px}input[type=url],select{background:#0d1425;color:white;border:1px solid #465473;border-radius:10px;padding:14px;width:100%;font:inherit}.presets{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}.preset{background:#0d1425;padding:14px;border:1px solid #34405a;border-radius:10px;cursor:pointer}.preset input{margin-right:9px;accent-color:#7e9aff}.preset small{color:#a8b5ce;display:block;margin:5px 0 0 24px}button{background:#7e9aff;color:#081125;border:0;border-radius:10px;padding:14px 20px;font-weight:700;cursor:pointer;margin-top:20px}button:disabled{opacity:.5;cursor:wait}.results{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}.result{background:#0d1425;border-radius:12px;padding:12px;overflow:hidden}.result img{width:100%;max-height:350px;object-fit:contain;object-position:top;background:white}.result a{color:#a5b9ff}.error{color:#ff9c9c}#zip{margin-left:14px;color:#a5b9ff}
+</style></head><body><main><h1>Export Micirql</h1><p>See your website at every screen size. Capture full-page JPG or PNG screenshots.</p><section class="panel"><form id="form"><label for="url">Website address</label><input id="url" type="url" required placeholder="https://example.com" value="https://example.com"><label>Screen widths</label><div class="presets" id="presets"></div><label for="format">Image format</label><select id="format"><option value="jpg">JPG — smaller files</option><option value="png">PNG — lossless</option></select><button id="capture">Capture screenshots</button></form><p id="status" role="status"></p></section><section class="panel" id="output" hidden><h2>Captures <a id="zip" hidden>Download ZIP</a></h2><div class="results" id="results"></div></section></main><script>
+const presets=[['Small mobile',320,720],['Mobile',375,812],['Large mobile',430,932],['Tablet portrait',768,1024],['Tablet landscape',1024,768],['Desktop',1440,900],['Full HD',1920,1080],['4K',3840,2160]];
+document.querySelector('#presets').innerHTML=presets.map(([name,w,h])=>'<label class="preset"><input type="checkbox" value="'+w+'" checked>'+name+'<small>'+w+' × '+h+'</small></label>').join('');
+const form=document.querySelector('#form'),status=document.querySelector('#status'),output=document.querySelector('#output'),results=document.querySelector('#results'),button=document.querySelector('#capture'),zip=document.querySelector('#zip');
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+form.addEventListener('submit',async e=>{
+ e.preventDefault();button.disabled=true;output.hidden=true;zip.hidden=true;status.textContent='Starting browser captures…';
+ try{
+  const widths=[...document.querySelectorAll('.preset input:checked')].map(x=>Number(x.value));
+  const response=await fetch('/api/capture',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:document.querySelector('#url').value,widths,format:document.querySelector('#format').value})});
+  const data=await response.json();if(!response.ok)throw Error(data.error||'Capture failed');
+  let job;for(let n=0;n<120;n++){await sleep(1500);const r=await fetch('/api/jobs/'+data.id);job=await r.json();status.textContent='Capturing… '+job.results.length+' / '+widths.length;if(job.status!=='running')break;}
+  if(job?.status==='running')throw Error('Capture is still processing. Please try again later.');
+  if(job?.status==='failed')throw Error(job.error||'Capture failed');
+  output.hidden=false;results.replaceChildren();
+  for(const item of job.results){
+   const card=document.createElement('div');card.className='result';
+   const title=document.createElement('h3');title.textContent=item.width+' px';card.append(title);
+   if(item.download){const img=document.createElement('img');img.src=item.download;img.alt='Screenshot at '+item.width+' pixels';card.append(img);const a=document.createElement('a');a.href=item.download;a.textContent='Download '+item.filename;card.append(a);}
+   else{const p=document.createElement('p');p.className='error';p.textContent=item.error;card.append(p);}
+   results.append(card);
+  }
+  zip.href='/api/jobs/'+data.id+'/zip';zip.hidden=false;status.textContent='Capture completed.';
+ }catch(err){status.textContent=err.message;status.className='error';}finally{button.disabled=false;}
+});
+</script></body></html>
