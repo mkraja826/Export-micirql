@@ -1,0 +1,24 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {inspectSeoHtml} from '../src/seo-inspector.js';
+
+test('well formed page has no basic findings',()=>{
+ const html='<html lang="en"><head><title>Example Business</title><meta name="description" content="An example business"><meta name="viewport" content="width=device-width"><link rel="canonical" href="https://example.com/"></head><body><h1>Welcome</h1></body></html>';
+ const report=inspectSeoHtml(html,'https://example.com/');
+ assert.equal(report.title,'Example Business');
+ assert.equal(report.canonical,'https://example.com/');
+ assert.deepEqual(report.findings,[]);
+});
+test('missing metadata yields structured findings',()=>{
+ const report=inspectSeoHtml('<html><body><h1>A</h1><h1>B</h1></body></html>','https://example.com/');
+ assert.equal(report.h1Count,2);
+ assert.ok(report.findings.some(x=>x.code==='missing_title'));
+ assert.ok(report.findings.some(x=>x.code==='heading_count'));
+});
+test('robots noindex is reported without treating it as a fatal error',()=>{
+ const report=inspectSeoHtml('<html lang="en"><head><title>Test</title><meta name="robots" content="noindex"></head><body></body></html>','https://example.com/');
+ assert.ok(report.findings.some(x=>x.code==='noindex'&&x.severity==='info'));
+});
+test('rejects non-string input',()=>{
+ assert.throws(()=>inspectSeoHtml(null,'https://example.com/'));
+});
