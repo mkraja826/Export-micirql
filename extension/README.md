@@ -4,7 +4,7 @@ Load unpacked from chrome://extensions (Developer mode) by selecting this extens
 
 Uses Chrome DevTools Protocol through the debugger permission to emulate viewport sizes and capture full-page images locally. Chrome displays a debugging warning while capture runs. No screenshot pixels are uploaded to MiCirql servers.
 
-Current MVP captures **one URL at a time**. Home plus one subpage, ZIP, cross-browser support, persistent progress and store publication are future milestones. Captures may fail on protected websites or unusually long pages.
+Current MVP captures the entered URL and one optional same-origin subpage, each at selected viewport widths. ZIP, automatic subpage discovery, cross-browser support, persistent progress and store publication are future milestones. Captures may fail on protected websites or unusually long pages.
 
 Security: only http(s) URLs accepted. Chrome's own permissions and networking govern access; this extension is not an SSRF proxy. Do not enter private/intranet URLs unless you intend to capture them locally.
 
