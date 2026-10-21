@@ -17,5 +17,7 @@ jobs:
         run: |
           node --check server.js
           node --check src/worker.js
+      - name: Test MCP protocol and authorization
+        run: node --test tests/mcp.test.mjs
       - name: Validate Cloudflare deployment configuration
         run: npx wrangler deploy --dry-run --outdir dist-worker
