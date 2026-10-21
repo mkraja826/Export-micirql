@@ -12,6 +12,7 @@ const MCP_TOOLS=[
  {name:'discover_pages',description:'Discover internal website pages from homepage links and sitemap.',inputSchema:{type:'object',properties:{url:{type:'string',description:'Public website URL'}},required:['url'],additionalProperties:false}},
  {name:'capture_screenshot',description:'Capture one full-page website screenshot. Returns an image for visual inspection; use the website for bulk exports.',inputSchema:{type:'object',properties:{url:{type:'string'},width:{type:'integer',enum:[320,375,430,768,1024,1440,1920,3840]},format:{type:'string',enum:['jpg','png'],default:'jpg'}},required:['url','width'],additionalProperties:false}},
  {name:'capture_responsive',description:'Capture a single public webpage at up to four selected viewport widths. Returns image blocks for each successful capture. Best for comparing mobile, tablet and desktop.',inputSchema:{type:'object',properties:{url:{type:'string'},widths:{type:'array',items:{type:'integer',enum:[320,375,430,768,1024,1440,1920,3840]},minItems:1,maxItems:4,uniqueItems:true},format:{type:'string',enum:['jpg','png'],default:'jpg'}},required:['url','widths'],additionalProperties:false}},
+ {name:'plan_website_capture',description:'Discover same-origin website pages and prepare a bounded screenshot capture plan. Planning does not run captures or create a ZIP.',inputSchema:{type:'object',properties:{url:{type:'string'},widths:{type:'array',items:{type:'integer',enum:[320,375,430,768,1024,1440,1920,3840]},minItems:1,maxItems:8,uniqueItems:true},maxPages:{type:'integer',minimum:1,maximum:20}},required:['url','widths'],additionalProperties:false}},
  {name:'list_viewports',description:'List supported screenshot viewport sizes.',inputSchema:{type:'object',properties:{},additionalProperties:false}}
 ];
 const rpc=(id,result)=>Response.json({jsonrpc:'2.0',id,result},{headers:{'cache-control':'no-store'}});
@@ -34,6 +35,16 @@ async function mcp(request,env){
  try{
   if(name==='list_viewports')return rpc(id,{content:[{type:'text',text:JSON.stringify(PRESETS)}]});
   const origin=new URL(request.url).origin;
+  if(name==='plan_website_capture'){
+   const widths=args.widths,maxPages=args.maxPages??10;
+   if(!Array.isArray(widths)||widths.length<1||widths.length>8||new Set(widths).size!==widths.length||widths.some(w=>!PRESETS.some(p=>p.width===w))||!Number.isInteger(maxPages)||maxPages<1||maxPages>20)throw Error('Invalid widths or maxPages');
+   const home=publicUrl(args.url);
+   const out=await exportHandler(new Request(origin+'/api/discover',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({url:home})}),env);
+   if(!out.ok)throw Error((await out.json()).error||'Page discovery failed');
+   const discovered=await out.json(),pages=discovered.pages.slice(0,maxPages);
+   const plan={website:home,pages,widths,totalCaptures:pages.length*widths.length,estimatedOnly:true,jobCreated:false,captures:pages.flatMap(p=>widths.map(width=>({url:p.url,width})))};
+   return rpc(id,{content:[{type:'text',text:JSON.stringify(plan)}]});
+  }
   if(name==='discover_pages'){
    const out=await exportHandler(new Request(origin+'/api/discover',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({url:publicUrl(args.url)})}),env);
    if(!out.ok)throw Error((await out.json()).error||'Discovery failed');
