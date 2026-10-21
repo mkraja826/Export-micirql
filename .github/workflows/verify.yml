@@ -14,7 +14,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Run unit tests
+      - name: Run unit and Worker integration tests
         run: npm test
       - name: Validate Worker JavaScript syntax
         run: node --check src/worker.js
