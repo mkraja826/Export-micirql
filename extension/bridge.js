@@ -1,7 +1,8 @@
 // Content-script bridge: only the first-party MiCirql Export origin is permitted.
-const ORIGIN='https://export.micirql.com';
+const ORIGIN=window.location.origin;
+const TRUSTED=['https://export.micirql.com','https://tools.micirql.com'];
 window.addEventListener('message',async event=>{
- if(event.source!==window||event.origin!==ORIGIN||event.data?.source!=='micirql-web'||event.data?.type!=='MICIRQL_CAPTURE')return;
+ if(event.source!==window||!TRUSTED.includes(event.origin)||event.data?.source!=='micirql-web'||event.data?.type!=='MICIRQL_CAPTURE')return;
  const {id,url,subpage='',widths,format}=event.data;
  if(typeof id!=='string'||id.length>100)return;
  let response;
