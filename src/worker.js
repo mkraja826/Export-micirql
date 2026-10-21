@@ -12,6 +12,32 @@ export default {
  async fetch(request,env){
   const path=new URL(request.url).pathname;
   if(path==='/api/presets')return json(PRESETS);
+  if(path==='/api/discover'&&request.method==='POST'){
+   try{
+    const body=await request.json(),home=new URL(publicUrl(body.url)),found=new Map();
+    const add=(raw,label)=>{
+     try{const u=new URL(raw,home);if(u.origin!==home.origin||!['http:','https:'].includes(u.protocol))return;
+      u.hash='';u.search='';const ext=u.pathname.toLowerCase();
+      if(/\.(jpg|jpeg|png|webp|gif|svg|pdf|zip|mp4|css|js|xml)$/i.test(ext))return;
+      if(!found.has(u.href)&&found.size<40)found.set(u.href,{url:u.href,label:(label||u.pathname.replace(/\//g,' ').trim()||'Home').trim().slice(0,70)});
+     }catch{}
+    };
+    add(home.href,'Home');
+    const response=await fetch(home.href,{redirect:'manual',headers:{accept:'text/html'}});
+    if(response.ok&&(response.headers.get('content-type')||'').includes('text/html')){
+     const html=(await response.text()).slice(0,500000);
+     for(const match of html.matchAll(/<a\b[^>]*href\s*=\s*["']([^"'#]+)["'][^>]*>([\s\S]*?)<\/a>/gi)){
+      add(match[1],match[2].replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim());
+     }
+    }
+    const sitemap=await fetch(new URL('/sitemap.xml',home),{redirect:'manual'});
+    if(sitemap.ok&&(sitemap.headers.get('content-type')||'').match(/xml|text/)){
+     const xml=(await sitemap.text()).slice(0,500000);
+     for(const match of xml.matchAll(/<loc>\s*([^<]+)\s*<\/loc>/gi))add(match[1].replace(/&amp;/g,'&'),'');
+    }
+    return json({pages:[...found.values()]});
+   }catch(e){return json({error:e.message||'Discovery failed'},400);}
+  }
   if(path==='/api/screenshot'&&request.method==='POST'){
    try{
     const body=await request.json();
