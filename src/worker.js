@@ -1,3 +1,4 @@
+import {inspectSeoHtml} from './seo-inspector.js';
 import {getCatalog} from './tool-registry.js';
 const PRESETS=[{width:375,height:812,name:'Mobile'},{width:768,height:1024,name:'Tablet'},{width:1440,height:900,name:'Desktop'}];
 function publicUrl(input){
@@ -14,6 +15,7 @@ const MCP_TOOLS=[
  {name:'capture_screenshot',description:'Capture one full-page website screenshot. Returns an image for visual inspection; use the website for bulk exports.',inputSchema:{type:'object',properties:{url:{type:'string'},width:{type:'integer',enum:[375,768,1440]},format:{type:'string',enum:['jpg','png'],default:'jpg'}},required:['url','width'],additionalProperties:false}},
  {name:'capture_responsive',description:'Capture a single public webpage at up to four selected viewport widths. Returns image blocks for each successful capture. Best for comparing mobile, tablet and desktop.',inputSchema:{type:'object',properties:{url:{type:'string'},widths:{type:'array',items:{type:'integer',enum:[375,768,1440]},minItems:1,maxItems:4,uniqueItems:true},format:{type:'string',enum:['jpg','png'],default:'jpg'}},required:['url','widths'],additionalProperties:false}},
  {name:'plan_website_capture',description:'Discover same-origin website pages and prepare a bounded screenshot capture plan. Planning does not run captures or create a ZIP.',inputSchema:{type:'object',properties:{url:{type:'string'},widths:{type:'array',items:{type:'integer',enum:[375,768,1440]},minItems:1,maxItems:8,uniqueItems:true},maxPages:{type:'integer',minimum:1,maximum:20}},required:['url','widths'],additionalProperties:false}},
+ {name:'audit_seo_html',description:'Audit provided static HTML without fetching a remote website.',inputSchema:{type:'object',properties:{html:{type:'string'},url:{type:'string'}},required:['html','url'],additionalProperties:false}},
  {name:'list_micirql_tools',description:'List MiCirql capabilities and their actual implementation status; planned tools are not executable.',inputSchema:{type:'object',properties:{},additionalProperties:false}},
  {name:'list_viewports',description:'List supported screenshot viewport sizes.',inputSchema:{type:'object',properties:{},additionalProperties:false}}
 ];
@@ -35,6 +37,7 @@ async function mcp(request,env){
  const name=msg.params?.name,args=msg.params?.arguments||{};
  if(!MCP_TOOLS.some(t=>t.name===name))return rpcError(id,-32602,'Unknown tool');
  try{
+  if(name==='audit_seo_html')return rpc(id,{content:[{type:'text',text:JSON.stringify(inspectSeoHtml(args.html,args.url))}]});
   if(name==='list_viewports')return rpc(id,{content:[{type:'text',text:JSON.stringify(PRESETS)}]});
   if(name==='list_micirql_tools')return rpc(id,{content:[{type:'text',text:JSON.stringify(getCatalog())}]});
   const origin=new URL(request.url).origin;
@@ -87,6 +90,13 @@ async function exportHandler(request,env){
   const path=new URL(request.url).pathname;
   if(path==='/mcp')return mcp(request,env);
   if(path==='/api/health')return json({ok:true,service:'MiCirql Export',presets:PRESETS.length,browserConfigured:!!env.BROWSER});
+  if(path==='/api/seo/html'&&request.method==='POST'){
+   try{
+    const body=await request.json();
+    if(typeof body.url!=='string'||body.url.length>2048)throw Error('Invalid page URL');
+    return json(inspectSeoHtml(body.html,body.url));
+   }catch(e){return json({error:e.message||'Invalid SEO audit request'},400)}
+  }
   if(path==='/api/presets')return json(PRESETS);
   if(path==='/api/tools'&&request.method==='GET')return json(getCatalog());
   if(path==='/api/capture-readiness')return json({browserConfigured:!!env.BROWSER,service:'Cloudflare Browser Rendering',note:'Binding presence does not guarantee available quota or screenshot success.'});
