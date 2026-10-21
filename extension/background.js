@@ -37,8 +37,22 @@ async function capture(url,widths,format,subpage='',returnImages=false){
   try{await chrome.tabs.remove(tab.id)}catch{}
  }
 }
+async function readWebsiteHtml(url){
+ const parsed=new URL(url);
+ if(!['https:','http:'].includes(parsed.protocol)||parsed.username||parsed.password)throw Error('Invalid website URL');
+ const tab=await chrome.tabs.create({url:parsed.href,active:false});
+ try{
+  await waitForTab(tab.id);
+  const results=await chrome.scripting.executeScript({target:{tabId:tab.id},func:()=>document.documentElement.outerHTML.slice(0,900000)});
+  return {ok:true,url:parsed.href,html:results[0]?.result||''};
+ }finally{try{await chrome.tabs.remove(tab.id)}catch{}}
+}
 chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
  if(sender.id!==chrome.runtime.id)return false;
+ if(message?.type==='READ_SEO_HTML'){
+  readWebsiteHtml(message.url).then(sendResponse).catch(error=>sendResponse({ok:false,error:error.message||'Inspection failed'}));
+  return true;
+ }
  if(message?.type!=='CAPTURE')return false;
  if(captureBusy){sendResponse({ok:false,error:'A capture is already running. Please wait.'});return false;}
  captureBusy=true;
