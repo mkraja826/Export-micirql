@@ -11,6 +11,7 @@ const json=(body,status=200)=>Response.json(body,{status,headers:{'cache-control
 const MCP_TOOLS=[
  {name:'discover_pages',description:'Discover internal website pages from homepage links and sitemap.',inputSchema:{type:'object',properties:{url:{type:'string',description:'Public website URL'}},required:['url'],additionalProperties:false}},
  {name:'capture_screenshot',description:'Capture one full-page website screenshot. Returns an image for visual inspection; use the website for bulk exports.',inputSchema:{type:'object',properties:{url:{type:'string'},width:{type:'integer',enum:[320,375,430,768,1024,1440,1920,3840]},format:{type:'string',enum:['jpg','png'],default:'jpg'}},required:['url','width'],additionalProperties:false}},
+ {name:'capture_responsive',description:'Capture a single public webpage at up to four selected viewport widths. Returns image blocks for each successful capture. Best for comparing mobile, tablet and desktop.',inputSchema:{type:'object',properties:{url:{type:'string'},widths:{type:'array',items:{type:'integer',enum:[320,375,430,768,1024,1440,1920,3840]},minItems:1,maxItems:4,uniqueItems:true},format:{type:'string',enum:['jpg','png'],default:'jpg'}},required:['url','widths'],additionalProperties:false}},
  {name:'list_viewports',description:'List supported screenshot viewport sizes.',inputSchema:{type:'object',properties:{},additionalProperties:false}}
 ];
 const rpc=(id,result)=>Response.json({jsonrpc:'2.0',id,result},{headers:{'cache-control':'no-store'}});
@@ -37,6 +38,23 @@ async function mcp(request,env){
    const out=await exportHandler(new Request(origin+'/api/discover',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({url:publicUrl(args.url)})}),env);
    if(!out.ok)throw Error((await out.json()).error||'Discovery failed');
    return rpc(id,{content:[{type:'text',text:JSON.stringify(await out.json())}]});
+  }
+  if(name==='capture_responsive'){
+   const widths=args.widths,format=args.format||'jpg';
+   if(!Array.isArray(widths)||widths.length<1||widths.length>4||new Set(widths).size!==widths.length||widths.some(w=>!PRESETS.some(p=>p.width===w))||!['jpg','png'].includes(format))throw Error('Choose 1 to 4 unique supported viewport widths');
+   const url=publicUrl(args.url),content=[];
+   for(const width of widths){
+    try{
+     const out=await exportHandler(new Request(origin+'/api/screenshot',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({url,width,format})}),env);
+     if(!out.ok)throw Error((await out.json()).error||'Screenshot failed');
+     const bytes=new Uint8Array(await out.arrayBuffer());
+     if(bytes.length>6_000_000)throw Error('Image exceeds 6 MB limit');
+     let encoded='';for(let i=0;i<bytes.length;i+=8192)encoded+=String.fromCharCode(...bytes.subarray(i,i+8192));
+     content.push({type:'text',text:width+'px screenshot of '+url});
+     content.push({type:'image',data:btoa(encoded),mimeType:format==='jpg'?'image/jpeg':'image/png'});
+    }catch(e){content.push({type:'text',text:width+'px failed: '+(e.message||'Capture error')})}
+   }
+   return rpc(id,{content,isError:!content.some(c=>c.type==='image')});
   }
   if(name==='capture_screenshot'){
    const width=Number(args.width),format=args.format||'jpg';
