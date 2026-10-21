@@ -109,7 +109,7 @@ async function exportHandler(request,env){
      const xml=(await sitemap.text()).slice(0,500000);
      for(const match of xml.matchAll(/<loc>\s*([^<]+)\s*<\/loc>/gi))add(match[1].replace(/&amp;/g,'&'),'');
     }
-    const mainRoutes=['/','/about','/about-us','/services','/contact','/contact-us'];const clean=p=>p.toLowerCase().replace(/\/$/,'')||'/';const selected=[...found.values()].filter(p=>mainRoutes.includes(clean(new URL(p.url).pathname)));selected.sort((a,b)=>mainRoutes.indexOf(clean(new URL(a.url).pathname))-mainRoutes.indexOf(clean(new URL(b.url).pathname)));return json({pages:selected.slice(0,4)});
+    const mainRoutes=['/','/about','/about-us','/services','/contact','/contact-us'];const clean=p=>p.toLowerCase().replace(/\/$/,'')||'/';const selected=[...found.values()].filter(p=>mainRoutes.includes(clean(new URL(p.url).pathname)));selected.sort((a,b)=>mainRoutes.indexOf(clean(new URL(a.url).pathname))-mainRoutes.indexOf(clean(new URL(b.url).pathname)));return json({pages:selected.slice(0,2)});
    }catch(e){return json({error:e.message||'Discovery failed'},400);}
   }
   if(path==='/api/screenshot'&&request.method==='POST'){
