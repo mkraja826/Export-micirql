@@ -7,7 +7,7 @@ const rpc=(method,params={})=>({jsonrpc:'2.0',id:1,method,params});
 test('MCP requires configured token',async()=>{assert.equal((await worker.fetch(req(rpc('ping')),{...env,MCP_API_TOKEN:undefined})).status,503)});
 test('MCP rejects incorrect token',async()=>{assert.equal((await worker.fetch(req(rpc('ping'),'wrong'),env)).status,401)});
 test('MCP initializes',async()=>{const r=await worker.fetch(req(rpc('initialize',{protocolVersion:'2025-03-26',capabilities:{},clientInfo:{name:'test',version:'1'}})),env);assert.equal(r.status,200);const j=await r.json();assert.equal(j.result.serverInfo.name,'micirql-export')});
-test('MCP lists three tools',async()=>{const j=await(await worker.fetch(req(rpc('tools/list')),env)).json();assert.deepEqual(j.result.tools.map(x=>x.name),['discover_pages','capture_screenshot','list_viewports'])});
+test('MCP lists four tools',async()=>{const j=await(await worker.fetch(req(rpc('tools/list')),env)).json();assert.deepEqual(j.result.tools.map(x=>x.name),['discover_pages','capture_screenshot','capture_responsive','list_viewports'])});
 test('MCP returns viewport presets',async()=>{const j=await(await worker.fetch(req(rpc('tools/call',{name:'list_viewports',arguments:{}})),env)).json();assert.equal(JSON.parse(j.result.content[0].text).length,8)});
 test('MCP returns structured error for unknown tool',async()=>{const j=await(await worker.fetch(req(rpc('tools/call',{name:'missing',arguments:{}})),env)).json();assert.equal(j.error.code,-32602)});
 test('Worker health route responds',async()=>{const j=await(await worker.fetch(new Request('https://export.micirql.com/api/health'),env)).json();assert.equal(j.ok,true)});
@@ -31,4 +31,16 @@ test('MCP rejects private localhost URLs',async()=>{
 test('MCP accepts initialized notification',async()=>{
  const r=await worker.fetch(req({jsonrpc:'2.0',method:'notifications/initialized'}),env);
  assert.equal(r.status,202);
+});
+
+test('Responsive capture returns one image per requested viewport',async()=>{
+ let calls=0;
+ const mocked={...env,BROWSER:{quickAction:async()=>{calls++;return {ok:true,body:new Uint8Array([255,216,255,217])}}}};
+ const j=await(await worker.fetch(req(rpc('tools/call',{name:'capture_responsive',arguments:{url:'https://example.com',widths:[320,768,1440],format:'jpg'}})),mocked)).json();
+ assert.equal(j.result.content.filter(x=>x.type==='image').length,3);
+ assert.equal(calls,3);
+});
+test('Responsive capture rejects oversized batches',async()=>{
+ const j=await(await worker.fetch(req(rpc('tools/call',{name:'capture_responsive',arguments:{url:'https://example.com',widths:[320,375,430,768,1024]}})),env)).json();
+ assert.equal(j.result.isError,true);
 });
