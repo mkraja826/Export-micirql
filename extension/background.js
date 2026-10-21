@@ -36,7 +36,8 @@ async function capture(url,widths,format,subpage='',returnImages=false){
   try{await chrome.tabs.remove(tab.id)}catch{}
  }
 }
-chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
+chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
+ if(sender.id!==chrome.runtime.id)return false;
  if(message?.type!=='CAPTURE')return false;
  if(captureBusy){sendResponse({ok:false,error:'A capture is already running. Please wait.'});return false;}
  captureBusy=true;
