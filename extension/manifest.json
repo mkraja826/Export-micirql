@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "MiCirql Export — Local Website Screenshots",
+  "name": "MiCirql Tools — Website Capture",
   "version": "0.1.0",
-  "description": "Capture full-page website screenshots locally at mobile, tablet and desktop widths.",
+  "description": "Capture website screenshots locally for MiCirql Tools at mobile, tablet and desktop widths.",
   "permissions": [
     "debugger",
     "tabs",
@@ -14,7 +14,7 @@
     "https://*/*"
   ],
   "action": {
-    "default_title": "MiCirql Export",
+    "default_title": "MiCirql Tools",
     "default_popup": "popup.html"
   },
   "background": {
@@ -23,7 +23,8 @@
   "content_scripts": [
     {
       "matches": [
-        "https://export.micirql.com/*"
+        "https://export.micirql.com/*",
+        "https://tools.micirql.com/*"
       ],
       "js": [
         "bridge.js"
