@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "MiCirql Export — Local Website Screenshots",
+  "version": "0.1.0",
+  "description": "Capture full-page website screenshots locally at mobile, tablet and desktop widths.",
+  "permissions": [
+    "debugger",
+    "tabs",
+    "downloads",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
+  "action": {
+    "default_title": "MiCirql Export",
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}
