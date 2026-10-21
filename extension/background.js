@@ -6,7 +6,8 @@ async function waitForTab(tabId,timeout=45000){return new Promise((resolve,rejec
 async function capture(url,widths,format,subpage='',returnImages=false){
  const parsed=new URL(url);
  if(!['http:','https:'].includes(parsed.protocol))throw Error('Enter an HTTP(S) website URL.');
- if(!Array.isArray(widths)||!widths.length||widths.length>3||widths.some(w=>!PRESETS[w])||!['jpeg','png'].includes(format))throw Error('Invalid capture settings.');
+ if(parsed.username||parsed.password)throw Error('URLs with embedded credentials are not supported.');
+ if(!Array.isArray(widths)||!widths.length||widths.length>3||new Set(widths).size!==widths.length||widths.some(w=>!Object.hasOwn(PRESETS,w))||!['jpeg','png'].includes(format))throw Error('Invalid capture settings.');
  const pages=[parsed];if(subpage){const second=new URL(subpage);if(!['http:','https:'].includes(second.protocol)||second.origin!==parsed.origin)throw Error('Subpage must be on the same website.');if(second.href!==parsed.href)pages.push(second);}
  const tab=await chrome.tabs.create({url:parsed.href,active:false});
  const target={tabId:tab.id};let attached=false,count=0;const images=[];
