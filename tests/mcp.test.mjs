@@ -56,3 +56,11 @@ test('Full-site plan returns discovered page-width matrix without capturing',asy
   assert.equal(plan.captures.length,6);
  }finally{globalThis.fetch=oldFetch}
 });
+
+test('Screenshot API propagates Cloudflare rate limiting',async()=>{
+ const mocked={...env,BROWSER:{quickAction:async()=>({ok:false,status:429})}};
+ const response=await worker.fetch(new Request('https://export.micirql.com/api/screenshot',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({url:'https://example.com',width:375,format:'jpg'})}),mocked);
+ assert.equal(response.status,429);
+ const body=await response.json();
+ assert.equal(body.code,'BROWSER_RATE_LIMITED');
+});
