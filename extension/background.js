@@ -36,6 +36,8 @@ async function capture(url,widths,format,subpage='',returnImages=false){
 }
 chrome.runtime.onMessage.addListener((message,_sender,sendResponse)=>{
  if(message?.type!=='CAPTURE')return false;
- capture(message.url,message.widths,message.format,message.subpage,!!message.returnImages).then(sendResponse).catch(error=>sendResponse({ok:false,error:error.message||'Capture failed'}));
+ if(captureBusy){sendResponse({ok:false,error:'A capture is already running. Please wait.'});return false;}
+ captureBusy=true;
+ capture(message.url,message.widths,message.format,message.subpage,!!message.returnImages).then(sendResponse).catch(error=>sendResponse({ok:false,error:error.message||'Capture failed'})).finally(()=>{captureBusy=false});
  return true;
 });
