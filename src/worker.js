@@ -1,3 +1,4 @@
+import {readJsonLimited,PayloadTooLargeError} from './request-limits.js';
 import {inspectSeoHtml} from './seo-inspector.js';
 import {getCatalog} from './tool-registry.js';
 const PRESETS=[{width:375,height:812,name:'Mobile'},{width:768,height:1024,name:'Tablet'},{width:1440,height:900,name:'Desktop'}];
@@ -27,7 +28,7 @@ async function mcp(request,env){
  const auth=request.headers.get('authorization')||'';
  if(auth!==('Bearer '+env.MCP_API_TOKEN))return new Response('Unauthorized',{status:401,headers:{'www-authenticate':'Bearer realm="MiCirql MCP"'}});
  if(Number(request.headers.get('content-length')||0)>1200000)return rpcError(null,-32600,'Request too large',413);
- let msg;try{msg=await request.json()}catch{return rpcError(null,-32700,'Invalid JSON',400)}
+ let msg;try{msg=await readJsonLimited(request,1200000)}catch(e){return rpcError(null,e instanceof PayloadTooLargeError?-32600:-32700,e instanceof PayloadTooLargeError?'Request too large':'Invalid JSON',e instanceof PayloadTooLargeError?413:400)}
  if(!msg||msg.jsonrpc!=='2.0'||typeof msg.method!=='string')return rpcError(msg?.id??null,-32600,'Invalid request',400);
  if(msg.method==='notifications/initialized')return new Response(null,{status:202});
  const id=msg.id??null;
@@ -94,10 +95,10 @@ async function exportHandler(request,env){
   if(path==='/api/seo/html'&&request.method==='POST'){
    if(Number(request.headers.get('content-length')||0)>1100000)return json({error:'Request too large'},413);
    try{
-    const body=await request.json();
+    const body=await readJsonLimited(request,1100000);
     if(typeof body.url!=='string'||body.url.length>2048)throw Error('Invalid page URL');
     return json(inspectSeoHtml(body.html,body.url));
-   }catch(e){return json({error:e.message||'Invalid SEO audit request'},400)}
+   }catch(e){return json({error:e.message||'Invalid SEO audit request'},e instanceof PayloadTooLargeError?413:400)}
   }
   if(path==='/api/presets')return json(PRESETS);
   if(path==='/api/tools'&&request.method==='GET')return json(getCatalog());
