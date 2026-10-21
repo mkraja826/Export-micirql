@@ -7,7 +7,7 @@ function publicUrl(input){
  if(h==='localhost'||h.endsWith('.local')||h.endsWith('.internal')||h.endsWith('.localhost')||/^\d+\.\d+\.\d+\.\d+$/.test(h)||h.includes(':'))throw Error('Use a public domain name');
  return u.href;
 }
-const json=(body,status=200)=>Response.json(body,{status,headers:{'cache-control':'no-store'}});
+const json=(body,status=200,extra={})=>Response.json(body,{status,headers:{'cache-control':'no-store',...extra}});
 const MCP_TOOLS=[
  {name:'discover_pages',description:'Discover internal website pages from homepage links and sitemap.',inputSchema:{type:'object',properties:{url:{type:'string',description:'Public website URL'}},required:['url'],additionalProperties:false}},
  {name:'capture_screenshot',description:'Capture one full-page website screenshot. Returns an image for visual inspection; use the website for bulk exports.',inputSchema:{type:'object',properties:{url:{type:'string'},width:{type:'integer',enum:[320,375,430,768,1024,1440,1920,3840]},format:{type:'string',enum:['jpg','png'],default:'jpg'}},required:['url','width'],additionalProperties:false}},
@@ -85,6 +85,7 @@ async function exportHandler(request,env){
   if(path==='/mcp')return mcp(request,env);
   if(path==='/api/health')return json({ok:true,service:'MiCirql Export',presets:PRESETS.length,browserConfigured:!!env.BROWSER});
   if(path==='/api/presets')return json(PRESETS);
+  if(path==='/api/capture-readiness')return json({browserConfigured:!!env.BROWSER,service:'Cloudflare Browser Rendering',note:'Binding presence does not guarantee available quota or screenshot success.'});
   if(path==='/api/discover'&&request.method==='POST'){
    try{
     const body=await request.json(),home=new URL(publicUrl(body.url)),found=new Map();
@@ -113,6 +114,7 @@ async function exportHandler(request,env){
   }
   if(path==='/api/screenshot'&&request.method==='POST'){
    try{
+    if(!env.BROWSER?.quickAction)return json({error:'Browser Rendering binding is unavailable. Check Cloudflare Worker configuration.',code:'BROWSER_NOT_CONFIGURED'},503);
     const body=await request.json();
     const url=publicUrl(body.url);
     const preset=PRESETS.find(p=>p.width===body.width);
@@ -125,7 +127,7 @@ async function exportHandler(request,env){
      gotoOptions:{waitUntil:'domcontentloaded',timeout:30000},
      waitForTimeout:1200
     });
-    if(!result.ok){console.error('Browser screenshot failed',{status:result.status,width:preset.width,host:new URL(url).hostname});return json({error:result.status===429?'Browser Rendering rate limit reached. Pause captures and retry later.':'Screenshot rendering failed (browser status '+(result.status??'unknown')+').',code:result.status===429?'BROWSER_RATE_LIMITED':'BROWSER_CAPTURE_FAILED',retryable:result.status===429},result.status===429?429:502);}
+    if(!result.ok){console.error('Browser screenshot failed',{status:result.status,width:preset.width,host:new URL(url).hostname});return json({error:result.status===429?'Browser Rendering rate limit reached. Pause captures and retry later.':'Screenshot rendering failed (browser status '+(result.status??'unknown')+').',code:result.status===429?'BROWSER_RATE_LIMITED':'BROWSER_CAPTURE_FAILED',retryable:result.status===429,retryAfterSeconds:result.status===429?120:undefined},result.status===429?429:502,result.status===429?{'retry-after':'120'}:{});}
     return new Response(result.body,{headers:{'content-type':body.format==='jpg'?'image/jpeg':'image/png','content-disposition':'attachment; filename="export-micirql-'+preset.width+'px.'+body.format+'"','cache-control':'no-store'}});
    }catch(e){console.error('Screenshot request error',{message:e?.message});return json({error:e.message||'Screenshot request failed',code:'CAPTURE_ERROR'},/Invalid URL|Only public|Use a public|Unsupported/.test(e.message||'')?400:502);}
   }
