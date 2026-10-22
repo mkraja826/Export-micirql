@@ -27,5 +27,17 @@ jobs:
           node --check public/tools/seo/inspector.js
           node --check extension/background.js
           node --check extension/bridge.js
-      - name: Validate browser extension manifest
-        run: node -e "const fs=require('node:fs'); const m=JSON.parse(fs.readFileSync('extension/manifest.json','utf8')); if(m.manifest_version!==3)process.exit(1)"
+      - name: Validate extension release assets
+        run: node scripts/validate-extension.mjs
+      - name: Build installable extension ZIP
+        run: |
+          mkdir -p dist
+          cd extension
+          zip -q ../dist/micirql-tools-extension.zip manifest.json background.js bridge.js popup.html popup.js offscreen.html zip.js
+      - name: Upload verified extension package
+        uses: actions/upload-artifact@v4
+        with:
+          name: micirql-tools-extension
+          path: dist/micirql-tools-extension.zip
+          if-no-files-found: error
+          retention-days: 30
