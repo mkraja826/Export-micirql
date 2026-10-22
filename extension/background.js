@@ -8,15 +8,16 @@ async function capture(url,widths,format,subpage='',returnImages=false,selectedP
  if(!['http:','https:'].includes(parsed.protocol))throw Error('Enter an HTTP(S) website URL.');
  if(parsed.username||parsed.password)throw Error('URLs with embedded credentials are not supported.');
  if(!Array.isArray(widths)||!widths.length||widths.length>3||new Set(widths).size!==widths.length||widths.some(w=>!Object.hasOwn(PRESETS,w))||!['jpeg','png'].includes(format))throw Error('Invalid capture settings.');
- let pages=[parsed];if(Array.isArray(selectedPages)){if(selectedPages.length>60)throw Error('Select no more than 60 pages per batch.');pages=[...new Set([parsed.href,...selectedPages])].map(value=>new URL(value)).filter(page=>page.origin===parsed.origin&&['http:','https:'].includes(page.protocol)&&!page.username&&!page.password);}else if(subpage){const second=new URL(subpage);if(!['http:','https:'].includes(second.protocol)||second.origin!==parsed.origin)throw Error('Subpage must be on the same website.');if(second.href!==parsed.href)pages.push(second);}
+ let pages=[parsed];if(Array.isArray(selectedPages)){if(selectedPages.length>60)throw Error('Select no more than 60 pages per batch.');pages=[...new Set(selectedPages)].map(value=>new URL(value)).filter(page=>page.origin===parsed.origin&&['http:','https:'].includes(page.protocol)&&!page.username&&!page.password);if(!pages.length)throw Error('No valid pages selected.');}else if(subpage){const second=new URL(subpage);if(!['http:','https:'].includes(second.protocol)||second.origin!==parsed.origin)throw Error('Subpage must be on the same website.');if(second.href!==parsed.href)pages.push(second);}
  const tab=await chrome.tabs.create({url:parsed.href,active:false});
  const target={tabId:tab.id};let attached=false,count=0;const images=[];
  try{
   await waitForTab(tab.id);
   await chrome.debugger.attach(target,'1.3');attached=true;
   await cdp(target,'Page.enable');
+  let currentUrl=parsed.href;
   for(const page of pages){
-   if(page.href!==parsed.href){await chrome.tabs.update(tab.id,{url:page.href});await waitForTab(tab.id);await wait(1200);}
+   if(page.href!==currentUrl){await chrome.tabs.update(tab.id,{url:page.href});await waitForTab(tab.id);await wait(1200);currentUrl=page.href;}
   for(const width of widths){
    await cdp(target,'Emulation.setDeviceMetricsOverride',{width,height:PRESETS[width],deviceScaleFactor:1,mobile:width===375});
    await wait(1100);
@@ -26,7 +27,7 @@ async function capture(url,widths,format,subpage='',returnImages=false,selectedP
    if(fullHeight>16000)throw Error('Page exceeds 16,000px height safety limit');
    const result=await cdp(target,'Page.captureScreenshot',{format,quality:format==='jpeg'?85:undefined,captureBeyondViewport:true,fromSurface:true,clip:{x:0,y:0,width,height:Math.max(PRESETS[width],fullHeight),scale:1}});
    const slug=page.pathname.replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'')||'home';
-   const filename='micirql/'+parsed.hostname+'-'+slug+'-'+width+'px.'+(format==='jpeg'?'jpg':'png');
+   const filename='micirql/'+parsed.hostname+'-'+slug+'-'+pages.indexOf(page)+'-'+width+'px.'+(format==='jpeg'?'jpg':'png');
    if(returnImages){images.push({name:filename.split('/').pop(),data:result.data,mime:'image/'+format});}else{const downloadId=await chrome.downloads.download({url:'data:image/'+format+';base64,'+result.data,filename,saveAs:false,conflictAction:'uniquify'});if(!Number.isInteger(downloadId))throw Error('Chrome did not accept screenshot download'); }
    count++;
   }
