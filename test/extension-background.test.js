@@ -89,7 +89,7 @@ test('screenshot capture applies exactly the three supported viewport widths',as
  assert.deepEqual(commands.filter(x=>x.method==='Emulation.setDeviceMetricsOverride').map(x=>x.params.width),[375,768,1440]);
  assert.deepEqual(commands.filter(x=>x.method==='Emulation.setDeviceMetricsOverride').map(x=>x.params.mobile),[true,false,false]);
  assert.deepEqual(commands.filter(x=>x.method==='Page.captureScreenshot').map(x=>x.params.clip.width),[375,768,1440]);
- assert.deepEqual(result.images.map(x=>x.name.includes('375px')?'375':x.name.includes('768px')?'768':'1440'),['375','768','1440']);
+ assert.deepEqual(Array.from(result.images,x=>x.name.includes('375px')?'375':x.name.includes('768px')?'768':'1440'),['375','768','1440']);
  assert.equal(detached,1);
  assert.equal(removed,1);
 });
