@@ -88,6 +88,9 @@ async function readWebsiteHtml(url){
 }
 chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
  if(sender.id!==chrome.runtime.id)return false;
+ // The first-party site bridge can request page inspection; reject other web-tab senders.
+ const trustedOrigins=new Set(['https://tools.micirql.com','https://export.micirql.com']);
+ if(sender.tab){let senderOrigin;try{senderOrigin=new URL(sender.url||sender.tab.url).origin}catch{return false}if(!trustedOrigins.has(senderOrigin))return false;}
  if(message?.type==='DISCOVER_SUBPAGE'){
   discoverLocalSubpage(message.url).then(sendResponse).catch(error=>sendResponse({ok:false,error:error.message||'Discovery failed'}));
   return true;
