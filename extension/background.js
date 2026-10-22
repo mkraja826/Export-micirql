@@ -3,12 +3,12 @@ const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 let captureBusy=false;
 async function cdp(target,method,params={}){return chrome.debugger.sendCommand(target,method,params)}
 async function waitForTab(tabId,timeout=45000){return new Promise((resolve,reject)=>{let done=false;const cleanup=()=>{chrome.tabs.onUpdated.removeListener(onUpdate);clearTimeout(timer)};const finish=error=>{if(done)return;done=true;cleanup();error?reject(error):resolve()};const onUpdate=(id,change)=>{if(id===tabId&&change.status==='complete')finish()};const timer=setTimeout(()=>finish(Error('Page load timed out')),timeout);chrome.tabs.onUpdated.addListener(onUpdate);chrome.tabs.get(tabId).then(tab=>{if(tab.status==='complete')finish()}).catch(finish)})}
-async function capture(url,widths,format,subpage='',returnImages=false){
+async function capture(url,widths,format,subpage='',returnImages=false,selectedPages=null){
  const parsed=new URL(url);
  if(!['http:','https:'].includes(parsed.protocol))throw Error('Enter an HTTP(S) website URL.');
  if(parsed.username||parsed.password)throw Error('URLs with embedded credentials are not supported.');
  if(!Array.isArray(widths)||!widths.length||widths.length>3||new Set(widths).size!==widths.length||widths.some(w=>!Object.hasOwn(PRESETS,w))||!['jpeg','png'].includes(format))throw Error('Invalid capture settings.');
- const pages=[parsed];if(subpage){const second=new URL(subpage);if(!['http:','https:'].includes(second.protocol)||second.origin!==parsed.origin)throw Error('Subpage must be on the same website.');if(second.href!==parsed.href)pages.push(second);}
+ let pages=[parsed];if(Array.isArray(selectedPages)){if(selectedPages.length>60)throw Error('Select no more than 60 pages per batch.');pages=[...new Set([parsed.href,...selectedPages])].map(value=>new URL(value)).filter(page=>page.origin===parsed.origin&&['http:','https:'].includes(page.protocol)&&!page.username&&!page.password);}else if(subpage){const second=new URL(subpage);if(!['http:','https:'].includes(second.protocol)||second.origin!==parsed.origin)throw Error('Subpage must be on the same website.');if(second.href!==parsed.href)pages.push(second);}
  const tab=await chrome.tabs.create({url:parsed.href,active:false});
  const target={tabId:tab.id};let attached=false,count=0;const images=[];
  try{
@@ -76,6 +76,6 @@ chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
  if(message?.type!=='CAPTURE')return false;
  if(captureBusy){sendResponse({ok:false,error:'A capture is already running. Please wait.'});return false;}
  captureBusy=true;
- capture(message.url,message.widths,message.format,message.subpage,!!message.returnImages).then(sendResponse).catch(error=>sendResponse({ok:false,error:error.message||'Capture failed'})).finally(()=>{captureBusy=false});
+ capture(message.url,message.widths,message.format,message.subpage,!!message.returnImages,message.pages).then(sendResponse).catch(error=>sendResponse({ok:false,error:error.message||'Capture failed'})).finally(()=>{captureBusy=false});
  return true;
 });
