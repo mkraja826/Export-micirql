@@ -23,6 +23,11 @@ test('SEO endpoint rejects oversized request body',async()=>{
  assert.equal(response.status,413);
 });
 
+test('SEO endpoint requires JSON content type',async()=>{
+ const response=await exportHandler(new Request(base+'/api/seo/html',{method:'POST',headers:{'content-type':'text/plain'},body:'hello'}),env);
+ assert.equal(response.status,415);
+});
+
 test('MCP refuses access without token configuration',async()=>{
  const request=new Request(base+'/mcp',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method:'tools/list'})});
  const response=await exportHandler(request,env);
