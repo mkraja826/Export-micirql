@@ -67,3 +67,17 @@ test('QA endpoint rejects local URLs',async()=>{
  const response=await exportHandler(new Request(base+'/api/qa/html',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({url:'http://localhost/',html:'<h1>Hi</h1>'})}),env);
  assert.equal(response.status,400);
 });
+
+
+test('UI endpoint returns source-level findings',async()=>{
+ const response=await exportHandler(new Request(base+'/api/ui/html',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({url:'https://example.com/',html:'<html><body><h1>Hi</h1></body></html>'})}),env);
+ assert.equal(response.status,200);
+ const data=await response.json();
+ assert.equal(data.scope,'static_html_ui_signals_only');
+ assert.ok(data.findings.some(x=>x.code==='missing_viewport'));
+});
+
+test('UI endpoint rejects unsupported content type',async()=>{
+ const response=await exportHandler(new Request(base+'/api/ui/html',{method:'POST',headers:{'content-type':'text/plain'},body:'invalid'}),env);
+ assert.equal(response.status,415);
+});
