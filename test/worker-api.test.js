@@ -40,3 +40,13 @@ test('tool catalog advertises limited SEO availability',async()=>{
  const catalog=await response.json();
  assert.equal(catalog.tools.find(tool=>tool.id==='seo').status,'limited');
 });
+
+
+test('tools domain serves dashboard at root while export domain keeps screenshot homepage',async()=>{
+ const paths=[];
+ const mocked={ASSETS:{fetch:async request=>{paths.push(new URL(request.url).pathname);return new Response('ok')}}};
+ await exportHandler(new Request('https://tools.micirql.com/'),mocked);
+ await exportHandler(new Request('https://tools.micirql.com/tools/screenshots/'),mocked);
+ await exportHandler(new Request('https://export.micirql.com/'),mocked);
+ assert.deepEqual(paths,['/tools/index.html','/index.html','/']);
+});
