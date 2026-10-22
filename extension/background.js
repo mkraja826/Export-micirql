@@ -7,6 +7,38 @@ async function zipMessage(action,extra={}){const response=await chrome.runtime.s
 async function ensureZipDocument(){const url=chrome.runtime.getURL('offscreen.html');const contexts=await chrome.runtime.getContexts({contextTypes:['OFFSCREEN_DOCUMENT'],documentUrls:[url]});if(!contexts.length)await chrome.offscreen.createDocument({url:'offscreen.html',reasons:['BLOBS'],justification:'Create screenshot ZIP files entirely on the user device.'})}
 async function cdp(target,method,params={}){return chrome.debugger.sendCommand(target,method,params)}
 async function waitForTab(tabId,timeout=45000){return new Promise((resolve,reject)=>{let done=false;const cleanup=()=>{chrome.tabs.onUpdated.removeListener(onUpdate);clearTimeout(timer)};const finish=error=>{if(done)return;done=true;cleanup();error?reject(error):resolve()};const onUpdate=(id,change)=>{if(id===tabId&&change.status==='complete')finish()};const timer=setTimeout(()=>finish(Error('Page load timed out')),timeout);chrome.tabs.onUpdated.addListener(onUpdate);chrome.tabs.get(tabId).then(tab=>{if(tab.status==='complete')finish()}).catch(finish)})}
+// Scroll the current viewport to activate intersection observers, deferred images and reveal animations.
+// Keep the warm-up bounded: very long and infinite-scroll sites must not hang a batch.
+async function warmUpPage(target,viewportHeight){
+ const expression=`(async()=>{
+  const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+  const doc=document.documentElement;
+  const height=()=>Math.max(doc?.scrollHeight||0,document.body?.scrollHeight||0);
+  const step=Math.max(300,Math.floor(${viewportHeight}*0.8));
+  const originalBehavior=doc.style.scrollBehavior;
+  doc.style.scrollBehavior='auto';
+  try{
+   for(let y=0,n=0;y<Math.min(height(),16000)&&n<48;y+=step,n++){
+    window.scrollTo({top:y,behavior:'instant'});
+    await sleep(110);
+   }
+   window.scrollTo({top:Math.min(height(),16000),behavior:'instant'});
+   await sleep(280);
+   const visibleImages=[...document.images].filter(image=>{
+    const rect=image.getBoundingClientRect();
+    return rect.width>0&&rect.height>0;
+   }).slice(0,120);
+   await Promise.race([Promise.all(visibleImages.map(image=>image.decode?.().catch(()=>{})||Promise.resolve())),sleep(2000)]);
+   if(document.fonts?.ready)await Promise.race([document.fonts.ready,sleep(1500)]);
+  }finally{
+   window.scrollTo({top:0,behavior:'instant'});
+   doc.style.scrollBehavior=originalBehavior;
+  }
+  await sleep(300);
+  return true;
+ })()`;
+ await cdp(target,'Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});
+}
 async function capture(url,widths,format,subpage='',returnImages=false,selectedPages=null,zipMode=false){
  const parsed=new URL(url);
  if(!['http:','https:'].includes(parsed.protocol))throw Error('Enter an HTTP(S) website URL.');
@@ -27,10 +59,9 @@ async function capture(url,widths,format,subpage='',returnImages=false,selectedP
   for(const width of widths){
    await cdp(target,'Emulation.setDeviceMetricsOverride',{width,height:PRESETS[width],deviceScaleFactor:1,mobile:width===375});
    await wait(350);
-   // Let browser layout and web fonts settle at each viewport before measuring.
-   await cdp(target,'Runtime.evaluate',{expression:'document.fonts && document.fonts.ready ? document.fonts.ready.then(() => true) : true',awaitPromise:true,returnByValue:true});
-   await cdp(target,'Runtime.evaluate',{expression:'window.scrollTo(0,0); true',returnByValue:true});
-   await wait(450);
+   // Activate lazy-loading and scroll-triggered animations at this width before capture.
+   await warmUpPage(target,PRESETS[width]);
+   await wait(180);
    const metrics=await cdp(target,'Page.getLayoutMetrics');
    const fullHeight=Math.ceil(metrics.cssContentSize?.height||PRESETS[width]);
    if(!Number.isFinite(fullHeight)||fullHeight<1)throw Error('Invalid page height returned by Chrome');
