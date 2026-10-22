@@ -1,5 +1,6 @@
 import {readJsonLimited,PayloadTooLargeError} from './request-limits.js';
 import {inspectSeoHtml} from './seo-inspector.js';
+import {inspectQaHtml} from './qa-inspector.js';
 import {getCatalog} from './tool-registry.js';
 const PRESETS=[{width:375,height:812,name:'Mobile'},{width:768,height:1024,name:'Tablet'},{width:1440,height:900,name:'Desktop'}];
 function publicUrl(input){
@@ -100,6 +101,12 @@ async function exportHandler(request,env){
   }
   if(path==='/mcp')return mcp(request,env);
   if(path==='/api/health')return json({ok:true,service:'MiCirql Export',presets:PRESETS.length,browserConfigured:!!env.BROWSER});
+  if(path==='/api/qa/html'&&request.method==='POST'){
+   if((request.headers.get('content-type')||'').split(';')[0].trim().toLowerCase()!=='application/json')return json({error:'Content-Type must be application/json'},415);
+   if(Number(request.headers.get('content-length')||0)>1100000)return json({error:'Request too large'},413);
+   try{const body=await readJsonLimited(request,1100000);const url=publicUrl(body.url);return json(inspectQaHtml(body.html,url));}
+   catch(e){return json({error:e.message||'Invalid QA request'},e instanceof PayloadTooLargeError?413:400)}
+  }
   if(path==='/api/seo/html'&&request.method==='POST'){
    if((request.headers.get('content-type')||'').split(';')[0].trim().toLowerCase()!=='application/json')return json({error:'Content-Type must be application/json'},415);
    if(Number(request.headers.get('content-length')||0)>1100000)return json({error:'Request too large'},413);
