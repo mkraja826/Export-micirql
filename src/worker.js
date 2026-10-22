@@ -91,17 +91,22 @@ async function mcp(request,env){
 }
 
 async function exportHandler(request,env){
-  const path=new URL(request.url).pathname;
-  if(request.method==='GET'&&env.ASSETS){
-   const host=new URL(request.url).hostname;
-   if(host==='tools.micirql.com'&&['/','/tools/screenshots/','/tools/screenshots'].includes(path)){
-    const u=new URL(request.url);
-    u.pathname=path==='/'?'/tools/index.html':'/index.html';
-    return env.ASSETS.fetch(new Request(u.toString(),request));
-   }
+  const incoming=new URL(request.url);
+  const path=incoming.pathname;
+  // Legacy website URLs move permanently; keep API and MCP routes compatible.
+  if(['GET','HEAD'].includes(request.method)&&incoming.hostname==='export.micirql.com'&&!path.startsWith('/api/')&&path!=='/mcp'){
+    const destination=new URL(incoming);
+    destination.hostname='tools.micirql.com';
+    if(path==='/'||path==='/index.html')destination.pathname='/tools/screenshots/';
+    return Response.redirect(destination.href,308);
+  }
+  if(['GET','HEAD'].includes(request.method)&&env.ASSETS&&incoming.hostname==='tools.micirql.com'&&['/','/tools/screenshots/','/tools/screenshots'].includes(path)){
+    const destination=new URL(incoming);
+    destination.pathname=path==='/'?'/tools/index.html':'/index.html';
+    return env.ASSETS.fetch(new Request(destination.toString(),request));
   }
   if(path==='/mcp')return mcp(request,env);
-  if(path==='/api/health')return json({ok:true,service:'MiCirql Export',presets:PRESETS.length,browserConfigured:!!env.BROWSER});
+  if(path==='/api/health')return json({ok:true,service:'MiCirql Tools',presets:PRESETS.length,browserConfigured:!!env.BROWSER});
   if(path==='/api/ui/html'&&request.method==='POST'){
    if((request.headers.get('content-type')||'').split(';')[0].trim().toLowerCase()!=='application/json')return json({error:'Content-Type must be application/json'},415);
    if(Number(request.headers.get('content-length')||0)>1100000)return json({error:'Request too large'},413);
