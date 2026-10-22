@@ -44,13 +44,11 @@ async function discoverLocalSubpage(url){
  try{
   await waitForTab(tab.id);
   const results=await chrome.scripting.executeScript({target:{tabId:tab.id},func:()=>{
-   const preferred=['/about','/about-us','/services','/contact','/contact-us'];
-   const links=[...document.querySelectorAll('a[href]')].map(a=>{try{return new URL(a.href,location.href)}catch{return null}}).filter(Boolean);
-   const origin=location.origin;
-   for(const path of preferred){const found=links.find(link=>link.origin===origin&&link.pathname.replace(/\/$/,'').toLowerCase()===path);if(found)return found.href}
-   return null;
+   const unique=new Set([location.origin+'/']);
+   for(const a of document.querySelectorAll('a[href]')){try{const link=new URL(a.href,location.href);if(link.origin!==location.origin||!['http:','https:'].includes(link.protocol))continue;link.hash='';link.search='';if(/\.(pdf|jpg|jpeg|png|gif|svg|webp|zip|mp4|mp3)$/i.test(link.pathname))continue;unique.add(link.href);if(unique.size>=60)break}catch{}}
+   return [...unique];
   }});
-  return {ok:true,subpage:results[0]?.result||null};
+  return {ok:true,pages:results[0]?.result||[parsed.href]};
  }finally{try{await chrome.tabs.remove(tab.id)}catch{}}
 }
 async function readWebsiteHtml(url){
