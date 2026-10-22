@@ -83,6 +83,11 @@ async function readWebsiteHtml(url){
  const tab=await chrome.tabs.create({url:parsed.href,active:false});
  try{
   await waitForTab(tab.id);
+  const loaded=await chrome.tabs.get(tab.id);
+  const finalUrl=new URL(loaded.url||'');
+  if(!['http:','https:'].includes(finalUrl.protocol)||finalUrl.origin!==parsed.origin){
+   throw Error('Website redirected to a different origin. Inspect the final URL separately.');
+  }
   const results=await chrome.scripting.executeScript({target:{tabId:tab.id},func:()=>{
    const markup=document.documentElement?.outerHTML||'';
    if(markup.length>900000)return {tooLarge:true,length:markup.length};
@@ -92,7 +97,7 @@ async function readWebsiteHtml(url){
   if(value?.tooLarge)throw Error('Page HTML exceeds the 900 KB capture safety limit. Use a smaller page or paste a shorter HTML document.');
   const html=value?.html||'';
   if(!html.trim())throw Error('No HTML was returned. The page may block extension access.');
-  return {ok:true,url:parsed.href,html};
+  return {ok:true,url:finalUrl.href,html};
  }finally{try{await chrome.tabs.remove(tab.id)}catch{}}
 }
 chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
