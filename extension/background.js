@@ -37,6 +37,22 @@ async function capture(url,widths,format,subpage='',returnImages=false){
   try{await chrome.tabs.remove(tab.id)}catch{}
  }
 }
+async function discoverLocalSubpage(url){
+ const parsed=new URL(url);
+ if(!['http:','https:'].includes(parsed.protocol)||parsed.username||parsed.password)throw Error('Invalid website URL');
+ const tab=await chrome.tabs.create({url:parsed.href,active:false});
+ try{
+  await waitForTab(tab.id);
+  const results=await chrome.scripting.executeScript({target:{tabId:tab.id},func:()=>{
+   const preferred=['/about','/about-us','/services','/contact','/contact-us'];
+   const links=[...document.querySelectorAll('a[href]')].map(a=>{try{return new URL(a.href,location.href)}catch{return null}}).filter(Boolean);
+   const origin=location.origin;
+   for(const path of preferred){const found=links.find(link=>link.origin===origin&&link.pathname.replace(/\/$/,'').toLowerCase()===path);if(found)return found.href}
+   return null;
+  }});
+  return {ok:true,subpage:results[0]?.result||null};
+ }finally{try{await chrome.tabs.remove(tab.id)}catch{}}
+}
 async function readWebsiteHtml(url){
  const parsed=new URL(url);
  if(!['https:','http:'].includes(parsed.protocol)||parsed.username||parsed.password)throw Error('Invalid website URL');
@@ -49,6 +65,10 @@ async function readWebsiteHtml(url){
 }
 chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
  if(sender.id!==chrome.runtime.id)return false;
+ if(message?.type==='DISCOVER_SUBPAGE'){
+  discoverLocalSubpage(message.url).then(sendResponse).catch(error=>sendResponse({ok:false,error:error.message||'Discovery failed'}));
+  return true;
+ }
  if(message?.type==='READ_SEO_HTML'){
   readWebsiteHtml(message.url).then(sendResponse).catch(error=>sendResponse({ok:false,error:error.message||'Inspection failed'}));
   return true;
