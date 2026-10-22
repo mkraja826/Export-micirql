@@ -28,6 +28,7 @@ local.addEventListener('click',()=>{
   clearTimeout(timer);window.removeEventListener('message',onResult);local.disabled=false;local.textContent='Capture HTML with Chrome extension';
   if(!event.data.ok){out.hidden=false;out.textContent=event.data.error||'Local capture failed';return}
   document.getElementById('html').value=event.data.html||'';
+  if(typeof event.data.url==='string')document.getElementById('url').value=event.data.url;
   form.requestSubmit();
  }
  window.addEventListener('message',onResult);
