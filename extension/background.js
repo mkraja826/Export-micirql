@@ -83,8 +83,14 @@ async function readWebsiteHtml(url){
  const tab=await chrome.tabs.create({url:parsed.href,active:false});
  try{
   await waitForTab(tab.id);
-  const results=await chrome.scripting.executeScript({target:{tabId:tab.id},func:()=>document.documentElement.outerHTML.slice(0,900000)});
-  const html=results[0]?.result||'';
+  const results=await chrome.scripting.executeScript({target:{tabId:tab.id},func:()=>{
+   const markup=document.documentElement?.outerHTML||'';
+   if(markup.length>900000)return {tooLarge:true,length:markup.length};
+   return {tooLarge:false,html:markup};
+  }});
+  const value=results[0]?.result;
+  if(value?.tooLarge)throw Error('Page HTML exceeds the 900 KB capture safety limit. Use a smaller page or paste a shorter HTML document.');
+  const html=value?.html||'';
   if(!html.trim())throw Error('No HTML was returned. The page may block extension access.');
   return {ok:true,url:parsed.href,html};
  }finally{try{await chrome.tabs.remove(tab.id)}catch{}}
