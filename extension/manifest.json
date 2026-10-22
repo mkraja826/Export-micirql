@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "MiCirql Tools — Website Capture",
-  "version": "0.3.2",
-  "description": "Capture complete website screenshots locally at mobile, tablet and desktop widths, warming up lazy-loaded sections before each capture.",
+  "version": "0.3.3",
+  "description": "Capture multi-page screenshots locally at 375, 768 and 1440px with enhanced lazy-load and animation settling.",
   "permissions": [
     "debugger",
     "tabs",
