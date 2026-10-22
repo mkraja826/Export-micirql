@@ -18,7 +18,7 @@ test('SEO endpoint returns structured static HTML findings',async()=>{
 });
 
 test('SEO endpoint rejects oversized request body',async()=>{
- const request=new Request(base+'/api/seo/html',{method:'POST',body:JSON.stringify({url:'https://example.com/',html:'x'.repeat(1100000)})});
+ const request=new Request(base+'/api/seo/html',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({url:'https://example.com/',html:'x'.repeat(1100000)})});
  const response=await exportHandler(request,env);
  assert.equal(response.status,413);
 });
