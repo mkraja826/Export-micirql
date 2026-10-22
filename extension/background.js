@@ -14,30 +14,51 @@ async function warmUpPage(target,viewportHeight){
   const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
   const doc=document.documentElement;
   const height=()=>Math.max(doc?.scrollHeight||0,document.body?.scrollHeight||0);
-  const step=Math.max(300,Math.floor(${viewportHeight}*0.8));
+  const step=Math.max(320,Math.floor(${viewportHeight}*0.75));
   const originalBehavior=doc.style.scrollBehavior;
+  const originalScrollY=window.scrollY;
+  const images=[...document.images].slice(0,240);
+  // This temporary capture tab requests eager downloads of images below the fold.
+  const previousLoading=images.map(image=>image.getAttribute('loading'));
+  let steps=0;
   doc.style.scrollBehavior='auto';
   try{
-   for(let y=0,n=0;y<Math.min(height(),16000)&&n<48;y+=step,n++){
-    window.scrollTo({top:y,behavior:'instant'});
-    await sleep(110);
+   images.forEach(image=>image.loading='eager');
+   // Two bounded sweeps trigger lazy content populated during the first pass.
+   for(let pass=0;pass<2;pass++){
+    for(let y=0;y<Math.min(height(),16000)&&steps<96;y+=step,steps++){
+     window.scrollTo(0,y);
+     await sleep(170);
+    }
+    window.scrollTo(0,Math.min(Math.max(0,height()-innerHeight),16000));
+    await sleep(320);
    }
-   window.scrollTo({top:Math.min(height(),16000),behavior:'instant'});
-   await sleep(280);
-   const visibleImages=[...document.images].filter(image=>{
-    const rect=image.getBoundingClientRect();
-    return rect.width>0&&rect.height>0;
-   }).slice(0,120);
-   await Promise.race([Promise.all(visibleImages.map(image=>image.decode?.().catch(()=>{})||Promise.resolve())),sleep(2000)]);
-   if(document.fonts?.ready)await Promise.race([document.fonts.ready,sleep(1500)]);
+   const visibleImages=images.filter(image=>image.getBoundingClientRect().width>0);
+   await Promise.race([
+    Promise.all(visibleImages.map(image=>image.decode?.().catch(()=>{})||Promise.resolve())),
+    sleep(3500)
+   ]);
+   if(document.fonts?.ready)await Promise.race([document.fonts.ready,sleep(1800)]);
+   // Finish finite running reveal effects, but leave perpetual UI animations alone.
+   for(const animation of document.getAnimations?.()||[]){
+    try{
+     const timing=animation.effect?.getComputedTiming?.();
+     if(animation.playState==='running'&&Number.isFinite(timing?.endTime)&&timing.endTime<=8000)animation.finish();
+    }catch{}
+   }
   }finally{
-   window.scrollTo({top:0,behavior:'instant'});
+   images.forEach((image,i)=>{
+    if(previousLoading[i]===null)image.removeAttribute('loading');
+    else image.setAttribute('loading',previousLoading[i]);
+   });
+   window.scrollTo(0,originalScrollY);
    doc.style.scrollBehavior=originalBehavior;
   }
-  await sleep(300);
-  return true;
+  await sleep(500);
+  return {steps,images:images.length};
  })()`;
- await cdp(target,'Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});
+ const result=await cdp(target,'Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});
+ if(result?.exceptionDetails)throw Error('Page preparation JavaScript failed');
 }
 async function capture(url,widths,format,subpage='',returnImages=false,selectedPages=null,zipMode=false){
  const parsed=new URL(url);
