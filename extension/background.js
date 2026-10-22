@@ -53,15 +53,27 @@ async function capture(url,widths,format,subpage='',returnImages=false,selectedP
 async function discoverLocalSubpage(url){
  const parsed=new URL(url);
  if(!['http:','https:'].includes(parsed.protocol)||parsed.username||parsed.password)throw Error('Invalid website URL');
- const tab=await chrome.tabs.create({url:parsed.href,active:false});
+ const normalize=value=>{try{const u=new URL(value,parsed.href);if(u.origin!==parsed.origin||!['http:','https:'].includes(u.protocol)||u.username||u.password)return null;u.hash='';u.search='';if(/\\.(pdf|jpg|jpeg|png|gif|svg|webp|zip|mp4|mp3|woff2?|css|js)$/i.test(u.pathname))return null;return u.href}catch{return null}};
+ const start=normalize(parsed.href);
+ if(!start)throw Error('Invalid starting page');
+ const queued=[start],seen=new Set([start]),visited=new Set(),errors=[];
+ const tab=await chrome.tabs.create({url:start,active:false});
  try{
-  await waitForTab(tab.id);
-  const results=await chrome.scripting.executeScript({target:{tabId:tab.id},func:()=>{
-   const unique=new Set([location.origin+'/']);
-   for(const a of document.querySelectorAll('a[href]')){try{const link=new URL(a.href,location.href);if(link.origin!==location.origin||!['http:','https:'].includes(link.protocol))continue;link.hash='';link.search='';if(/\.(pdf|jpg|jpeg|png|gif|svg|webp|zip|mp4|mp3)$/i.test(link.pathname))continue;unique.add(link.href);if(unique.size>=60)break}catch{}}
-   return [...unique];
-  }});
-  return {ok:true,pages:results[0]?.result||[parsed.href]};
+  while(queued.length&&visited.size<60){
+   const page=queued.shift();
+   try{
+    await chrome.tabs.update(tab.id,{url:page});
+    await waitForTab(tab.id,25000);
+    await wait(300);
+    const results=await chrome.scripting.executeScript({target:{tabId:tab.id},func:()=>[...document.querySelectorAll('a[href]')].map(a=>a.href).slice(0,500)});
+    visited.add(page);
+    for(const value of results[0]?.result||[]){
+     const normalized=normalize(value);
+     if(normalized&&!seen.has(normalized)&&seen.size<60){seen.add(normalized);queued.push(normalized)}
+    }
+   }catch(error){visited.add(page);errors.push({url:page,message:error.message||'Could not inspect page'})}
+  }
+  return {ok:true,pages:[...seen],scanned:visited.size,errors,truncated:queued.length>0};
  }finally{try{await chrome.tabs.remove(tab.id)}catch{}}
 }
 async function readWebsiteHtml(url){
