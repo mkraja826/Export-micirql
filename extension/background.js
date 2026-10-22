@@ -54,7 +54,7 @@ async function capture(url,widths,format,subpage='',returnImages=false,selectedP
 async function discoverLocalSubpage(url){
  const parsed=new URL(url);
  if(!['http:','https:'].includes(parsed.protocol)||parsed.username||parsed.password)throw Error('Invalid website URL');
- const normalize=value=>{try{const u=new URL(value,parsed.href);if(u.origin!==parsed.origin||!['http:','https:'].includes(u.protocol)||u.username||u.password)return null;u.hash='';u.search='';if(/\\.(pdf|jpg|jpeg|png|gif|svg|webp|zip|mp4|mp3|woff2?|css|js)$/i.test(u.pathname))return null;return u.href}catch{return null}};
+ const normalize=value=>{try{const u=new URL(value,parsed.href);if(u.origin!==parsed.origin||!['http:','https:'].includes(u.protocol)||u.username||u.password)return null;u.hash='';u.search='';if(/\.(pdf|jpg|jpeg|png|gif|svg|webp|zip|mp4|mp3|woff2?|css|js)$/i.test(u.pathname))return null;return u.href}catch{return null}};
  const start=normalize(parsed.href);
  if(!start)throw Error('Invalid starting page');
  const queued=[start],seen=new Set([start]),visited=new Set(),errors=[];
