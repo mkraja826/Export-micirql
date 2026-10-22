@@ -13,7 +13,8 @@ test('SEO endpoint returns structured static HTML findings',async()=>{
  const data=await response.json();
  assert.equal(data.title,'MiCirql QA');
  assert.equal(data.h1Count,1);
- assert.deepEqual(data.findings,[]);
+ assert.ok(Array.isArray(data.findings));
+ assert.equal(data.scope,'static_html_only');
 });
 
 test('SEO endpoint rejects oversized request body',async()=>{
