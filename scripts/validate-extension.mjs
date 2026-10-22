@@ -1,5 +1,5 @@
 import {readFileSync,existsSync} from 'node:fs';
-import {resolve,dirname} from 'node:path';
+import {resolve} from 'node:path';
 
 const root=resolve('extension');
 const manifest=JSON.parse(readFileSync(resolve(root,'manifest.json'),'utf8'));
