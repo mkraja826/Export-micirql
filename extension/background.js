@@ -1,6 +1,7 @@
 const PRESETS={375:812,768:1024,1440:900};
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 let captureBusy=false;
+let seoBusy=false;
 async function progress(done,total,state='capturing',message=''){await chrome.storage.local.set({captureProgress:{percent:state==='complete'?100:Math.round(done/Math.max(1,total)*95),done,total,state,message}})}
 async function zipMessage(action,extra={}){const response=await chrome.runtime.sendMessage({target:'ZIP_OFFSCREEN',action,...extra});if(!response?.ok)throw Error(response?.error||'ZIP operation failed');return response}
 async function ensureZipDocument(){const url=chrome.runtime.getURL('offscreen.html');const contexts=await chrome.runtime.getContexts({contextTypes:['OFFSCREEN_DOCUMENT'],documentUrls:[url]});if(!contexts.length)await chrome.offscreen.createDocument({url:'offscreen.html',reasons:['BLOBS'],justification:'Create screenshot ZIP files entirely on the user device.'})}
@@ -83,7 +84,9 @@ async function readWebsiteHtml(url){
  try{
   await waitForTab(tab.id);
   const results=await chrome.scripting.executeScript({target:{tabId:tab.id},func:()=>document.documentElement.outerHTML.slice(0,900000)});
-  return {ok:true,url:parsed.href,html:results[0]?.result||''};
+  const html=results[0]?.result||'';
+  if(!html.trim())throw Error('No HTML was returned. The page may block extension access.');
+  return {ok:true,url:parsed.href,html};
  }finally{try{await chrome.tabs.remove(tab.id)}catch{}}
 }
 chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
@@ -96,7 +99,9 @@ chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
   return true;
  }
  if(message?.type==='READ_SEO_HTML'){
-  readWebsiteHtml(message.url).then(sendResponse).catch(error=>sendResponse({ok:false,error:error.message||'Inspection failed'}));
+  if(seoBusy){sendResponse({ok:false,error:'An HTML inspection is already running. Retry after it finishes.'});return false;}
+  seoBusy=true;
+  readWebsiteHtml(message.url).then(sendResponse).catch(error=>sendResponse({ok:false,error:error.message||'Inspection failed'})).finally(()=>{seoBusy=false});
   return true;
  }
  if(message?.type!=='CAPTURE')return false;
