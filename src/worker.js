@@ -93,6 +93,7 @@ async function exportHandler(request,env){
   if(path==='/mcp')return mcp(request,env);
   if(path==='/api/health')return json({ok:true,service:'MiCirql Export',presets:PRESETS.length,browserConfigured:!!env.BROWSER});
   if(path==='/api/seo/html'&&request.method==='POST'){
+   if((request.headers.get('content-type')||'').split(';')[0].trim().toLowerCase()!=='application/json')return json({error:'Content-Type must be application/json'},415);
    if(Number(request.headers.get('content-length')||0)>1100000)return json({error:'Request too large'},413);
    try{
     const body=await readJsonLimited(request,1100000);
