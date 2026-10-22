@@ -25,7 +25,11 @@ async function capture(url,widths,format,subpage='',returnImages=false,selectedP
    if(page.href!==currentUrl){await chrome.tabs.update(tab.id,{url:page.href});await waitForTab(tab.id);await wait(1200);currentUrl=page.href;}
   for(const width of widths){
    await cdp(target,'Emulation.setDeviceMetricsOverride',{width,height:PRESETS[width],deviceScaleFactor:1,mobile:width===375});
-   await wait(1100);
+   await wait(350);
+   // Let browser layout and web fonts settle at each viewport before measuring.
+   await cdp(target,'Runtime.evaluate',{expression:'document.fonts && document.fonts.ready ? document.fonts.ready.then(() => true) : true',awaitPromise:true,returnByValue:true});
+   await cdp(target,'Runtime.evaluate',{expression:'window.scrollTo(0,0); true',returnByValue:true});
+   await wait(450);
    const metrics=await cdp(target,'Page.getLayoutMetrics');
    const fullHeight=Math.ceil(metrics.cssContentSize?.height||PRESETS[width]);
    if(!Number.isFinite(fullHeight)||fullHeight<1)throw Error('Invalid page height returned by Chrome');
