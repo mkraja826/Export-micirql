@@ -8,7 +8,7 @@ window.addEventListener('message',async event=>{
  let response;
  try{
   if(typeof url!=='string'||!Array.isArray(widths)||widths.length>3||!widths.every(w=>[375,768,1440].includes(w))||!['jpeg','png'].includes(format))throw Error('Invalid capture request');
-  response=await chrome.runtime.sendMessage({type:'CAPTURE',url,subpage,widths,format,returnImages:false});
+  response=await chrome.runtime.sendMessage({type:'CAPTURE',url,subpage,widths,format,returnImages:false,zip:true});
  }catch(error){response={ok:false,error:error.message||'Extension capture failed'}}
  window.postMessage({source:'micirql-extension',type:'MICIRQL_CAPTURE_RESULT',id,...response},ORIGIN);
 });
