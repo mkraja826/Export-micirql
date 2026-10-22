@@ -3,12 +3,14 @@ const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 let captureBusy=false;
 async function cdp(target,method,params={}){return chrome.debugger.sendCommand(target,method,params)}
 async function waitForTab(tabId,timeout=45000){return new Promise((resolve,reject)=>{let done=false;const cleanup=()=>{chrome.tabs.onUpdated.removeListener(onUpdate);clearTimeout(timer)};const finish=error=>{if(done)return;done=true;cleanup();error?reject(error):resolve()};const onUpdate=(id,change)=>{if(id===tabId&&change.status==='complete')finish()};const timer=setTimeout(()=>finish(Error('Page load timed out')),timeout);chrome.tabs.onUpdated.addListener(onUpdate);chrome.tabs.get(tabId).then(tab=>{if(tab.status==='complete')finish()}).catch(finish)})}
-async function capture(url,widths,format,subpage='',returnImages=false,selectedPages=null){
+async function capture(url,widths,format,subpage='',returnImages=false,selectedPages=null,zipMode=false){
  const parsed=new URL(url);
  if(!['http:','https:'].includes(parsed.protocol))throw Error('Enter an HTTP(S) website URL.');
  if(parsed.username||parsed.password)throw Error('URLs with embedded credentials are not supported.');
  if(!Array.isArray(widths)||!widths.length||widths.length>3||new Set(widths).size!==widths.length||widths.some(w=>!Object.hasOwn(PRESETS,w))||!['jpeg','png'].includes(format))throw Error('Invalid capture settings.');
  let pages=[parsed];if(Array.isArray(selectedPages)){if(selectedPages.length>60)throw Error('Select no more than 60 pages per batch.');pages=[...new Set(selectedPages)].map(value=>new URL(value)).filter(page=>page.origin===parsed.origin&&['http:','https:'].includes(page.protocol)&&!page.username&&!page.password);if(!pages.length)throw Error('No valid pages selected.');}else if(subpage){const second=new URL(subpage);if(!['http:','https:'].includes(second.protocol)||second.origin!==parsed.origin)throw Error('Subpage must be on the same website.');if(second.href!==parsed.href)pages.push(second);}
+ if(zipMode){await ensureZipDocument();await zipMessage('START')}
+ await progress(0,pages.length*widths.length);
  const tab=await chrome.tabs.create({url:parsed.href,active:false});
  const target={tabId:tab.id};let attached=false,count=0;const images=[];
  try{
@@ -28,10 +30,13 @@ async function capture(url,widths,format,subpage='',returnImages=false,selectedP
    const result=await cdp(target,'Page.captureScreenshot',{format,quality:format==='jpeg'?85:undefined,captureBeyondViewport:true,fromSurface:true,clip:{x:0,y:0,width,height:Math.max(PRESETS[width],fullHeight),scale:1}});
    const slug=page.pathname.replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'')||'home';
    const filename='micirql/'+parsed.hostname+'-'+slug+'-'+pages.indexOf(page)+'-'+width+'px.'+(format==='jpeg'?'jpg':'png');
-   if(returnImages){images.push({name:filename.split('/').pop(),data:result.data,mime:'image/'+format});}else{const downloadId=await chrome.downloads.download({url:'data:image/'+format+';base64,'+result.data,filename,saveAs:false,conflictAction:'uniquify'});if(!Number.isInteger(downloadId))throw Error('Chrome did not accept screenshot download'); }
+   if(zipMode){await zipMessage('ADD',{name:filename.split('/').pop(),data:result.data})}else if(returnImages){images.push({name:filename.split('/').pop(),data:result.data,mime:'image/'+format});}else{const downloadId=await chrome.downloads.download({url:'data:image/'+format+';base64,'+result.data,filename,saveAs:false,conflictAction:'uniquify'});if(!Number.isInteger(downloadId))throw Error('Chrome did not accept screenshot download'); }
    count++;
+   await progress(count,pages.length*widths.length);
   }
   }
+  if(zipMode){await progress(count,pages.length*widths.length,'packaging','Creating ZIP…');const archive=await zipMessage('FINISH',{filename:'micirql-screenshots.zip'});const id=await chrome.downloads.download({url:archive.url,filename:'micirql-screenshots.zip',saveAs:false,conflictAction:'uniquify'});if(!Number.isInteger(id))throw Error('ZIP download rejected by Chrome')}
+  await progress(count,pages.length*widths.length,'complete','ZIP download started');
   return {ok:true,count,images};
  }finally{
   if(attached){try{await cdp(target,'Emulation.clearDeviceMetricsOverride')}catch{}try{await chrome.debugger.detach(target)}catch{}}
@@ -75,6 +80,6 @@ chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
  if(message?.type!=='CAPTURE')return false;
  if(captureBusy){sendResponse({ok:false,error:'A capture is already running. Please wait.'});return false;}
  captureBusy=true;
- capture(message.url,message.widths,message.format,message.subpage,!!message.returnImages,message.pages).then(sendResponse).catch(error=>sendResponse({ok:false,error:error.message||'Capture failed'})).finally(()=>{captureBusy=false});
+ capture(message.url,message.widths,message.format,message.subpage,!!message.returnImages,message.pages,!!message.zip).then(sendResponse).catch(async error=>{await chrome.storage.local.set({captureProgress:{state:'error',percent:0,message:error.message||'Capture failed'}});sendResponse({ok:false,error:error.message||'Capture failed'})}).finally(()=>{captureBusy=false});
  return true;
 });
