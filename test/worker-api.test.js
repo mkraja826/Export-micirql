@@ -42,15 +42,27 @@ test('tool catalog advertises limited SEO availability',async()=>{
 });
 
 
-test('tools domain serves dashboard at root while export domain keeps screenshot homepage',async()=>{
+test('tools domain serves dashboard and screenshot studio; export redirects',async()=>{
  const paths=[];
  const mocked={ASSETS:{fetch:async request=>{paths.push(new URL(request.url).pathname);return new Response('ok')}}};
- await exportHandler(new Request('https://tools.micirql.com/'),mocked);
- await exportHandler(new Request('https://tools.micirql.com/tools/screenshots/'),mocked);
- await exportHandler(new Request('https://export.micirql.com/'),mocked);
- assert.deepEqual(paths,['/tools/index.html','/index.html','/']);
+ const dashboard=await exportHandler(new Request('https://tools.micirql.com/'),mocked);
+ const studio=await exportHandler(new Request('https://tools.micirql.com/tools/screenshots/'),mocked);
+ const legacy=await exportHandler(new Request('https://export.micirql.com/?url=https%3A%2F%2Fexample.com'),mocked);
+ const legacyGuide=await exportHandler(new Request('https://export.micirql.com/full-page-screenshot/'),mocked);
+ assert.equal(dashboard.status,200);
+ assert.equal(studio.status,200);
+ assert.deepEqual(paths,['/tools/index.html','/index.html']);
+ assert.equal(legacy.status,308);
+ assert.equal(legacy.headers.get('location'),'https://tools.micirql.com/tools/screenshots/?url=https%3A%2F%2Fexample.com');
+ assert.equal(legacyGuide.status,308);
+ assert.equal(legacyGuide.headers.get('location'),'https://tools.micirql.com/full-page-screenshot/');
 });
 
+test('legacy export APIs remain compatible',async()=>{
+ const response=await exportHandler(new Request('https://export.micirql.com/api/presets'),{});
+ assert.equal(response.status,200);
+ assert.equal((await response.json()).length,3);
+});
 
 test('QA endpoint returns bounded static findings',async()=>{
  const response=await exportHandler(new Request(base+'/api/qa/html',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({url:'https://example.com/',html:'<h1>Hi</h1><img src="x">'})}),env);
