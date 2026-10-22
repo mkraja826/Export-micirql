@@ -1,6 +1,9 @@
 const PRESETS={375:812,768:1024,1440:900};
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 let captureBusy=false;
+async function progress(done,total,state='capturing',message=''){await chrome.storage.local.set({captureProgress:{percent:state==='complete'?100:Math.round(done/Math.max(1,total)*95),done,total,state,message}})}
+async function zipMessage(action,extra={}){const response=await chrome.runtime.sendMessage({target:'ZIP_OFFSCREEN',action,...extra});if(!response?.ok)throw Error(response?.error||'ZIP operation failed');return response}
+async function ensureZipDocument(){const url=chrome.runtime.getURL('offscreen.html');const contexts=await chrome.runtime.getContexts({contextTypes:['OFFSCREEN_DOCUMENT'],documentUrls:[url]});if(!contexts.length)await chrome.offscreen.createDocument({url:'offscreen.html',reasons:['BLOBS'],justification:'Create screenshot ZIP files entirely on the user device.'})}
 async function cdp(target,method,params={}){return chrome.debugger.sendCommand(target,method,params)}
 async function waitForTab(tabId,timeout=45000){return new Promise((resolve,reject)=>{let done=false;const cleanup=()=>{chrome.tabs.onUpdated.removeListener(onUpdate);clearTimeout(timer)};const finish=error=>{if(done)return;done=true;cleanup();error?reject(error):resolve()};const onUpdate=(id,change)=>{if(id===tabId&&change.status==='complete')finish()};const timer=setTimeout(()=>finish(Error('Page load timed out')),timeout);chrome.tabs.onUpdated.addListener(onUpdate);chrome.tabs.get(tabId).then(tab=>{if(tab.status==='complete')finish()}).catch(finish)})}
 async function capture(url,widths,format,subpage='',returnImages=false,selectedPages=null,zipMode=false){
