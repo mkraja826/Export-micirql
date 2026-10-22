@@ -50,3 +50,20 @@ test('tools domain serves dashboard at root while export domain keeps screenshot
  await exportHandler(new Request('https://export.micirql.com/'),mocked);
  assert.deepEqual(paths,['/tools/index.html','/index.html','/']);
 });
+
+
+test('QA endpoint returns bounded static findings',async()=>{
+ const response=await exportHandler(new Request(base+'/api/qa/html',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({url:'https://example.com/',html:'<h1>Hi</h1><img src="x">'})}),env);
+ assert.equal(response.status,200);
+ const data=await response.json();
+ assert.equal(data.scope,'static_html_only');
+ assert.ok(data.findings.some(item=>item.code==='missing_image_alt'));
+});
+test('QA endpoint rejects non-JSON bodies',async()=>{
+ const response=await exportHandler(new Request(base+'/api/qa/html',{method:'POST',headers:{'content-type':'text/plain'},body:'hello'}),env);
+ assert.equal(response.status,415);
+});
+test('QA endpoint rejects local URLs',async()=>{
+ const response=await exportHandler(new Request(base+'/api/qa/html',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({url:'http://localhost/',html:'<h1>Hi</h1>'})}),env);
+ assert.equal(response.status,400);
+});
