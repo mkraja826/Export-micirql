@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "MiCirql Tools — Website Capture",
-  "version": "0.3.0",
-  "description": "Capture website screenshots locally for MiCirql Tools at mobile, tablet and desktop widths.",
+  "version": "0.3.1",
+  "description": "Capture multi-page website screenshots locally at 375, 768 and 1440 pixels, with optional private SEO HTML inspection.",
   "permissions": [
     "debugger",
     "tabs",
