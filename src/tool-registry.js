@@ -18,9 +18,9 @@ export const tools = [
   {
     "id": "qa",
     "name": "QA Testing Lab",
-    "description": "Navigation, forms, links, console errors and user journeys.",
-    "status": "planned",
-    "path": null,
+    "description": "Static HTML checks for headings, forms, images and anchors.",
+    "status": "limited",
+    "path": "/tools/qa/",
     "icon": "check-square"
   },
   {
