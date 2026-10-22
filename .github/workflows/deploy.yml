@@ -1,4 +1,4 @@
-name: Deploy MiCirql Export to Cloudflare
+name: Deploy MiCirql Tools to Cloudflare
 on:
   workflow_dispatch:
 jobs:
@@ -23,5 +23,5 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      - name: Verify production routes and browser binding
+      - name: Verify tools domain and legacy redirects
         run: node scripts/smoke-test.mjs
