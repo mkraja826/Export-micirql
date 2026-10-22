@@ -22,3 +22,10 @@ jobs:
         run: node --check src/seo-inspector.js
       - name: Validate request limit syntax
         run: node --check src/request-limits.js
+      - name: Validate SEO browser and extension scripts
+        run: |
+          node --check public/tools/seo/inspector.js
+          node --check extension/background.js
+          node --check extension/bridge.js
+      - name: Validate browser extension manifest
+        run: node -e "const fs=require('node:fs'); const m=JSON.parse(fs.readFileSync('extension/manifest.json','utf8')); if(m.manifest_version!==3)process.exit(1)"
