@@ -4,7 +4,7 @@ export const tools = [
     "name": "Screenshot Studio",
     "description": "Responsive full-page captures, page discovery and ZIP export.",
     "status": "available",
-    "path": "/",
+    "path": "/tools/screenshots/",
     "icon": "camera"
   },
   {
