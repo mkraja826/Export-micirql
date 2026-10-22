@@ -35,3 +35,16 @@ test('QA accepts labeled form input',()=>{
  const result=inspectQaHtml('<h1>Home</h1><label for="query">Search</label><input id="query">','https://example.com/');
  assert.equal(result.findings.length,0);
 });
+
+import {inspectUiHtml} from '../src/ui-inspector.js';
+
+test('UI inspector detects missing viewport and main landmark',()=>{
+ const report=inspectUiHtml('<html><head></head><body><nav>Menu</nav></body></html>','https://example.com/');
+ assert.ok(report.findings.some(x=>x.code==='missing_viewport'));
+ assert.ok(report.findings.some(x=>x.code==='missing_main'));
+});
+
+test('UI inspector reports restricted zoom',()=>{
+ const report=inspectUiHtml('<head><meta name="viewport" content="width=device-width,maximum-scale=1"></head><main>Content</main><nav>Menu</nav>','https://example.com/');
+ assert.ok(report.findings.some(x=>x.code==='zoom_restricted'));
+});
