@@ -22,3 +22,16 @@ test('robots noindex is reported without treating it as a fatal error',()=>{
 test('rejects non-string input',()=>{
  assert.throws(()=>inspectSeoHtml(null,'https://example.com/'));
 });
+
+import {inspectQaHtml} from '../src/qa-inspector.js';
+
+test('QA flags missing heading and image alternative',()=>{
+ const result=inspectQaHtml('<h2>Intro</h2><img src="photo.png">','https://example.com/');
+ assert.ok(result.findings.some(x=>x.code==='missing_h1'));
+ assert.ok(result.findings.some(x=>x.code==='missing_image_alt'));
+});
+
+test('QA accepts labeled form input',()=>{
+ const result=inspectQaHtml('<h1>Home</h1><label for="query">Search</label><input id="query">','https://example.com/');
+ assert.equal(result.findings.length,0);
+});
