@@ -4,7 +4,7 @@ import {resolve} from 'node:path';
 const root=resolve('extension');
 const manifest=JSON.parse(readFileSync(resolve(root,'manifest.json'),'utf8'));
 if(manifest.manifest_version!==3)throw Error('Expected Manifest V3');
-if(!/^\\d+\\.\\d+\\.\\d+$/.test(manifest.version))throw Error('Invalid extension version');
+if(!/^\d+\.\d+\.\d+$/.test(manifest.version))throw Error('Invalid extension version');
 const required=[
  'manifest.json',
  manifest.background?.service_worker,
