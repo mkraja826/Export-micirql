@@ -90,6 +90,14 @@ async function mcp(request,env){
 
 async function exportHandler(request,env){
   const path=new URL(request.url).pathname;
+  if(request.method==='GET'&&env.ASSETS){
+   const host=new URL(request.url).hostname;
+   if(host==='tools.micirql.com'&&['/','/tools/screenshots/','/tools/screenshots'].includes(path)){
+    const u=new URL(request.url);
+    u.pathname=path==='/'?'/tools/index.html':'/index.html';
+    return env.ASSETS.fetch(new Request(u.toString(),request));
+   }
+  }
   if(path==='/mcp')return mcp(request,env);
   if(path==='/api/health')return json({ok:true,service:'MiCirql Export',presets:PRESETS.length,browserConfigured:!!env.BROWSER});
   if(path==='/api/seo/html'&&request.method==='POST'){
