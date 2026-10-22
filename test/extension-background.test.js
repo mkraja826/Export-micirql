@@ -55,3 +55,41 @@ test('HTML inspection rejects an empty HTML response',async()=>{
  assert.match(result.error,/No HTML was returned/);
  assert.equal(h.stats().removed,1);
 });
+
+test('screenshot capture applies exactly the three supported viewport widths',async()=>{
+ let listener,removed=0,detached=0;
+ const commands=[];
+ const chrome={
+  runtime:{id:'micirql-extension',onMessage:{addListener(fn){listener=fn}}},
+  storage:{local:{async set(){}}},
+  tabs:{
+   onUpdated:{addListener(){},removeListener(){}},
+   async create(){return {id:41,status:'complete'}},
+   async get(){return {id:41,status:'complete',url:'https://example.com/'}},
+   async remove(){removed++}
+  },
+  debugger:{
+   async attach(){},
+   async detach(){detached++},
+   async sendCommand(_target,method,params={}){
+    commands.push({method,params});
+    if(method==='Page.getLayoutMetrics')return {cssContentSize:{height:1200}};
+    if(method==='Page.captureScreenshot')return {data:'YWJj'};
+    return {};
+   }
+  }
+ };
+ runInNewContext(background,{chrome,URL,Promise,setTimeout,clearTimeout,console});
+ const result=await new Promise(resolve=>{
+  assert.equal(listener({type:'CAPTURE',url:'https://example.com/',pages:['https://example.com/'],widths:[375,768,1440],format:'png',returnImages:true},{id:'micirql-extension',tab:{url:'https://tools.micirql.com/tools/screenshots/'},url:'https://tools.micirql.com/tools/screenshots/'},resolve),true);
+ });
+ assert.equal(result.ok,true,result.error);
+ assert.equal(result.count,3);
+ assert.equal(result.images.length,3);
+ assert.deepEqual(commands.filter(x=>x.method==='Emulation.setDeviceMetricsOverride').map(x=>x.params.width),[375,768,1440]);
+ assert.deepEqual(commands.filter(x=>x.method==='Emulation.setDeviceMetricsOverride').map(x=>x.params.mobile),[true,false,false]);
+ assert.deepEqual(commands.filter(x=>x.method==='Page.captureScreenshot').map(x=>x.params.clip.width),[375,768,1440]);
+ assert.deepEqual(result.images.map(x=>x.name.includes('375px')?'375':x.name.includes('768px')?'768':'1440'),['375','768','1440']);
+ assert.equal(detached,1);
+ assert.equal(removed,1);
+});
