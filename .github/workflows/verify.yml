@@ -27,6 +27,8 @@ jobs:
           node --check public/tools/seo/inspector.js
           node --check extension/background.js
           node --check extension/bridge.js
+          node --check extension/popup.js
+          node --check extension/zip.js
       - name: Validate extension release assets
         run: node scripts/validate-extension.mjs
       - name: Build installable extension ZIP
@@ -34,6 +36,12 @@ jobs:
           mkdir -p dist
           cd extension
           zip -q ../dist/micirql-tools-extension.zip manifest.json background.js bridge.js popup.html popup.js offscreen.html zip.js
+      - name: Verify generated ZIP archive
+        run: |
+          unzip -t dist/micirql-tools-extension.zip
+          test "$(unzip -Z -1 dist/micirql-tools-extension.zip | wc -l)" -eq 7
+          unzip -Z -1 dist/micirql-tools-extension.zip | grep -Fx 'manifest.json'
+          unzip -Z -1 dist/micirql-tools-extension.zip | grep -Fx 'background.js'
       - name: Upload verified extension package
         uses: actions/upload-artifact@v4
         with:
