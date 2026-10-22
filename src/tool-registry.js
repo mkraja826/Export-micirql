@@ -26,9 +26,9 @@ export const tools = [
   {
     "id": "ui-ux",
     "name": "UI/UX Inspector",
-    "description": "Typography, spacing, hierarchy, colors and usability.",
-    "status": "planned",
-    "path": null,
+    "description": "Limited source-level UI checks for viewport, zoom, landmarks and typography.",
+    "status": "limited",
+    "path": "/tools/ui-ux/",
     "icon": "palette"
   },
   {
