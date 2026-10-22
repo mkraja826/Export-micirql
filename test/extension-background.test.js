@@ -90,6 +90,9 @@ test('screenshot capture applies exactly the three supported viewport widths',as
  assert.deepEqual(commands.filter(x=>x.method==='Emulation.setDeviceMetricsOverride').map(x=>x.params.mobile),[true,false,false]);
  assert.deepEqual(commands.filter(x=>x.method==='Page.captureScreenshot').map(x=>x.params.clip.width),[375,768,1440]);
  assert.equal(commands.filter(x=>x.method==='Runtime.evaluate'&&x.params.expression.includes('visibleImages')).length,3,'Each width must warm up lazy-loaded images');
+ assert.equal(commands.filter(x=>x.method==='Runtime.evaluate'&&x.params.expression.includes('pass<2')).length,3,'Each viewport gets a second scrolling pass');
+ assert.equal(commands.filter(x=>x.method==='Runtime.evaluate'&&x.params.expression.includes("image.loading='eager'")).length,3,'Each viewport starts lazy image requests');
+ assert.equal(commands.filter(x=>x.method==='Runtime.evaluate'&&x.params.expression.includes('animation.finish()')).length,3,'Each viewport settles finite reveal animations');
  const warmups=commands.map((item,index)=>item.method==='Runtime.evaluate'&&item.params.expression.includes('visibleImages')?index:-1).filter(index=>index>=0);
  const screenshots=commands.map((item,index)=>item.method==='Page.captureScreenshot'?index:-1).filter(index=>index>=0);
  assert.ok(warmups.every((index,i)=>index<screenshots[i]),'Warm-up must precede its screenshot');
