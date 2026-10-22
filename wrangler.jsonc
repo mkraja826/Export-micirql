@@ -1,1 +1,26 @@
-{"$schema":"node_modules/wrangler/config-schema.json","name":"export-micirql","main":"src/worker.js","compatibility_date":"2026-10-15","browser":{"binding":"BROWSER"},"assets":{"directory":"./public","binding":"ASSETS"},"routes":[{"pattern":"export.micirql.com","custom_domain":true}],"observability":{"enabled":true}}
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "export-micirql",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-10-15",
+  "browser": {
+    "binding": "BROWSER"
+  },
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
+  },
+  "routes": [
+    {
+      "pattern": "export.micirql.com",
+      "custom_domain": true
+    },
+    {
+      "pattern": "tools.micirql.com",
+      "custom_domain": true
+    }
+  ],
+  "observability": {
+    "enabled": true
+  }
+}
