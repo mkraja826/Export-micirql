@@ -73,7 +73,7 @@ async function discoverLocalSubpage(url){
     }
    }catch(error){visited.add(page);errors.push({url:page,message:error.message||'Could not inspect page'})}
   }
-  return {ok:true,pages:[...seen],scanned:visited.size,errors,truncated:queued.length>0};
+  return {ok:true,pages:[...visited,...queued],scanned:visited.size,errors,truncated:queued.length>0};
  }finally{try{await chrome.tabs.remove(tab.id)}catch{}}
 }
 async function readWebsiteHtml(url){
