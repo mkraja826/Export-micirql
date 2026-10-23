@@ -140,7 +140,6 @@ async function capture(url,widths,format,subpage='',returnImages=false,selectedP
    }
   }
   }
-  }
   if(!count)throw Error('No screenshots succeeded: '+(errors[0]?.error||'Capture failed'));
   if(zipMode){await progress(attempted,pages.length*widths.length,'packaging','Creating ZIP…');const archive=await zipMessage('FINISH',{filename:'micirql-screenshots.zip'});const id=await chrome.downloads.download({url:archive.url,filename:'micirql-screenshots.zip',saveAs:false,conflictAction:'uniquify'});await progress(attempted,pages.length*widths.length,'downloading','Saving ZIP in Chrome…');await waitForDownload(id)}
   await progress(attempted,pages.length*widths.length,'complete',errors.length?count+' saved, '+errors.length+' failed':zipMode?'ZIP download completed':returnImages?'Capture completed':'Image downloads completed');
