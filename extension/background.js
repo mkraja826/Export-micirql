@@ -144,6 +144,12 @@ async function discoverLocalSubpage(url){
     await chrome.tabs.update(tab.id,{url:page});
     await waitForTab(tab.id,25000);
     await wait(300);
+    const loaded=await chrome.tabs.get(tab.id);
+    let finalUrl;
+    try{finalUrl=new URL(loaded.url||'')}catch{throw Error('Could not verify the discovered page URL')}
+    if(finalUrl.origin!==parsed.origin||!['http:','https:'].includes(finalUrl.protocol)){
+     throw Error('Discovery skipped a page redirected outside the selected website');
+    }
     const results=await chrome.scripting.executeScript({target:{tabId:tab.id},func:()=>[...document.querySelectorAll('a[href]')].map(a=>a.href).slice(0,500)});
     visited.add(page);
     for(const value of results[0]?.result||[]){
