@@ -22,7 +22,8 @@ window.addEventListener('message',async event=>{
    listener=(changes,area)=>{
     if(area!=='local'||!changes.captureProgress)return;
     const progress=changes.captureProgress.newValue||{};
-    reply('MICIRQL_CAPTURE_PROGRESS',id,{percent:progress.percent,done:progress.done,total:progress.total,message:progress.message||''});
+    const message=progress.message||(progress.state==='packaging'?'Packaging ZIP…':progress.state==='complete'?'Download started':progress.state==='error'?'Capture failed':'Captured '+(progress.done||0)+' of '+(progress.total||0));
+    reply('MICIRQL_CAPTURE_PROGRESS',id,{percent:progress.percent,done:progress.done,total:progress.total,message});
    };
    chrome.storage.onChanged.addListener(listener);
    result=await chrome.runtime.sendMessage({type:'CAPTURE',url,pages,subpage,widths,format,returnImages:false,zip:!!zip});
