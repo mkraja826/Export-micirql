@@ -158,7 +158,7 @@ test('usable same-origin document recovers after load-event timeout',async()=>{
   scripting:{async executeScript(){return [{result:'interactive'}]}}
  };
  const context={chrome,URL,Promise,setTimeout,clearTimeout};
- runInNewContext(background+'\\nthis.recover=waitForUsableTab;',context);
+ runInNewContext(background+'\nthis.recover=waitForUsableTab;',context);
  await context.recover(7,'https://example.com/slow',1);
 });
 
@@ -168,6 +168,6 @@ test('load-event recovery rejects a different origin',async()=>{
   scripting:{async executeScript(){throw Error('Must not inspect cross-origin document')}}
  };
  const context={chrome,URL,Promise,setTimeout,clearTimeout};
- runInNewContext(background+'\\nthis.recover=waitForUsableTab;',context);
+ runInNewContext(background+'\nthis.recover=waitForUsableTab;',context);
  await assert.rejects(context.recover(7,'https://example.com/',1),/Page load timed out/);
 });
