@@ -39,3 +39,9 @@ test('website does not request Cloudflare Browser Rendering from any screenshot 
  assert.doesNotMatch(studio,/\/api\/screenshot/);
  assert.match(studio,/MICIRQL_CAPTURE/);
 });
+
+test('discovery and full-page capture require a connected extension',()=>{
+ assert.match(studio,/if\(!connected\)throw Error\('Install the free MiCirql extension to discover all website pages/);
+ assert.match(studio,/\$\('#discover'\)\.disabled=!connected/);
+ assert.match(studio,/\$\('#start'\)\.disabled=!connected/);
+});
