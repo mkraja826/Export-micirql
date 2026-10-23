@@ -3,6 +3,11 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
+concurrency:
+  group: micirql-tools-production
+  cancel-in-progress: false
+  push:
+    branches: [main]
 permissions:
   contents: read
 jobs:
