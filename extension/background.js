@@ -27,6 +27,18 @@ async function waitForDownload(downloadId,timeout=180000){
   }).catch(finish);
  });
 }
+// Retry one interrupted ZIP transfer while the local offscreen Blob URL remains valid.
+// A new Chrome download ID is required after an interruption; never mark it complete early.
+async function downloadZipWithRetry(url,filename='micirql-screenshots.zip'){
+ for(let attempt=0;attempt<2;attempt++){
+  const id=await chrome.downloads.download({url,filename,saveAs:false,conflictAction:'uniquify'});
+  try{await waitForDownload(id);return}
+  catch(error){
+   if(attempt===1||!/^Chrome interrupted the screenshot download/.test(error?.message||''))throw error;
+   await progress(0,1,'downloading','ZIP transfer interrupted. Retrying once…');
+  }
+ }
+}
 async function waitForTab(tabId,timeout=45000){return new Promise((resolve,reject)=>{let done=false;const cleanup=()=>{chrome.tabs.onUpdated.removeListener(onUpdate);clearTimeout(timer)};const finish=error=>{if(done)return;done=true;cleanup();error?reject(error):resolve()};const onUpdate=(id,change)=>{if(id===tabId&&change.status==='complete')finish()};const timer=setTimeout(()=>finish(Error('Page load timed out')),timeout);chrome.tabs.onUpdated.addListener(onUpdate);chrome.tabs.get(tabId).then(tab=>{if(tab.status==='complete')finish()}).catch(finish)})}
 // Scroll the current viewport to activate intersection observers, deferred images and reveal animations.
 // Keep the warm-up bounded: very long and infinite-scroll sites must not hang a batch.
@@ -186,7 +198,7 @@ async function capture(url,widths,format,subpage='',returnImages=false,selectedP
   }
   }
   if(!count)throw Error('No screenshots succeeded: '+(errors[0]?.error||'Capture failed'));
-  if(zipMode){await progress(attempted,pages.length*widths.length,'packaging','Creating ZIP…');const archive=await zipMessage('FINISH',{filename:'micirql-screenshots.zip'});const id=await chrome.downloads.download({url:archive.url,filename:'micirql-screenshots.zip',saveAs:false,conflictAction:'uniquify'});await progress(attempted,pages.length*widths.length,'downloading','Saving ZIP in Chrome…');await waitForDownload(id)}
+  if(zipMode){await progress(attempted,pages.length*widths.length,'packaging','Creating ZIP…');const archive=await zipMessage('FINISH',{filename:'micirql-screenshots.zip'});await progress(attempted,pages.length*widths.length,'downloading','Saving ZIP in Chrome…');await downloadZipWithRetry(archive.url)}
   await progress(attempted,pages.length*widths.length,'complete',errors.length?count+' saved, '+errors.length+' failed':zipMode?'ZIP download completed':returnImages?'Capture completed':'Image downloads completed');
   return {ok:true,count,images,errors,warnings};
  }finally{
