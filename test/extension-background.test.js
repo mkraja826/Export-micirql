@@ -40,11 +40,12 @@ test('HTML inspection rejects cross-origin redirects before reading HTML',async(
  assert.deepEqual(h.stats(),{removed:1,created:1,scriptCalls:0});
 });
 
-test('HTML inspection rejects oversized DOM without returning truncated HTML',async()=>{
- const h=harness({dom:{tooLarge:true,length:1000000}});
+test('HTML inspection accepts bounded partial results for oversized DOM',async()=>{
+ const h=harness({dom:{partial:true,originalLength:1000000,html:'<html><head></head><body><h1>Test</h1></body></html>'}});
  const result=await h.send('https://example.com/');
- assert.equal(result.ok,false);
- assert.match(result.error,/safety limit/);
+ assert.equal(result.ok,true);
+ assert.equal(result.partial,true);
+ assert.equal(result.originalLength,1000000);
  assert.equal(h.stats().removed,1);
 });
 
@@ -129,4 +130,23 @@ test('screenshot capture refuses cross-origin redirects and closes the temporary
  assert.equal(captured,0);
  assert.equal(detached,1);
  assert.equal(removed,1);
+});
+
+
+test('tall pages are captured as bounded numbered segments',async()=>{
+ let listener;const clips=[];
+ const chrome={runtime:{id:'micirql-test',onMessage:{addListener(fn){listener=fn}}},storage:{local:{async set(){}}},
+ tabs:{onUpdated:{addListener(){},removeListener(){}},async create(){return {id:71,status:'complete'}},async get(){return {id:71,status:'complete',url:'https://example.com/'}},async remove(){}},
+ debugger:{async attach(){},async detach(){},async sendCommand(_t,method,params={}){
+ if(method==='Page.getLayoutMetrics')return {cssContentSize:{height:25000}};
+ if(method==='Page.captureScreenshot'){clips.push(params.clip);return {data:'YWJj'}};
+ return {};
+ }}};
+ runInNewContext(background,{chrome,URL,Promise,setTimeout,clearTimeout,console});
+ const result=await new Promise(resolve=>listener({type:'CAPTURE',url:'https://example.com/',pages:['https://example.com/'],widths:[375],format:'png',returnImages:true},{id:'micirql-test'},resolve));
+ assert.equal(result.ok,true,result.error);
+ assert.equal(result.count,3);
+ assert.deepEqual(clips.map(x=>x.y),[0,12000,24000]);
+ assert.deepEqual(clips.map(x=>x.height),[12000,12000,1000]);
+ assert.match(result.images[0].name,/part-001-of-3/);
 });
