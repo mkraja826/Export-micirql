@@ -150,3 +150,24 @@ test('tall pages are captured as bounded numbered segments',async()=>{
  assert.deepEqual(clips.map(x=>x.height),[12000,12000,1000]);
  assert.match(result.images[0].name,/part-001-of-3/);
 });
+
+
+test('usable same-origin document recovers after load-event timeout',async()=>{
+ const chrome={
+  tabs:{onUpdated:{addListener(){},removeListener(){}},async get(){return {url:'https://example.com/slow',status:'loading'}}},
+  scripting:{async executeScript(){return [{result:'interactive'}]}}
+ };
+ const context={chrome,URL,Promise,setTimeout,clearTimeout};
+ runInNewContext(background+'\\nthis.recover=waitForUsableTab;',context);
+ await context.recover(7,'https://example.com/slow',1);
+});
+
+test('load-event recovery rejects a different origin',async()=>{
+ const chrome={
+  tabs:{onUpdated:{addListener(){},removeListener(){}},async get(){return {url:'https://other.test/login',status:'loading'}}},
+  scripting:{async executeScript(){throw Error('Must not inspect cross-origin document')}}
+ };
+ const context={chrome,URL,Promise,setTimeout,clearTimeout};
+ runInNewContext(background+'\\nthis.recover=waitForUsableTab;',context);
+ await assert.rejects(context.recover(7,'https://example.com/',1),/Page load timed out/);
+});
