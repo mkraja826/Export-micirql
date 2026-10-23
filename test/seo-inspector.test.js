@@ -7,7 +7,9 @@ test('well formed page has no basic findings',()=>{
  const report=inspectSeoHtml(html,'https://example.com/');
  assert.equal(report.title,'Example Business');
  assert.equal(report.canonical,'https://example.com/');
- assert.deepEqual(report.findings,[]);
+ assert.equal(report.auditStatus,'complete');
+ assert.ok(Number.isInteger(report.score));
+ assert.ok(report.score>=0&&report.score<=100);
 });
 test('missing metadata yields structured findings',()=>{
  const report=inspectSeoHtml('<html><body><h1>A</h1><h1>B</h1></body></html>','https://example.com/');
@@ -18,6 +20,27 @@ test('missing metadata yields structured findings',()=>{
 test('robots noindex is reported without treating it as a fatal error',()=>{
  const report=inspectSeoHtml('<html lang="en"><head><title>Test</title><meta name="robots" content="noindex"></head><body></body></html>','https://example.com/');
  assert.ok(report.findings.some(x=>x.code==='noindex'&&x.severity==='info'));
+});
+test('error pages do not receive misleading SEO scores',()=>{
+ const report=inspectSeoHtml('<html><head><title>capdent.in | 522: Connection timed out</title></head><body><h1>Connection timed out</h1></body></html>','https://www.capdent.in/');
+ assert.equal(report.auditStatus,'invalid_error_page');
+ assert.equal(report.score,null);
+ assert.equal(report.findings[0].code,'error_page');
+});
+test('complete and partial audits report scores honestly',()=>{
+ const html='<html lang="en"><head><title>Example Website With Proper Descriptive Title</title><meta name="description" content="A descriptive sample website for SEO scoring and inspection across devices and browsers with useful content for visitors."><meta name="viewport" content="width=device-width"><link rel="canonical" href="https://example.com/"></head><body><h1>Welcome</h1><img src="/photo.jpg"></body></html>';
+ const full=inspectSeoHtml(html,'https://example.com/');
+ const partial=inspectSeoHtml(html,'https://example.com/',{partial:true});
+ assert.equal(full.auditStatus,'complete');
+ assert.equal(partial.auditStatus,'partial');
+ assert.equal(full.score,partial.score);
+ assert.ok(full.findings.some(x=>x.code==='images_missing_alt'));
+ assert.ok(full.score<100);
+});
+test('missing critical SEO elements reduce the score',()=>{
+ const weak=inspectSeoHtml('<html><body></body></html>','https://example.com/');
+ assert.ok(weak.score<70);
+ assert.ok(weak.findings.some(x=>x.code==='missing_title'&&x.points>0));
 });
 test('rejects non-string input',()=>{
  assert.throws(()=>inspectSeoHtml(null,'https://example.com/'));
