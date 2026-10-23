@@ -28,6 +28,7 @@ test('page discovery skips redirected cross-origin pages before reading links',a
  assert.equal(result.ok,true);
  assert.equal(result.scanned,1);
  assert.equal(result.errors.length,1);
+ assert.deepEqual(Array.from(result.pages),[],'Failed discovery pages must not be offered for bulk capture');
  assert.match(result.errors[0].message,/redirected outside/);
  assert.deepEqual(h.stats(),{scans:0,removed:1});
 });
@@ -36,6 +37,7 @@ test('page discovery continues scanning same-origin landing pages',async()=>{
  const result=await h.scan();
  assert.equal(result.ok,true);
  assert.equal(result.errors.length,0);
+ assert.ok(result.pages.length>0);
  assert.ok(h.stats().scans>0);
  assert.equal(h.stats().removed,1);
 });
