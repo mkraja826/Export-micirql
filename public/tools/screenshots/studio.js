@@ -19,7 +19,7 @@ window.addEventListener('message',event=>{
  if((data.type==='MICIRQL_CAPTURE_RESULT'&&activeRequest.type==='MICIRQL_CAPTURE')||(data.type==='MICIRQL_DISCOVER_RESULT'&&activeRequest.type==='MICIRQL_DISCOVER')){
   const operation=activeRequest.type;activeRequest=null;$('#start').disabled=!connected;$('#discover').disabled=!connected;
   if(!data.ok){setStatus(data.error||'Operation failed.');return}
-  if(operation==='MICIRQL_DISCOVER'){allPages=(data.pages||[]).slice(0,60);renderPages();setStatus('Discovered '+allPages.length+' pages. Choose the ones to capture.');}
+  if(operation==='MICIRQL_DISCOVER'){allPages=(data.pages||[]).slice(0,60);renderPages();const skipped=Array.isArray(data.errors)?data.errors.length:0;setStatus(allPages.length?'Discovered '+allPages.length+' verified pages'+(skipped?' ('+skipped+' skipped after load errors or redirects)':'')+'. Choose the ones to capture.':'No capturable pages were found.'+(skipped?' '+skipped+' page(s) failed to load or redirected away.':''));}
   else{progress.value=100;percentage.textContent='100%';setStatus('Capture complete: '+data.count+' screenshot(s). '+(data.zip?'ZIP download completed.':'Image download started.'))}
  }
 });
