@@ -1,6 +1,7 @@
 const $=selector=>document.querySelector(selector);
 const status=$('#status'),extensionStatus=$('#extension-status'),progress=$('#progress'),percentage=$('#percentage');
 let connected=false,activeRequest=null,allPages=[],captureUrl='';
+const MAX_QUICK_PIXELS=24_000_000;
 
 const bridge=(type,details={})=>window.postMessage({source:'micirql-web',type,...details},location.origin);
 const setStatus=(message)=>{status.textContent=message};
@@ -51,9 +52,22 @@ $('#quick').addEventListener('click',async()=>{
   stream=await navigator.mediaDevices.getDisplayMedia({video:{displaySurface:'browser'},audio:false});
   const track=stream.getVideoTracks()[0],settings=track.getSettings();
   if(settings.displaySurface&&settings.displaySurface!=='browser')throw Error('Select a browser tab, not a window or the entire screen.');
-  const video=document.createElement('video');video.muted=true;video.playsInline=true;video.srcObject=stream;await video.play();
+  const video=document.createElement('video');video.muted=true;video.playsInline=true;video.srcObject=stream;
+  await Promise.race([
+   (async()=>{await video.play();if(video.readyState<2)await new Promise((resolve,reject)=>{video.onloadeddata=resolve;video.onerror=()=>reject(Error('Selected tab video failed to load'));});})(),
+   new Promise((_,reject)=>setTimeout(()=>reject(Error('The selected tab did not provide a video frame in time.')),10000))
+  ]);
+  if(track.readyState==='ended')throw Error('Tab sharing stopped before capture.');
   if(!video.videoWidth||!video.videoHeight)throw Error('The selected tab has not provided an image.');
-  const canvas=document.createElement('canvas');canvas.width=video.videoWidth;canvas.height=video.videoHeight;canvas.getContext('2d').drawImage(video,0,0);
+  if(video.videoWidth*video.videoHeight>MAX_QUICK_PIXELS)throw Error('The selected tab resolution is too large to capture safely.');
+  // Allow a rendered frame to arrive after metadata, avoiding empty first-frame screenshots.
+  if(video.requestVideoFrameCallback)await Promise.race([
+   new Promise(resolve=>video.requestVideoFrameCallback(()=>resolve())),
+   new Promise(resolve=>setTimeout(resolve,500))
+  ]);
+  const canvas=document.createElement('canvas');canvas.width=video.videoWidth;canvas.height=video.videoHeight;
+  const context=canvas.getContext('2d');if(!context)throw Error('Canvas capture is unavailable.');
+  context.drawImage(video,0,0);
   const mime=$('#quick-format').value==='png'?'image/png':'image/jpeg';
   const blob=await new Promise(resolve=>canvas.toBlob(resolve,mime,.88));if(!blob)throw Error('Unable to encode screenshot.');
   const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='micirql-visible-tab-'+Date.now()+'.'+(mime==='image/png'?'png':'jpg');document.body.append(link);link.click();link.remove();
