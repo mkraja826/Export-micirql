@@ -47,11 +47,17 @@ async function warmUpPage(target,viewportHeight){
    images.forEach(image=>image.loading='eager');
    // Two bounded sweeps trigger lazy content populated during the first pass.
    for(let pass=0;pass<2;pass++){
-    for(let y=0;y<Math.min(height(),16000)&&steps<96;y+=step,steps++){
+    // Spread the bounded warm-up across the entire document so images near
+    // the bottom of long pages get a chance to load before segmented capture.
+    const end=Math.min(Math.max(0,height()-innerHeight),480000);
+    const stride=Math.max(step,Math.ceil(end/47));
+    for(let i=0;i<48&&steps<96;i++,steps++){
+     const y=Math.min(end,i*stride);
      window.scrollTo(0,y);
      await sleep(170);
+     if(y===end)break;
     }
-    window.scrollTo(0,Math.min(Math.max(0,height()-innerHeight),16000));
+    window.scrollTo(0,end);
     await sleep(320);
    }
    const visibleImages=images.filter(image=>image.getBoundingClientRect().width>0);
