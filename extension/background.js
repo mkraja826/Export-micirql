@@ -87,6 +87,19 @@ async function warmUpPage(target,viewportHeight){
  const result=await cdp(target,'Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});
  if(result?.exceptionDetails)throw Error('Page preparation JavaScript failed');
 }
+// A timeout can mean the load event never fired despite a usable document.
+// Confirm both the intended origin and DOM readiness before proceeding.
+async function waitForUsableTab(tabId,url,timeout=30000){
+ try{await waitForTab(tabId,timeout)}
+ catch(error){
+  const tab=await chrome.tabs.get(tabId);
+  let requested,actual;
+  try{requested=new URL(url);actual=new URL(tab.url||'')}catch{throw error}
+  if(actual.origin!==requested.origin)throw error;
+  const ready=await chrome.scripting.executeScript({target:{tabId},func:()=>document.readyState});
+  if(!['interactive','complete'].includes(ready?.[0]?.result))throw error;
+ }
+}
 async function capture(url,widths,format,subpage='',returnImages=false,selectedPages=null,zipMode=false){
  const parsed=new URL(url);
  if(!['http:','https:'].includes(parsed.protocol))throw Error('Enter an HTTP(S) website URL.');
@@ -98,7 +111,7 @@ async function capture(url,widths,format,subpage='',returnImages=false,selectedP
  const tab=await chrome.tabs.create({url:parsed.href,active:false});
  const target={tabId:tab.id};let attached=false,count=0,attempted=0;const images=[],errors=[],warnings=[];
  try{
-  await waitForTab(tab.id);
+  await waitForUsableTab(tab.id,parsed.href);
   await chrome.debugger.attach(target,'1.3');attached=true;
   await cdp(target,'Page.enable');
   let currentUrl=parsed.href;
@@ -108,13 +121,7 @@ async function capture(url,widths,format,subpage='',returnImages=false,selectedP
      await chrome.tabs.update(tab.id,{url:page.href});
      // Sites with persistent analytics or loading requests sometimes never emit
      // complete; a timeout is recoverable only if the target document has loaded.
-     try{await waitForTab(tab.id,30000)}
-     catch(error){
-      const check=await chrome.tabs.get(tab.id);
-      if(check.url!==page.href)throw error;
-      const ready=await chrome.scripting.executeScript({target:{tabId:tab.id},func:()=>document.readyState});
-      if(!['interactive','complete'].includes(ready?.[0]?.result))throw error;
-     }
+     await waitForUsableTab(tab.id,page.href);
      await wait(1200);currentUrl=page.href;
     }
     const loaded=await chrome.tabs.get(tab.id);
