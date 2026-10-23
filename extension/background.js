@@ -35,7 +35,7 @@ async function downloadZipWithRetry(url,filename='micirql-screenshots.zip'){
   try{await waitForDownload(id);return}
   catch(error){
    if(attempt===1||!/^Chrome interrupted the screenshot download/.test(error?.message||''))throw error;
-   await progress(0,1,'downloading','ZIP transfer interrupted. Retrying once…');
+   // Preserve the existing download progress while attempting a fresh Chrome transfer.
   }
  }
 }
