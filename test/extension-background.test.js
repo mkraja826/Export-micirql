@@ -100,3 +100,33 @@ test('screenshot capture applies exactly the three supported viewport widths',as
  assert.equal(detached,1);
  assert.equal(removed,1);
 });
+
+test('screenshot capture refuses cross-origin redirects and closes the temporary tab',async()=>{
+ let listener,removed=0,detached=0,captured=0;
+ const chrome={
+  runtime:{id:'micirql-extension',onMessage:{addListener(fn){listener=fn}}},
+  storage:{local:{async set(){}}},
+  tabs:{
+   onUpdated:{addListener(){},removeListener(){}},
+   async create(){return {id:52,status:'complete'}},
+   async get(){return {id:52,status:'complete',url:'https://unexpected-login.test/sign-in'}},
+   async remove(){removed++}
+  },
+  debugger:{
+   async attach(){},async detach(){detached++},
+   async sendCommand(_target,method){
+    if(method==='Page.captureScreenshot')captured++;
+    return {};
+   }
+  }
+ };
+ runInNewContext(background,{chrome,URL,Promise,setTimeout,clearTimeout,console});
+ const result=await new Promise(resolve=>{
+  assert.equal(listener({type:'CAPTURE',url:'https://example.com/',pages:['https://example.com/'],widths:[375],format:'png',returnImages:true},{id:'micirql-extension',tab:{url:'https://tools.micirql.com/tools/screenshots/'},url:'https://tools.micirql.com/tools/screenshots/'},resolve),true);
+ });
+ assert.equal(result.ok,false);
+ assert.match(result.error,/redirected outside/);
+ assert.equal(captured,0);
+ assert.equal(detached,1);
+ assert.equal(removed,1);
+});
