@@ -20,7 +20,7 @@ window.addEventListener('message',event=>{
   const operation=activeRequest.type;activeRequest=null;$('#start').disabled=!connected;$('#discover').disabled=!connected;
   if(!data.ok){setStatus(data.error||'Operation failed.');return}
   if(operation==='MICIRQL_DISCOVER'){allPages=(data.pages||[]).slice(0,60);renderPages();setStatus('Discovered '+allPages.length+' pages. Choose the ones to capture.');}
-  else{progress.value=100;percentage.textContent='100%';setStatus('Capture complete: '+data.count+' screenshot(s). '+(data.zip?'ZIP download started.':'Image download started.'))}
+  else{progress.value=100;percentage.textContent='100%';setStatus('Capture complete: '+data.count+' screenshot(s). '+(data.zip?'ZIP download completed.':'Image download started.'))}
  }
 });
 function renderPages(){const area=$('#pages');area.replaceChildren();for(const [index,url] of allPages.entries()){const label=document.createElement('label');label.className='page';const checkbox=document.createElement('input');checkbox.type='checkbox';checkbox.className='page-check';checkbox.value=url;checkbox.checked=true;const span=document.createElement('span');span.textContent=new URL(url).pathname||'/';label.append(checkbox,span);area.append(label)}$('#page-count').textContent=allPages.length+' pages found'}
