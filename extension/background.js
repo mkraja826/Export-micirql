@@ -97,12 +97,29 @@ async function capture(url,widths,format,subpage='',returnImages=false,selectedP
   await cdp(target,'Page.enable');
   let currentUrl=parsed.href;
   for(const page of pages){
-   if(page.href!==currentUrl){await chrome.tabs.update(tab.id,{url:page.href});await waitForTab(tab.id);await wait(1200);currentUrl=page.href;}
-  // Do not capture a login portal or unrelated site reached by navigation redirects.
-  const loaded=await chrome.tabs.get(tab.id);
-  let loadedUrl;
-  try{loadedUrl=new URL(loaded.url||'')}catch{throw Error('Could not verify the loaded page URL');}
-  if(!['http:','https:'].includes(loadedUrl.protocol)||loadedUrl.origin!==parsed.origin)throw Error('A page redirected outside the selected website: '+page.pathname);
+   try{
+    if(page.href!==currentUrl){
+     await chrome.tabs.update(tab.id,{url:page.href});
+     // Sites with persistent analytics or loading requests sometimes never emit
+     // complete; a timeout is recoverable only if the target document has loaded.
+     try{await waitForTab(tab.id,30000)}
+     catch(error){
+      const check=await chrome.tabs.get(tab.id);
+      if(check.url!==page.href)throw error;
+      const ready=await chrome.scripting.executeScript({target:{tabId:tab.id},func:()=>document.readyState});
+      if(!['interactive','complete'].includes(ready?.[0]?.result))throw error;
+     }
+     await wait(1200);currentUrl=page.href;
+    }
+    const loaded=await chrome.tabs.get(tab.id);
+    let loadedUrl;
+    try{loadedUrl=new URL(loaded.url||'')}catch{throw Error('Could not verify the loaded page URL')}
+    if(!['http:','https:'].includes(loadedUrl.protocol)||loadedUrl.origin!==parsed.origin)throw Error('A page redirected outside the selected website: '+page.pathname);
+   }catch(error){
+    for(const width of widths){errors.push({url:page.href,width,error:error?.message||'Page navigation failed'});attempted++}
+    await progress(attempted,pages.length*widths.length,'capturing','Skipping page after navigation failure');
+    continue;
+   }
   for(const width of widths){
    try{
     await cdp(target,'Emulation.setDeviceMetricsOverride',{width,height:PRESETS[width],deviceScaleFactor:1,mobile:width===375});
@@ -112,26 +129,32 @@ async function capture(url,widths,format,subpage='',returnImages=false,selectedP
     const metrics=await cdp(target,'Page.getLayoutMetrics');
     const fullHeight=Math.ceil(metrics.cssContentSize?.height||PRESETS[width]);
     if(!Number.isFinite(fullHeight)||fullHeight<1)throw Error('Invalid page height returned by Chrome');
-    // Chrome full-page capture is memory intensive. Keep the per-image height bounded,
-    // but continue the batch when an unusually long page exceeds this limit.
-    if(fullHeight>16000)throw Error('Page exceeds 16,000px height safety limit; split the page or use a shorter route');
-    let result;
-    for(let retry=0;retry<3;retry++){
-     try{
-      result=await cdp(target,'Page.captureScreenshot',{format,quality:format==='jpeg'?85:undefined,captureBeyondViewport:true,fromSurface:true,clip:{x:0,y:0,width,height:Math.max(PRESETS[width],fullHeight),scale:1}});
-      if(!result?.data)throw Error('Chrome returned an empty screenshot');
-      break;
-     }catch(error){
-      if(retry===2)throw error;
-      await wait(500*(retry+1));
-     }
-    }
+    // Segment tall pages into bounded screenshots rather than failing the whole page.
+    // Each segment is a separate numbered image, not an inaccurately stitched image.
+    const maxSegment=12000;
+    const segments=Math.ceil(Math.max(PRESETS[width],fullHeight)/maxSegment);
+    if(segments>40)throw Error('Page is too tall for a bounded local export (over 480,000px)');
     const slug=page.pathname.replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'')||'home';
-    const filename='micirql/'+parsed.hostname+'-'+slug+'-'+pages.indexOf(page)+'-'+width+'px.'+(format==='jpeg'?'jpg':'png');
-    if(zipMode){await zipMessage('ADD',{name:filename.split('/').pop(),data:result.data})}
-    else if(returnImages){images.push({name:filename.split('/').pop(),data:result.data,mime:'image/'+format})}
-    else{const downloadId=await chrome.downloads.download({url:'data:image/'+format+';base64,'+result.data,filename,saveAs:false,conflictAction:'uniquify'});await waitForDownload(downloadId)}
-    count++;
+    for(let part=0;part<segments;part++){
+     const y=part*maxSegment;
+     const height=Math.min(maxSegment,Math.max(PRESETS[width],fullHeight)-y);
+     let result;
+     for(let retry=0;retry<3;retry++){
+      try{
+       result=await cdp(target,'Page.captureScreenshot',{format,quality:format==='jpeg'?85:undefined,captureBeyondViewport:true,fromSurface:true,clip:{x:0,y,width,height,scale:1}});
+       if(!result?.data)throw Error('Chrome returned an empty screenshot');
+       break;
+      }catch(error){
+       if(retry===2)throw error;
+       await wait(500*(retry+1));
+      }
+     }
+     const filename='micirql/'+parsed.hostname+'-'+slug+'-'+pages.indexOf(page)+'-'+width+'px'+(segments>1?'-part-'+String(part+1).padStart(3,'0')+'-of-'+segments:'')+'.'+(format==='jpeg'?'jpg':'png');
+     if(zipMode){await zipMessage('ADD',{name:filename.split('/').pop(),data:result.data})}
+     else if(returnImages){images.push({name:filename.split('/').pop(),data:result.data,mime:'image/'+format})}
+     else{const downloadId=await chrome.downloads.download({url:'data:image/'+format+';base64,'+result.data,filename,saveAs:false,conflictAction:'uniquify'});await waitForDownload(downloadId)}
+     count++;
+    }
    }catch(error){
     errors.push({url:page.href,width,error:error?.message||'Screenshot failed'});
    }finally{
