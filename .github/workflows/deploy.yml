@@ -6,8 +6,6 @@ on:
 concurrency:
   group: micirql-tools-production
   cancel-in-progress: false
-  push:
-    branches: [main]
 permissions:
   contents: read
 jobs:
