@@ -6,6 +6,27 @@ async function progress(done,total,state='capturing',message=''){await chrome.st
 async function zipMessage(action,extra={}){const response=await chrome.runtime.sendMessage({target:'ZIP_OFFSCREEN',action,...extra});if(!response?.ok)throw Error(response?.error||'ZIP operation failed');return response}
 async function ensureZipDocument(){const url=chrome.runtime.getURL('offscreen.html');const contexts=await chrome.runtime.getContexts({contextTypes:['OFFSCREEN_DOCUMENT'],documentUrls:[url]});if(!contexts.length)await chrome.offscreen.createDocument({url:'offscreen.html',reasons:['BLOBS'],justification:'Create screenshot ZIP files entirely on the user device.'})}
 async function cdp(target,method,params={}){return chrome.debugger.sendCommand(target,method,params)}
+async function waitForDownload(downloadId,timeout=180000){
+ if(!Number.isInteger(downloadId))throw Error('Chrome did not accept the download');
+ return new Promise((resolve,reject)=>{
+  let finished=false;
+  const cleanup=()=>{clearTimeout(timer);chrome.downloads.onChanged.removeListener(onChange)};
+  const finish=error=>{if(finished)return;finished=true;cleanup();error?reject(error):resolve()};
+  const onChange=change=>{
+   if(change.id!==downloadId)return;
+   if(change.state?.current==='complete')finish();
+   else if(change.state?.current==='interrupted')finish(Error('Chrome interrupted the screenshot download'+(change.error?.current?': '+change.error.current:'')));
+  };
+  const timer=setTimeout(()=>finish(Error('Chrome download confirmation timed out')),timeout);
+  chrome.downloads.onChanged.addListener(onChange);
+  chrome.downloads.search({id:downloadId}).then(items=>{
+   if(finished)return;
+   const state=items?.[0]?.state;
+   if(state==='complete')finish();
+   else if(state==='interrupted')finish(Error('Chrome interrupted the screenshot download'));
+  }).catch(finish);
+ });
+}
 async function waitForTab(tabId,timeout=45000){return new Promise((resolve,reject)=>{let done=false;const cleanup=()=>{chrome.tabs.onUpdated.removeListener(onUpdate);clearTimeout(timer)};const finish=error=>{if(done)return;done=true;cleanup();error?reject(error):resolve()};const onUpdate=(id,change)=>{if(id===tabId&&change.status==='complete')finish()};const timer=setTimeout(()=>finish(Error('Page load timed out')),timeout);chrome.tabs.onUpdated.addListener(onUpdate);chrome.tabs.get(tabId).then(tab=>{if(tab.status==='complete')finish()}).catch(finish)})}
 // Scroll the current viewport to activate intersection observers, deferred images and reveal animations.
 // Keep the warm-up bounded: very long and infinite-scroll sites must not hang a batch.
@@ -100,8 +121,8 @@ async function capture(url,widths,format,subpage='',returnImages=false,selectedP
    await progress(count,pages.length*widths.length);
   }
   }
-  if(zipMode){await progress(count,pages.length*widths.length,'packaging','Creating ZIP…');const archive=await zipMessage('FINISH',{filename:'micirql-screenshots.zip'});const id=await chrome.downloads.download({url:archive.url,filename:'micirql-screenshots.zip',saveAs:false,conflictAction:'uniquify'});if(!Number.isInteger(id))throw Error('ZIP download rejected by Chrome')}
-  await progress(count,pages.length*widths.length,'complete','ZIP download started');
+  if(zipMode){await progress(count,pages.length*widths.length,'packaging','Creating ZIP…');const archive=await zipMessage('FINISH',{filename:'micirql-screenshots.zip'});const id=await chrome.downloads.download({url:archive.url,filename:'micirql-screenshots.zip',saveAs:false,conflictAction:'uniquify'});await progress(count,pages.length*widths.length,'downloading','Saving ZIP in Chrome…');await waitForDownload(id)}
+  await progress(count,pages.length*widths.length,'complete',zipMode?'ZIP download completed':'Capture completed');
   return {ok:true,count,images};
  }finally{
   if(attached){try{await cdp(target,'Emulation.clearDeviceMetricsOverride')}catch{}try{await chrome.debugger.detach(target)}catch{}}
