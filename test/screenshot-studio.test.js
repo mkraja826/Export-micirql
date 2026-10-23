@@ -26,3 +26,16 @@ test('full-page and bulk modes dispatch to the first-party extension bridge',()=
  assert.match(studio,/data\.zip/);
  assert.match(html,/manifest\.json/);
 });
+
+test('Quick Capture waits for a video frame and rejects oversized screenshots',()=>{
+ assert.match(studio,/requestVideoFrameCallback/);
+ assert.match(studio,/video\.readyState/);
+ assert.match(studio,/MAX_QUICK_PIXELS/);
+ assert.match(studio,/track\.readyState==='ended'/);
+ assert.match(studio,/getTracks\(\)\.forEach\(track=>track\.stop\(\)\)/);
+});
+test('website does not request Cloudflare Browser Rendering from any screenshot mode',()=>{
+ assert.doesNotMatch(html,/cloudflare browser rendering/i);
+ assert.doesNotMatch(studio,/\/api\/screenshot/);
+ assert.match(studio,/MICIRQL_CAPTURE/);
+});
