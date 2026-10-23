@@ -42,8 +42,8 @@ test('website does not request Cloudflare Browser Rendering from any screenshot 
 
 test('discovery and full-page capture require a connected extension',()=>{
  assert.match(studio,/if\(!connected\)throw Error\('Install the free MiCirql extension to discover all website pages/);
- assert.match(studio,/\$\('#discover'\)\.disabled=!connected/);
- assert.match(studio,/\$\('#start'\)\.disabled=!connected/);
+ assert.match(studio,/\$\('#discover'\)\.disabled=!connected\|\|busy/);
+ assert.match(studio,/\$\('#start'\)\.disabled=!connected\|\|busy/);
 });
 
 test('website distinguishes incompatible installed extensions from supported ones',()=>{
