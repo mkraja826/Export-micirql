@@ -96,7 +96,7 @@ async function capture(url,widths,format,subpage='',returnImages=false,selectedP
  if(zipMode){await ensureZipDocument();await zipMessage('START')}
  await progress(0,pages.length*widths.length);
  const tab=await chrome.tabs.create({url:parsed.href,active:false});
- const target={tabId:tab.id};let attached=false,count=0,attempted=0;const images=[],errors=[];
+ const target={tabId:tab.id};let attached=false,count=0,attempted=0;const images=[],errors=[],warnings=[];
  try{
   await waitForTab(tab.id);
   await chrome.debugger.attach(target,'1.3');attached=true;
@@ -132,6 +132,15 @@ async function capture(url,widths,format,subpage='',returnImages=false,selectedP
     await wait(350);
     await warmUpPage(target,PRESETS[width]);
     await wait(180);
+    // Advisory only: a successful image export may still contain unloaded assets.
+    // Never inspect image URLs or transfer page content into the warning report.
+    try{
+     const check=await cdp(target,'Runtime.evaluate',{expression:"(()=>({pending:[...document.images].filter(i=>!i.complete).length,broken:[...document.images].filter(i=>i.complete&&i.naturalWidth===0).length}))()",returnByValue:true});
+     const quality=check?.result?.value;
+     if(quality&&Number.isInteger(quality.pending)&&Number.isInteger(quality.broken)&&(quality.pending||quality.broken)){
+      warnings.push({url:page.href,width,pendingImages:quality.pending,brokenImages:quality.broken,message:'Potentially incomplete images'});
+     }
+    }catch{}
     const metrics=await cdp(target,'Page.getLayoutMetrics');
     const fullHeight=Math.ceil(metrics.cssContentSize?.height||PRESETS[width]);
     if(!Number.isFinite(fullHeight)||fullHeight<1)throw Error('Invalid page height returned by Chrome');
@@ -172,7 +181,7 @@ async function capture(url,widths,format,subpage='',returnImages=false,selectedP
   if(!count)throw Error('No screenshots succeeded: '+(errors[0]?.error||'Capture failed'));
   if(zipMode){await progress(attempted,pages.length*widths.length,'packaging','Creating ZIP…');const archive=await zipMessage('FINISH',{filename:'micirql-screenshots.zip'});const id=await chrome.downloads.download({url:archive.url,filename:'micirql-screenshots.zip',saveAs:false,conflictAction:'uniquify'});await progress(attempted,pages.length*widths.length,'downloading','Saving ZIP in Chrome…');await waitForDownload(id)}
   await progress(attempted,pages.length*widths.length,'complete',errors.length?count+' saved, '+errors.length+' failed':zipMode?'ZIP download completed':returnImages?'Capture completed':'Image downloads completed');
-  return {ok:true,count,images,errors};
+  return {ok:true,count,images,errors,warnings};
  }finally{
   if(attached){try{await cdp(target,'Emulation.clearDeviceMetricsOverride')}catch{}try{await chrome.debugger.detach(target)}catch{}}
   try{await chrome.tabs.remove(tab.id)}catch{}
