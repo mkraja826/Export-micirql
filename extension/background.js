@@ -90,7 +90,7 @@ async function capture(url,widths,format,subpage='',returnImages=false,selectedP
  if(zipMode){await ensureZipDocument();await zipMessage('START')}
  await progress(0,pages.length*widths.length);
  const tab=await chrome.tabs.create({url:parsed.href,active:false});
- const target={tabId:tab.id};let attached=false,count=0;const images=[];
+ const target={tabId:tab.id};let attached=false,count=0,attempted=0;const images=[],errors=[];
  try{
   await waitForTab(tab.id);
   await chrome.debugger.attach(target,'1.3');attached=true;
@@ -104,26 +104,47 @@ async function capture(url,widths,format,subpage='',returnImages=false,selectedP
   try{loadedUrl=new URL(loaded.url||'')}catch{throw Error('Could not verify the loaded page URL');}
   if(!['http:','https:'].includes(loadedUrl.protocol)||loadedUrl.origin!==parsed.origin)throw Error('A page redirected outside the selected website: '+page.pathname);
   for(const width of widths){
-   await cdp(target,'Emulation.setDeviceMetricsOverride',{width,height:PRESETS[width],deviceScaleFactor:1,mobile:width===375});
-   await wait(350);
-   // Activate lazy-loading and scroll-triggered animations at this width before capture.
-   await warmUpPage(target,PRESETS[width]);
-   await wait(180);
-   const metrics=await cdp(target,'Page.getLayoutMetrics');
-   const fullHeight=Math.ceil(metrics.cssContentSize?.height||PRESETS[width]);
-   if(!Number.isFinite(fullHeight)||fullHeight<1)throw Error('Invalid page height returned by Chrome');
-   if(fullHeight>16000)throw Error('Page exceeds 16,000px height safety limit');
-   const result=await cdp(target,'Page.captureScreenshot',{format,quality:format==='jpeg'?85:undefined,captureBeyondViewport:true,fromSurface:true,clip:{x:0,y:0,width,height:Math.max(PRESETS[width],fullHeight),scale:1}});
-   const slug=page.pathname.replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'')||'home';
-   const filename='micirql/'+parsed.hostname+'-'+slug+'-'+pages.indexOf(page)+'-'+width+'px.'+(format==='jpeg'?'jpg':'png');
-   if(zipMode){await zipMessage('ADD',{name:filename.split('/').pop(),data:result.data})}else if(returnImages){images.push({name:filename.split('/').pop(),data:result.data,mime:'image/'+format});}else{const downloadId=await chrome.downloads.download({url:'data:image/'+format+';base64,'+result.data,filename,saveAs:false,conflictAction:'uniquify'});await waitForDownload(downloadId); }
-   count++;
-   await progress(count,pages.length*widths.length);
+   try{
+    await cdp(target,'Emulation.setDeviceMetricsOverride',{width,height:PRESETS[width],deviceScaleFactor:1,mobile:width===375});
+    await wait(350);
+    await warmUpPage(target,PRESETS[width]);
+    await wait(180);
+    const metrics=await cdp(target,'Page.getLayoutMetrics');
+    const fullHeight=Math.ceil(metrics.cssContentSize?.height||PRESETS[width]);
+    if(!Number.isFinite(fullHeight)||fullHeight<1)throw Error('Invalid page height returned by Chrome');
+    // Chrome full-page capture is memory intensive. Keep the per-image height bounded,
+    // but continue the batch when an unusually long page exceeds this limit.
+    if(fullHeight>16000)throw Error('Page exceeds 16,000px height safety limit; split the page or use a shorter route');
+    let result;
+    for(let retry=0;retry<3;retry++){
+     try{
+      result=await cdp(target,'Page.captureScreenshot',{format,quality:format==='jpeg'?85:undefined,captureBeyondViewport:true,fromSurface:true,clip:{x:0,y:0,width,height:Math.max(PRESETS[width],fullHeight),scale:1}});
+      if(!result?.data)throw Error('Chrome returned an empty screenshot');
+      break;
+     }catch(error){
+      if(retry===2)throw error;
+      await wait(500*(retry+1));
+     }
+    }
+    const slug=page.pathname.replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'')||'home';
+    const filename='micirql/'+parsed.hostname+'-'+slug+'-'+pages.indexOf(page)+'-'+width+'px.'+(format==='jpeg'?'jpg':'png');
+    if(zipMode){await zipMessage('ADD',{name:filename.split('/').pop(),data:result.data})}
+    else if(returnImages){images.push({name:filename.split('/').pop(),data:result.data,mime:'image/'+format})}
+    else{const downloadId=await chrome.downloads.download({url:'data:image/'+format+';base64,'+result.data,filename,saveAs:false,conflictAction:'uniquify'});await waitForDownload(downloadId)}
+    count++;
+   }catch(error){
+    errors.push({url:page.href,width,error:error?.message||'Screenshot failed'});
+   }finally{
+    attempted++;
+    await progress(attempted,pages.length*widths.length,'capturing',errors.length?errors.length+' capture(s) failed; continuing…':'');
+   }
   }
   }
-  if(zipMode){await progress(count,pages.length*widths.length,'packaging','Creating ZIP…');const archive=await zipMessage('FINISH',{filename:'micirql-screenshots.zip'});const id=await chrome.downloads.download({url:archive.url,filename:'micirql-screenshots.zip',saveAs:false,conflictAction:'uniquify'});await progress(count,pages.length*widths.length,'downloading','Saving ZIP in Chrome…');await waitForDownload(id)}
-  await progress(count,pages.length*widths.length,'complete',zipMode?'ZIP download completed':returnImages?'Capture completed':'Image downloads completed');
-  return {ok:true,count,images};
+  }
+  if(!count)throw Error('No screenshots succeeded: '+(errors[0]?.error||'Capture failed'));
+  if(zipMode){await progress(attempted,pages.length*widths.length,'packaging','Creating ZIP…');const archive=await zipMessage('FINISH',{filename:'micirql-screenshots.zip'});const id=await chrome.downloads.download({url:archive.url,filename:'micirql-screenshots.zip',saveAs:false,conflictAction:'uniquify'});await progress(attempted,pages.length*widths.length,'downloading','Saving ZIP in Chrome…');await waitForDownload(id)}
+  await progress(attempted,pages.length*widths.length,'complete',errors.length?count+' saved, '+errors.length+' failed':zipMode?'ZIP download completed':returnImages?'Capture completed':'Image downloads completed');
+  return {ok:true,count,images,errors};
  }finally{
   if(attached){try{await cdp(target,'Emulation.clearDeviceMetricsOverride')}catch{}try{await chrome.debugger.detach(target)}catch{}}
   try{await chrome.tabs.remove(tab.id)}catch{}
