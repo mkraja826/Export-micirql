@@ -1,11 +1,11 @@
 const $=selector=>document.querySelector(selector);
 const status=$('#status'),extensionStatus=$('#extension-status'),progress=$('#progress'),percentage=$('#percentage');
 let connected=false,activeRequest=null,allPages=[],captureUrl='';
-const widths=[375,768,1440];
+
 const bridge=(type,details={})=>window.postMessage({source:'micirql-web',type,...details},location.origin);
 const setStatus=(message)=>{status.textContent=message};
 const inputUrl=()=>{const value=$('#url').value.trim();const url=new URL(value);if(!['http:','https:'].includes(url.protocol)||url.username||url.password)throw Error('Enter a valid HTTP(S) URL without credentials.');return url.href};
-function selectTab(name){for(const button of document.querySelectorAll('[data-tab]'))button.setAttribute('aria-selected',String(button.dataset.tab===name));for(const panel of document.querySelectorAll('[data-panel]'))panel.hidden=panel.dataset.panel!==name}
+function selectTab(name){for(const button of document.querySelectorAll('[data-tab]'))button.setAttribute('aria-selected',String(button.dataset.tab===name));for(const panel of document.querySelectorAll('[data-panel]'))panel.hidden=panel.dataset.panel!==name;$('#capture-config').hidden=name==='quick';$('#bulk-controls').hidden=name!=='bulk';$('#start').textContent=name==='bulk'?'Capture selected pages & download ZIP':'Capture full page & download';}
 document.querySelectorAll('[data-tab]').forEach(button=>button.addEventListener('click',()=>selectTab(button.dataset.tab)));
 function renderConnection(){extensionStatus.textContent=connected?'Extension connected — captures run locally.':'Extension not detected. Install it for full-page and bulk screenshots.';extensionStatus.dataset.ready=String(connected)}
 function request(type,details){if(activeRequest)throw Error('An extension operation is already running.');const id='micirql-'+Date.now()+'-'+Math.random().toString(36).slice(2);activeRequest={id,type};bridge(type,{id,...details});return id}
