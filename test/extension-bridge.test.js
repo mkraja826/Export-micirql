@@ -61,3 +61,11 @@ test('site bridge rejects invalid viewport selections before Chrome capture',asy
  assert.equal(h.requests.length,0);
  assert.equal(h.sent.find(x=>x.payload.type==='MICIRQL_CAPTURE_RESULT').payload.ok,false);
 });
+
+test('extension announces protocol 2 and all website capture capabilities',async()=>{
+ const h=setup();
+ await h.dispatch('MICIRQL_EXTENSION_PING');
+ const ready=h.sent.find(entry=>entry.payload.type==='MICIRQL_EXTENSION_READY');
+ assert.equal(ready.payload.protocol,2);
+ assert.deepEqual(Array.from(ready.payload.capabilities),['discover','capture','bulk','progress']);
+});
