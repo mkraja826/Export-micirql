@@ -37,6 +37,12 @@ test('complete and partial audits report scores honestly',()=>{
  assert.ok(full.findings.some(x=>x.code==='images_missing_alt'));
  assert.ok(full.score<100);
 });
+test('valid absolute canonical URL is not flagged invalid',()=>{
+ const html='<html lang="en"><head><title>Example Website That Has a Valid Canonical</title><link rel="canonical" href="https://example.com/"><meta name="viewport" content="width=device-width"></head><body><h1>Example</h1></body></html>';
+ const report=inspectSeoHtml(html,'https://example.com/');
+ assert.equal(report.canonical,'https://example.com/');
+ assert.equal(report.findings.some(x=>x.code==='canonical_invalid'),false);
+});
 test('missing critical SEO elements reduce the score',()=>{
  const weak=inspectSeoHtml('<html><body></body></html>','https://example.com/');
  assert.ok(weak.score<70);
