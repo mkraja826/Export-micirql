@@ -77,6 +77,11 @@ async function capture(url,widths,format,subpage='',returnImages=false,selectedP
   let currentUrl=parsed.href;
   for(const page of pages){
    if(page.href!==currentUrl){await chrome.tabs.update(tab.id,{url:page.href});await waitForTab(tab.id);await wait(1200);currentUrl=page.href;}
+  // Do not capture a login portal or unrelated site reached by navigation redirects.
+  const loaded=await chrome.tabs.get(tab.id);
+  let loadedUrl;
+  try{loadedUrl=new URL(loaded.url||'')}catch{throw Error('Could not verify the loaded page URL');}
+  if(!['http:','https:'].includes(loadedUrl.protocol)||loadedUrl.origin!==parsed.origin)throw Error('A page redirected outside the selected website: '+page.pathname);
   for(const width of widths){
    await cdp(target,'Emulation.setDeviceMetricsOverride',{width,height:PRESETS[width],deviceScaleFactor:1,mobile:width===375});
    await wait(350);
