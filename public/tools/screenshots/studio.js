@@ -8,8 +8,9 @@ const setStatus=(message)=>{status.textContent=message};
 const inputUrl=()=>{const value=$('#url').value.trim();const url=new URL(value);if(!['http:','https:'].includes(url.protocol)||url.username||url.password)throw Error('Enter a valid HTTP(S) URL without credentials.');return url.href};
 function selectTab(name){for(const button of document.querySelectorAll('[data-tab]'))button.setAttribute('aria-selected',String(button.dataset.tab===name));for(const panel of document.querySelectorAll('[data-panel]'))panel.hidden=panel.dataset.panel!==name;$('#capture-config').hidden=name==='quick';$('#bulk-controls').hidden=name!=='bulk';$('#start').textContent=name==='bulk'?'Capture selected pages & download ZIP':'Capture full page & download';}
 document.querySelectorAll('[data-tab]').forEach(button=>button.addEventListener('click',()=>selectTab(button.dataset.tab)));
-function renderConnection(){extensionStatus.textContent=connected?'Extension connected — captures run locally.':outdated?'Your MiCirql extension is outdated. Install the latest version and refresh this page.':'Extension not detected. Install it for full-page and bulk screenshots.';extensionStatus.dataset.ready=String(connected);$('#discover').disabled=!connected;$('#start').disabled=!connected}
-function request(type,details){if(!connected)throw Error('Install the MiCirql Chrome extension and refresh this page before running local discovery or capture.');if(activeRequest)throw Error('An extension operation is already running.');const id='micirql-'+Date.now()+'-'+Math.random().toString(36).slice(2);activeRequest={id,type};bridge(type,{id,...details});return id}
+function syncControls(){const busy=!!activeRequest;$('#discover').disabled=!connected||busy;$('#start').disabled=!connected||busy;$('#url').disabled=busy;$('#format').disabled=busy;document.querySelectorAll('[name=width],.page-check,[data-tab],#select-all,#select-none').forEach(el=>el.disabled=busy)}
+function renderConnection(){extensionStatus.textContent=connected?'Extension connected — captures run locally.':outdated?'Your MiCirql extension is outdated. Install the latest version and refresh this page.':'Extension not detected. Install it for full-page and bulk screenshots.';extensionStatus.dataset.ready=String(connected);syncControls()}
+function request(type,details){if(!connected)throw Error('Install the MiCirql Chrome extension and refresh this page before running local discovery or capture.');if(activeRequest)throw Error('An extension operation is already running.');const id='micirql-'+Date.now()+'-'+Math.random().toString(36).slice(2);activeRequest={id,type};syncControls();bridge(type,{id,...details});return id}
 window.addEventListener('message',event=>{
  if(event.source!==window||event.origin!==location.origin||event.data?.source!=='micirql-extension')return;
  const data=event.data;
@@ -17,7 +18,7 @@ window.addEventListener('message',event=>{
  if(data.type==='MICIRQL_CAPTURE_PROGRESS'&&activeRequest&&data.id===activeRequest.id){const value=Math.max(0,Math.min(100,Number(data.percent)||0));progress.value=value;percentage.textContent=value+'%';setStatus(data.message||'Capturing '+(data.done||0)+' of '+(data.total||0)+'…');return}
  if(!activeRequest||data.id!==activeRequest.id)return;
  if((data.type==='MICIRQL_CAPTURE_RESULT'&&activeRequest.type==='MICIRQL_CAPTURE')||(data.type==='MICIRQL_DISCOVER_RESULT'&&activeRequest.type==='MICIRQL_DISCOVER')){
-  const operation=activeRequest.type;activeRequest=null;$('#start').disabled=!connected;$('#discover').disabled=!connected;
+  const operation=activeRequest.type;activeRequest=null;syncControls();
   if(!data.ok){setStatus(data.error||'Operation failed.');return}
   if(operation==='MICIRQL_DISCOVER'){allPages=(data.pages||[]).slice(0,60);renderPages();const skipped=Array.isArray(data.errors)?data.errors.length:0;setStatus(allPages.length?'Discovered '+allPages.length+' verified pages'+(skipped?' ('+skipped+' skipped after load errors or redirects)':'')+'. Choose the ones to capture.':'No capturable pages were found.'+(skipped?' '+skipped+' page(s) failed to load or redirected away.':''));}
   else{progress.value=100;percentage.textContent='100%';setStatus('Capture complete: '+data.count+' screenshot(s). '+(data.zip?'ZIP download completed.':'Image download started.'))}
@@ -26,8 +27,8 @@ window.addEventListener('message',event=>{
 function renderPages(){const area=$('#pages');area.replaceChildren();for(const [index,url] of allPages.entries()){const label=document.createElement('label');label.className='page';const checkbox=document.createElement('input');checkbox.type='checkbox';checkbox.className='page-check';checkbox.value=url;checkbox.checked=true;const span=document.createElement('span');span.textContent=new URL(url).pathname||'/';label.append(checkbox,span);area.append(label)}$('#page-count').textContent=allPages.length+' pages found'}
 $('#url').addEventListener('input',()=>{if($('#url').value.trim()!==captureUrl){allPages=[];renderPages()}});
 $('#discover').addEventListener('click',()=>{
- try{if(!connected)throw Error('Install the free MiCirql extension to discover all website pages.');const url=inputUrl();captureUrl=url;$('#discover').disabled=true;setStatus('Discovering pages in your browser…');request('MICIRQL_DISCOVER',{url})}
- catch(error){$('#discover').disabled=!connected;setStatus(error.message)}
+ try{if(!connected)throw Error('Install the free MiCirql extension to discover all website pages.');const url=inputUrl();captureUrl=url;setStatus('Discovering pages in your browser…');request('MICIRQL_DISCOVER',{url})}
+ catch(error){syncControls();setStatus(error.message)}
 });
 $('#start').addEventListener('click',()=>{
  try{
@@ -39,9 +40,9 @@ $('#start').addEventListener('click',()=>{
   if(!selectedWidths.length)throw Error('Select at least one viewport.');
   const format=$('#format').value;
   const zip=mode==='bulk';
-  $('#start').disabled=true;progress.value=0;percentage.textContent='0%';setStatus('Starting local capture…');
+  progress.value=0;percentage.textContent='0%';setStatus('Starting local capture…');
   request('MICIRQL_CAPTURE',{url,pages:selected,widths:selectedWidths,format,zip});
- }catch(error){$('#start').disabled=!connected;setStatus(error.message)}
+ }catch(error){syncControls();setStatus(error.message)}
 });
 $('#quick').addEventListener('click',async()=>{
  let stream;
