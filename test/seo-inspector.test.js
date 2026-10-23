@@ -17,9 +17,9 @@ test('missing metadata yields structured findings',()=>{
  assert.ok(report.findings.some(x=>x.code==='missing_title'));
  assert.ok(report.findings.some(x=>x.code==='heading_count'));
 });
-test('robots noindex is reported without treating it as a fatal error',()=>{
+test('robots noindex is a significant indexability finding',()=>{
  const report=inspectSeoHtml('<html lang="en"><head><title>Test</title><meta name="robots" content="noindex"></head><body></body></html>','https://example.com/');
- assert.ok(report.findings.some(x=>x.code==='noindex'&&x.severity==='info'));
+ assert.ok(report.findings.some(x=>x.code==='noindex'&&x.severity==='high'));
 });
 test('error pages do not receive misleading SEO scores',()=>{
  const report=inspectSeoHtml('<html><head><title>capdent.in | 522: Connection timed out</title></head><body><h1>Connection timed out</h1></body></html>','https://www.capdent.in/');
