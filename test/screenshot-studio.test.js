@@ -52,3 +52,13 @@ test('website distinguishes incompatible installed extensions from supported one
  assert.match(studio,/extension is outdated/);
  assert.match(studio,/outdated=!connected/);
 });
+
+test('website locks capture controls during discovery and download operations',()=>{
+ assert.match(studio,/function syncControls\(\)/);
+ assert.match(studio,/const busy=!!activeRequest/);
+ assert.match(studio,/\$\('#url'\)\.disabled=busy/);
+ assert.match(studio,/\$\('#format'\)\.disabled=busy/);
+ assert.match(studio,/\[name=width\],\.page-check,\[data-tab\]/);
+ assert.match(studio,/activeRequest=\{id,type\};syncControls\(\)/);
+ assert.match(studio,/activeRequest=null;syncControls\(\)/);
+});
