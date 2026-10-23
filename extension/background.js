@@ -175,14 +175,20 @@ async function readWebsiteHtml(url){
   }
   const results=await chrome.scripting.executeScript({target:{tabId:tab.id},func:()=>{
    const markup=document.documentElement?.outerHTML||'';
-   if(markup.length>900000)return {tooLarge:true,length:markup.length};
-   return {tooLarge:false,html:markup};
+   if(markup.length<=900000)return {partial:false,html:markup};
+   // Large DOM fallback: preserve SEO-critical elements without shipping all page content.
+   const esc=value=>String(value||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+   const head=document.head?.outerHTML.slice(0,220000)||'<head></head>';
+   const title=document.title||'';
+   const headings=[...document.querySelectorAll('h1,h2,h3,h4,h5,h6')].slice(0,300).map(el=>'<'+el.tagName.toLowerCase()+'>'+esc(el.textContent?.slice(0,500))+'</'+el.tagName.toLowerCase()+'>').join('');
+   const imgs=[...document.querySelectorAll('img')].slice(0,600).map(el=>'<img src="'+esc(el.getAttribute('src')||'')+'"'+(el.hasAttribute('alt')?' alt="'+esc(el.getAttribute('alt'))+'"':'')+'>').join('');
+   const lang=esc(document.documentElement.lang);
+   return {partial:true,originalLength:markup.length,html:('<html lang="'+lang+'">'+head.slice(0,220000)+'<body>'+headings+imgs+'</body></html>').slice(0,850000)};
   }});
   const value=results[0]?.result;
-  if(value?.tooLarge)throw Error('Page HTML exceeds the 900 KB capture safety limit. Use a smaller page or paste a shorter HTML document.');
   const html=value?.html||'';
   if(!html.trim())throw Error('No HTML was returned. The page may block extension access.');
-  return {ok:true,url:finalUrl.href,html};
+  return {ok:true,url:finalUrl.href,html,partial:value?.partial===true,originalLength:value?.originalLength||html.length};
  }finally{try{await chrome.tabs.remove(tab.id)}catch{}}
 }
 chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
