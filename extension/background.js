@@ -116,13 +116,13 @@ async function capture(url,widths,format,subpage='',returnImages=false,selectedP
    const result=await cdp(target,'Page.captureScreenshot',{format,quality:format==='jpeg'?85:undefined,captureBeyondViewport:true,fromSurface:true,clip:{x:0,y:0,width,height:Math.max(PRESETS[width],fullHeight),scale:1}});
    const slug=page.pathname.replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'')||'home';
    const filename='micirql/'+parsed.hostname+'-'+slug+'-'+pages.indexOf(page)+'-'+width+'px.'+(format==='jpeg'?'jpg':'png');
-   if(zipMode){await zipMessage('ADD',{name:filename.split('/').pop(),data:result.data})}else if(returnImages){images.push({name:filename.split('/').pop(),data:result.data,mime:'image/'+format});}else{const downloadId=await chrome.downloads.download({url:'data:image/'+format+';base64,'+result.data,filename,saveAs:false,conflictAction:'uniquify'});if(!Number.isInteger(downloadId))throw Error('Chrome did not accept screenshot download'); }
+   if(zipMode){await zipMessage('ADD',{name:filename.split('/').pop(),data:result.data})}else if(returnImages){images.push({name:filename.split('/').pop(),data:result.data,mime:'image/'+format});}else{const downloadId=await chrome.downloads.download({url:'data:image/'+format+';base64,'+result.data,filename,saveAs:false,conflictAction:'uniquify'});await waitForDownload(downloadId); }
    count++;
    await progress(count,pages.length*widths.length);
   }
   }
   if(zipMode){await progress(count,pages.length*widths.length,'packaging','Creating ZIP…');const archive=await zipMessage('FINISH',{filename:'micirql-screenshots.zip'});const id=await chrome.downloads.download({url:archive.url,filename:'micirql-screenshots.zip',saveAs:false,conflictAction:'uniquify'});await progress(count,pages.length*widths.length,'downloading','Saving ZIP in Chrome…');await waitForDownload(id)}
-  await progress(count,pages.length*widths.length,'complete',zipMode?'ZIP download completed':'Capture completed');
+  await progress(count,pages.length*widths.length,'complete',zipMode?'ZIP download completed':returnImages?'Capture completed':'Image downloads completed');
   return {ok:true,count,images};
  }finally{
   if(attached){try{await cdp(target,'Emulation.clearDeviceMetricsOverride')}catch{}try{await chrome.debugger.detach(target)}catch{}}
