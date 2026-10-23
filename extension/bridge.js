@@ -2,10 +2,11 @@
 const ORIGIN=location.origin;
 const TRUSTED=new Set(['https://export.micirql.com','https://tools.micirql.com']);
 const reply=(type,id,result)=>window.postMessage({source:'micirql-extension',type,id,...result},ORIGIN);
+const announce=()=>reply('MICIRQL_EXTENSION_READY',null,{protocol:2,capabilities:['discover','capture','bulk','progress']});
 window.addEventListener('message',async event=>{
  if(event.source!==window||event.origin!==ORIGIN||!TRUSTED.has(ORIGIN)||event.data?.source!=='micirql-web')return;
  const {type,id}=event.data;
- if(type==='MICIRQL_EXTENSION_PING'){reply('MICIRQL_EXTENSION_READY',null,{});return}
+ if(type==='MICIRQL_EXTENSION_PING'){announce();return}
  if(typeof id!=='string'||id.length>100)return;
  if(type==='MICIRQL_DISCOVER'){
   let result;
@@ -38,4 +39,4 @@ window.addEventListener('message',async event=>{
   reply('MICIRQL_SEO_RESULT',id,result||{ok:false,error:'No inspection response'});
  }
 });
-reply('MICIRQL_EXTENSION_READY',null,{});
+announce();
