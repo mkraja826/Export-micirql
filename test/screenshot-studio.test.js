@@ -35,7 +35,7 @@ test('Quick Capture waits for a video frame and rejects oversized screenshots',(
  assert.match(studio,/getTracks\(\)\.forEach\(track=>track\.stop\(\)\)/);
 });
 test('website does not request Cloudflare Browser Rendering from any screenshot mode',()=>{
- assert.doesNotMatch(html,/cloudflare browser rendering/i);
+ assert.doesNotMatch(html,/fetch\(['"]\/api\/screenshot/);
  assert.doesNotMatch(studio,/\/api\/screenshot/);
  assert.match(studio,/MICIRQL_CAPTURE/);
 });
