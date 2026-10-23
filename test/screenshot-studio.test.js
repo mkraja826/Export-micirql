@@ -45,3 +45,10 @@ test('discovery and full-page capture require a connected extension',()=>{
  assert.match(studio,/\$\('#discover'\)\.disabled=!connected/);
  assert.match(studio,/\$\('#start'\)\.disabled=!connected/);
 });
+
+test('website distinguishes incompatible installed extensions from supported ones',()=>{
+ assert.match(studio,/data\.protocol===2/);
+ assert.match(studio,/capabilities\.includes\(cap\)/);
+ assert.match(studio,/extension is outdated/);
+ assert.match(studio,/outdated=!connected/);
+});
