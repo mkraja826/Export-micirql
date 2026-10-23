@@ -25,6 +25,7 @@ jobs:
       - name: Validate SEO browser and extension scripts
         run: |
           node --check public/tools/seo/inspector.js
+          node --check public/tools/screenshots/studio.js
           node --check extension/background.js
           node --check extension/bridge.js
           node --check extension/popup.js
