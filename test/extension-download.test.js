@@ -84,3 +84,43 @@ test('individual full-page capture waits for Chrome to finish saving the image',
  assert.equal(detached,1);
  assert.equal(downloadChange,null);
 });
+
+test('interrupted ZIP transfer retries under a new Chrome download ID',async()=>{
+ const listeners=new Set(),ids=[],searches=[];
+ const chrome={runtime:{onMessage:{addListener(){}}},downloads:{
+  onChanged:{addListener(fn){listeners.add(fn)},removeListener(fn){listeners.delete(fn)}},
+  async download(){const id=50+ids.length;ids.push(id);return id},
+  async search({id}){searches.push(id);return [{id,state:'in_progress'}]}
+ }};
+ const context={chrome,URL,Promise,setTimeout,clearTimeout};
+ runInNewContext(background+'\nthis.saveZip=downloadZipWithRetry;',context);
+ const pending=context.saveZip('blob:test','test.zip');
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.deepEqual(ids,[50]);
+ for(const fn of [...listeners])fn({id:50,state:{current:'interrupted'},error:{current:'NETWORK_FAILED'}});
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.deepEqual(ids,[50,51]);
+ for(const fn of [...listeners])fn({id:51,state:{current:'complete'}});
+ await pending;
+ assert.equal(listeners.size,0);
+ assert.deepEqual(searches,[50,51]);
+});
+
+test('ZIP transfer rejects after second interruption without a third retry',async()=>{
+ const listeners=new Set();let count=0;
+ const chrome={runtime:{onMessage:{addListener(){}}},downloads:{
+  onChanged:{addListener(fn){listeners.add(fn)},removeListener(fn){listeners.delete(fn)}},
+  async download(){return ++count},
+  async search({id}){return [{id,state:'in_progress'}]}
+ }};
+ const context={chrome,URL,Promise,setTimeout,clearTimeout};
+ runInNewContext(background+'\nthis.saveZip=downloadZipWithRetry;',context);
+ const pending=context.saveZip('blob:test');
+ await new Promise(resolve=>setImmediate(resolve));
+ for(const fn of [...listeners])fn({id:1,state:{current:'interrupted'}});
+ await new Promise(resolve=>setImmediate(resolve));
+ for(const fn of [...listeners])fn({id:2,state:{current:'interrupted'}});
+ await assert.rejects(pending,/interrupted/);
+ assert.equal(count,2);
+ assert.equal(listeners.size,0);
+});
