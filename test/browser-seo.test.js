@@ -570,3 +570,13 @@ test('SEO Studio V2.6 issue tracker presents counts from comparable pages only',
  assert.ok(html.includes("trackerGrid.className='tracker-grid'"));
  assert.ok(html.includes('Changes reflect issue/page occurrences only on pages audited in both runs.'));
 });
+
+
+test('SEO Studio V2.6 history entries navigate to current page evidence, not resolved items',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("jump.className='history-page-jump'"));
+ assert.ok(html.includes("if(label==='No longer observed')"));
+ assert.ok(html.includes("historic.textContent=affectedUrl+' (historical finding; no longer observed)'"));
+ assert.ok(html.includes("search.value=affectedUrl;role.value='all'"));
+ assert.ok(html.includes("pageDashboard.scrollIntoView({behavior:'smooth',block:'start'})"));
+});
