@@ -277,7 +277,7 @@ siteButton.addEventListener('click',async()=>{
        const item=document.createElement('li');item.textContent=destination+' — checking…';results.append(item);
        try{
         const status=await extensionRequest('MICIRQL_SEO_LINK_CHECK','MICIRQL_SEO_LINK_RESULT',destination,20000);
-        item.textContent=destination+' — '+(status.classification||'unverified')+(Number.isInteger(status.status)?' (HTTP '+status.status+')':' (status unavailable)');
+        item.textContent=destination+' — '+(status.ok===true?(status.classification||'unverified'):'unverified')+(status.ok===true&&Number.isInteger(status.status)?' (HTTP '+status.status+')':' (status unavailable)');
        }catch{item.textContent=destination+' — unverified (extension or network check unavailable)'}
       }
       checkButton.textContent='Checked listed destinations';
