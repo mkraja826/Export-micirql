@@ -276,3 +276,12 @@ test('SEO link verifier has bounded workers, pause, local checkpoint and CSV exp
  assert.match(html,/stop=true/);
  assert.match(html,/siteReport\.linkVerification=\[\.\.\.completed\.values\(\)\]/);
 });
+
+test('verified link dashboard supports text search, status filtering, and safe rendering',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/Search verified links/);
+ assert.match(html,/Filter link status/);
+ assert.match(html,/entry\.classification!==filter\.value/);
+ assert.match(html,/td\.textContent=String\(value\)/);
+ assert.match(html,/Use CSV for complete results/);
+});
