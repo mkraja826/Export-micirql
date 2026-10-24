@@ -449,6 +449,21 @@ siteButton.addEventListener('click',async()=>{
      });
      details.append(statusLine,startButton,stopButton,retryButton,exportButton);
     }
+    if(issue.code==='heading_hierarchy'&&issue.pageEvidence?.length){
+     const heading=document.createElement('h4');heading.textContent='Exact heading transitions';details.append(heading);
+     for(const page of issue.pageEvidence){
+      const transitions=(page.elements||[]).filter(item=>item.element==='heading'&&item.from&&item.to);
+      if(!transitions.length)continue;
+      const group=document.createElement('div');group.className='panel';
+      const source=document.createElement('p');source.className='small';source.textContent='Page: '+page.url;group.append(source);
+      for(const item of transitions){
+       const description=document.createElement('p');description.className='small';
+       description.textContent=item.from+' → '+item.to+' · Previous: '+(item.previousText||'(empty)')+' · Next: '+(item.currentText||'(empty)');
+       group.append(description);
+      }
+      details.append(group);
+     }
+    }
     if(issue.sharedEvidence?.length){
      const heading=document.createElement('p');heading.className='small';heading.textContent='Repeated element evidence (sampled; '+issue.sharedEvidence.length+' unique examples):';details.append(heading);
      const examples=document.createElement('ul');
