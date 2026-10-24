@@ -138,3 +138,12 @@ test('SEO page discovery supports user-selected URLs within the 60-page limit',(
  assert.match(page,/selectedDiscovery\.pages\.filter\(p=>selectedDiscovery\.selected\.has\(p\)\)\.slice\(0,maxPages\)/);
  assert.match(page,/\.slice\(0,60\)/);
 });
+
+test('SEO discovered-page selector supports search, page-type filters and count',()=>{
+ const page=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(page,/id="site-page-search"/);
+ assert.match(page,/id="site-page-role"/);
+ assert.match(page,/id="site-selected-count"/);
+ assert.match(page,/suggestedPageRole\(p\)===role/);
+ assert.match(page,/site-page-search'\)\.addEventListener\('input',renderSelection\)/);
+});
