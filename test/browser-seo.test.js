@@ -615,3 +615,15 @@ test('SEO progress summary reports audit evidence and browser-local fix verifica
  assert.ok(html.includes("reportType:'seo-progress-summary'"));
  assert.ok(html.includes("no search rankings or traffic data."));
 });
+
+
+test('SEO progress PDF report escapes content and includes verification caveats',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("printProgress.textContent='Print progress report / Save PDF'"));
+ assert.ok(html.includes("issueRows=topIssues.map(issue=>"));
+ assert.ok(html.includes("fixes=verificationRows.slice(0,30).map(item=>"));
+ assert.ok(html.includes("const scoreChange=previous&&Number.isFinite(previous.averageScore)"));
+ assert.ok(html.includes("const esc=value=>String(value??'').replace("));
+ assert.ok(html.includes("win.document.write(html)"));
+ assert.ok(html.includes("Different audited page sets can make average scores misleading."));
+});
