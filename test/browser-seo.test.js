@@ -383,3 +383,13 @@ test('technical SEO overview filters the existing issue center',()=>{
  assert.ok(html.includes("control.addEventListener('click'"));
  assert.ok(html.includes("renderIssues();issueContainer.scrollIntoView"));
 });
+
+test('SEO audit history stays local and compares public scores',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("historyKey='micirql-seo-history-v1:'+siteReport.website"));
+ assert.ok(html.includes("previousHistory.at(-1)"));
+ assert.ok(html.includes("mean-latest.score"));
+ assert.ok(html.includes("previousHistory=[...previousHistory,snapshot].slice(-10)"));
+ assert.ok(html.includes("localStorage.removeItem(historyKey)"));
+ assert.ok(html.includes("Saved only in this browser."));
+});
