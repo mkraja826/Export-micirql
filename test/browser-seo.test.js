@@ -59,3 +59,12 @@ test('site audit labels page roles without changing individual SEO scores',()=>{
  assert.match(page,/p\.pageRole==='public'/);
  assert.match(page,/Page roles are URL-based suggestions/);
 });
+
+test('site audit permits overriding page roles and recalculates group averages',()=>{
+ const page=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(page,/function refreshRoleSummary\(\)/);
+ assert.match(page,/siteReport\.roleSummary=/);
+ assert.match(page,/roleSelect\.addEventListener\('change'/);
+ assert.match(page,/pageRoleSource='user_override'/);
+ assert.match(page,/roleSelect\.setAttribute\('aria-label'/);
+});
