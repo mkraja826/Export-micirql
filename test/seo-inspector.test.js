@@ -236,3 +236,14 @@ test('repeated trailing site branding is detected without flagging a single bran
  const normal=inspectSeoHtml('<head><title>Root Canal Treatment in Hyderabad | JV Dental</title></head><body><h1>Treatment</h1></body>','https://example.com/');
  assert.equal(normal.findings.some(f=>f.code==='duplicate_title_brand'),false);
 });
+
+test('heading skip evidence includes levels and neighboring heading labels',()=>{
+ const html='<html><head><title>Dental Cases | Example Clinic</title></head><body><h1>Cases</h1><h2>Implants</h2><h4><span>Case study</span></h4></body></html>';
+ const report=inspectSeoHtml(html,'https://example.com/cases');
+ const finding=report.findings.find(f=>f.code==='heading_hierarchy');
+ assert.equal(report.headingSkips,1);
+ assert.equal(finding.evidence[0].from,'H2');
+ assert.equal(finding.evidence[0].to,'H4');
+ assert.equal(finding.evidence[0].previousText,'Implants');
+ assert.equal(finding.evidence[0].currentText,'Case study');
+});
