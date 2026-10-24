@@ -333,3 +333,11 @@ test('site overview averages public pages separately from application and legal 
  assert.ok(html.includes("averageScope:'public_pages_only'"));
  assert.ok(html.includes("publicScoredPages:publicEligible.length"));
 });
+
+test('SEO checkpoint invalidates old scoring versions without losing retry feature',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("const checkpointKey='micirql-seo-checkpoint-v2'"));
+ assert.ok(!html.includes("const checkpointKey='micirql-seo-checkpoint-v1'"));
+ assert.ok(html.includes('const checkpoint=readCheckpoint(url.origin)'));
+ assert.ok(html.includes('saveCheckpoint(url.origin,pages,reports)'));
+});
