@@ -57,16 +57,16 @@ export function inspectSeoHtml(html,url,options={}){
  if(!ogImage)add('missing_og_image','low','Add Open Graph image.',3,'social');
  if(!twitterCard)add('missing_twitter_card','info','Consider adding a Twitter/X card tag.',0,'social');
  if(imagesMissingAlt)add('images_missing_alt','medium',imagesMissingAlt+' image(s) lack an alt attribute.',Math.min(10,imagesMissingAlt*2),'content');
- const anchorTags=[...html.matchAll(/<a\\b([^>]*)>([\\s\\S]*?)<\\/a\\s*>/gi)];
+ const anchorTags=[...html.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a\s*>/gi)];
  const linkIssues=[];
  for(const match of anchorTags){
   const tag='<a '+match[1]+'>';
   const href=attribute(tag,'href');
   const inner=match[2];
-  const label=decode(inner.replace(/<script\\b[^>]*>[\\s\\S]*?<\\/script>/gi,'').replace(/<style\\b[^>]*>[\\s\\S]*?<\\/style>/gi,'').replace(/<[^>]+>/g,' ').replace(/\\s+/g,' '));
-  const accessible=label||attribute(tag,'aria-label')||attribute(tag,'title')||[...inner.matchAll(/<img\\b[^>]*>/gi)].map(m=>attribute(m[0],'alt')).find(Boolean)||'';
-  if(!accessible&&!/aria-labelledby\\s*=/i.test(tag)&&!/\\b(?:sr-only|visually-hidden)\\b/i.test(inner))linkIssues.push({code:'link_missing_name',href:href||'(no href)'});
-  if(/^http:\\/\\//i.test(href))linkIssues.push({code:'link_http',href});
+  const label=decode(inner.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'').replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi,'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' '));
+  const accessible=label||attribute(tag,'aria-label')||attribute(tag,'title')||[...inner.matchAll(/<img\b[^>]*>/gi)].map(m=>attribute(m[0],'alt')).find(Boolean)||'';
+  if(!accessible&&!/aria-labelledby\s*=/i.test(tag)&&!/\b(?:sr-only|visually-hidden)\b/i.test(inner))linkIssues.push({code:'link_missing_name',href:href||'(no href)'});
+  if(/^http:\/\//i.test(href))linkIssues.push({code:'link_http',href});
   if(/^javascript:/i.test(href))linkIssues.push({code:'link_javascript',href});
  }
  const linksMissingName=linkIssues.filter(x=>x.code==='link_missing_name');
