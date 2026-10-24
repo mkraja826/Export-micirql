@@ -403,3 +403,11 @@ test('audit comparisons use overlapping public pages and retain page-level findi
  assert.ok(html.includes('Only overlapping pages are compared'));
  assert.ok(html.includes('Earlier score-only snapshots lack page-level evidence.'));
 });
+
+test('large link result tables batch DOM work and report accurate filtered counts',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("const fragment=document.createDocumentFragment()"));
+ assert.ok(html.includes("if(matches>100)continue"));
+ assert.ok(html.includes("rows.append(fragment)"));
+ assert.ok(html.includes("Math.min(matches,100)+' of '+matches+' matching destinations'"));
+});
