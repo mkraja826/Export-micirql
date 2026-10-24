@@ -221,13 +221,21 @@ siteButton.addEventListener('click',async()=>{
   // Repeated image/link elements often belong to shared navigation or templates.
   // Group by finding code and evidence value, retaining distinct source pages.
   for(const issue of issues){
-   if(!['images_missing_alt','links_missing_name','links_http','links_javascript'].includes(issue.code))continue;
+   if(!['images_missing_alt','links_missing_name','links_http','links_javascript','unresolved_link_template'].includes(issue.code))continue;
    const groups=new Map();
    for(const sample of issue.pageEvidence||[]){
     for(const element of sample.elements||[]){
-     const key=(element.element||'element')+'|'+(element.attribute||'')+'|'+(element.value||element.snippet||'');
+     let normalizedValue=element.value||element.snippet||'';
+     if(issue.code==='unresolved_link_template'){
+      try{normalizedValue=decodeURIComponent(normalizedValue)}catch{}
+      // Match the unresolved expression itself, regardless of containing path.
+      const expression=normalizedValue.match(/\$\{[^}]+\}|\{\{[^}]+\}\}/);
+      if(expression)normalizedValue=expression[0];
+     }
+     const key=(element.element||'element')+'|'+(element.attribute||'')+'|'+normalizedValue;
      if(!groups.has(key))groups.set(key,{element:element.element||'element',attribute:element.attribute||'',value:element.value||element.snippet||'',affectedUrls:new Set()});
      groups.get(key).affectedUrls.add(sample.url);
+     if(issue.code==='unresolved_link_template')groups.get(key).expression=normalizedValue;
     }
    }
    issue.sharedEvidence=[...groups.values()].map(item=>({...item,affectedUrls:[...item.affectedUrls]})).sort((a,b)=>b.affectedUrls.length-a.affectedUrls.length).slice(0,20);
