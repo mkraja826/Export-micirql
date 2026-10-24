@@ -103,3 +103,14 @@ test('scoring explains deductions by category without inventing category scores'
  assert.equal(report.scoring.coverage,'provided_html_only');
  assert.equal(inspectSeoHtml(html,'https://example.com/',{partial:true}).scoring.coverage,'partial_html_snapshot');
 });
+
+test('partial HTML captures do not turn missing or skipped headings into confirmed defects',()=>{
+ const fragment='<html><head><title>Example page title used for inspection</title></head><body><h2>Partial section</h2><h4>Nested section</h4></body></html>';
+ const full=inspectSeoHtml(fragment,'https://example.com/');
+ const partial=inspectSeoHtml(fragment,'https://example.com/',{partial:true});
+ assert.ok(full.findings.some(x=>x.code==='heading_count'));
+ assert.ok(full.findings.some(x=>x.code==='heading_hierarchy'));
+ assert.ok(!partial.findings.some(x=>x.code==='heading_count'||x.code==='heading_hierarchy'));
+ assert.ok(partial.findings.some(x=>x.code==='heading_unverified'&&x.points===0));
+ assert.equal(partial.auditStatus,'partial');
+});
