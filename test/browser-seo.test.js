@@ -285,3 +285,11 @@ test('verified link dashboard supports text search, status filtering, and safe r
  assert.match(html,/td\.textContent=String\(value\)/);
  assert.match(html,/Use CSV for complete results/);
 });
+
+test('verified HTTP errors are grouped by referring page without treating unverified links as broken',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/Affected source pages \(verified errors\)/);
+ assert.match(html,/!\['broken','server_error'\\]/);
+ assert.match(html,/for\\(const page of entry.referringPages\\|\\|\\[\\]\\)/);
+ assert.match(html,/ordered\\.slice\\(0,30\\)/);
+});
