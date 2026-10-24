@@ -254,6 +254,16 @@ siteButton.addEventListener('click',async()=>{
    missing_og_image:'Provide an appropriate social-sharing preview image.'
   };
   for(const issue of issues)issue.recommendation=advice[issue.code]||'Review the finding against the page purpose before making changes.';
+  // Triage guidance is deterministic; never present it as measured traffic impact.
+  const fixFirstCodes=new Set(['noindex','missing_title','multiple_canonicals','canonical_invalid','unresolved_link_template','missing_description','duplicate_title','duplicate_description']);
+  for(const issue of issues){
+   const sameElement=(issue.sharedEvidence||[]).some(e=>e.affectedUrls.length>=3);
+   issue.fixScope=sameElement?'Check shared component/template':'Review affected pages';
+   issue.triageTier=issue.severity==='high'&&fixFirstCodes.has(issue.code)?'Investigate first':issue.severity==='high'||issue.severity==='medium'?'Review next':'Lower priority';
+   issue.triageReason=issue.triageTier==='Investigate first'?'High-severity HTML signal requiring prompt review.':issue.triageTier==='Review next'?'Review based on page purpose and affected-page evidence.':'Lower-severity or informational HTML finding.';
+  }
+  const triageOrder={'Investigate first':0,'Review next':1,'Lower priority':2};
+  issues.sort((a,b)=>triageOrder[a.triageTier]-triageOrder[b.triageTier]||(priority[a.severity]??4)-(priority[b.severity]??4)||b.affectedUrls.length-a.affectedUrls.length);
   siteReport.reportNotes=['Scores reflect bounded HTML checks, not Google rankings.','Page roles are suggestions or manual selections.','Only pages discovered and analyzed in this batch are included.'];
   siteReport.issueCenter=issues;
   // Compact, transparent overview: issue groups are not individual defects.
@@ -306,7 +316,7 @@ siteButton.addEventListener('click',async()=>{
    issueCount.textContent=visible.length+' of '+issues.length+' issue groups shown · '+visible.reduce((sum,item)=>sum+item.affectedUrls.length,0)+' affected-page occurrences';
    for(const issue of visible){
     const details=document.createElement('details');details.className='finding';details.dataset.severity=issue.severity;
-    const summary=document.createElement('summary');summary.style.cursor='pointer';summary.textContent=issue.verificationStatus+' · '+issue.severity.toUpperCase()+' · '+issue.code.replaceAll('_',' ')+' · '+issue.affectedUrls.length+' affected pages';details.append(summary);
+    const summary=document.createElement('summary');summary.style.cursor='pointer';summary.textContent=issue.triageTier+' · '+issue.severity.toUpperCase()+' · '+issue.code.replaceAll('_',' ')+' · '+issue.affectedUrls.length+' affected pages';details.append(summary);
     const explanation=document.createElement('p');explanation.textContent=issue.message;details.append(explanation);if(issue.targetExamples?.length){const examples=document.createElement('p');examples.className='hint small';examples.textContent='Not inspected (examples): '+issue.targetExamples.join(', ');details.append(examples)}
     if(issue.code==='internal_links_unverified'&&issue.targetExamples?.length){
      const checkButton=document.createElement('button');checkButton.type='button';checkButton.textContent='Check up to 10 destinations in my browser';
@@ -338,7 +348,7 @@ siteButton.addEventListener('click',async()=>{
     }
     const list=document.createElement('ul');
     for(const affected of issue.affectedUrls){const item=document.createElement('li');item.textContent=affected;const evidence=issue.pageEvidence?.find(e=>e.url===affected);if(evidence){const observed=document.createElement('div');observed.className='hint small';observed.textContent='Observed HTML metadata: '+evidence.observed;item.append(observed)}if(evidence?.elements){const snippets=document.createElement('ul');for(const entry of evidence.elements){const li=document.createElement('li');li.className='hint small';li.textContent=entry.element+' '+(entry.attribute||'')+' '+(entry.value||entry.snippet||'');snippets.append(li)}item.append(snippets)}list.append(item)}
-    const fix=document.createElement('p');fix.className='small';fix.textContent='Suggested action: '+issue.recommendation;details.append(fix);details.append(list);issueContainer.append(details);
+    const fix=document.createElement('p');fix.className='small';fix.textContent='Suggested action: '+issue.recommendation+' · '+issue.fixScope+'.';details.append(fix);details.append(list);issueContainer.append(details);
    }
    if(!visible.length){const empty=document.createElement('p');empty.className='hint';empty.textContent='No issues for this severity in the inspected pages.';issueContainer.append(empty)}
   }
