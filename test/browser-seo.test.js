@@ -433,3 +433,14 @@ test('SEO Studio V2 starts with website audit and keeps single-page inspection a
  assert.ok(html.includes("discovered.truncated===true?' Discovery was truncated"));
  assert.ok(!html.includes('Limited to first 20 discovered pages.'));
 });
+
+test('SEO Studio V2 keeps per-page evidence inside the searchable results table',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("const pageEvidence=new Map()"));
+ assert.ok(html.includes("['Page','Role','HTML score','Findings','Details']"));
+ assert.ok(html.includes("const evidence=pageEvidence.get(page.url)"));
+ assert.ok(html.includes("pageEvidence.set(report.url,panel)"));
+ assert.ok(html.includes("detailsTitle.textContent='Inspect findings'"));
+ assert.ok(html.includes("renderPageRows();\n  for(const failure"));
+ assert.ok(!html.includes("siteResults.append(panel)"));
+});
