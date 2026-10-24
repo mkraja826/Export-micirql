@@ -328,6 +328,19 @@ siteButton.addEventListener('click',async()=>{
   issues.sort((a,b)=>triageOrder[a.triageTier]-triageOrder[b.triageTier]||(priority[a.severity]??4)-(priority[b.severity]??4)||b.affectedUrls.length-a.affectedUrls.length);
   siteReport.reportNotes=['Scores reflect bounded HTML checks, not Google rankings.','Page roles are suggestions or manual selections.','Only pages discovered and analyzed in this batch are included.'];
   siteReport.issueCenter=issues;
+  // V2.7 opportunity ranking uses observed severity and affected URL breadth, not estimated traffic.
+  const opportunities=issues.filter(issue=>issue.severity!=='info').map(issue=>({
+   code:issue.code,title:issue.title||issue.code.replaceAll('_',' '),severity:issue.severity,
+   affectedPages:issue.affectedUrls.length,verificationStatus:issue.verificationStatus,
+   triageTier:issue.triageTier,affectedUrls:issue.affectedUrls.slice(0,20)
+  })).sort((a,b)=>(priority[a.severity]??4)-(priority[b.severity]??4)||b.affectedPages-a.affectedPages);
+  siteReport.opportunities=opportunities;
+  const opportunitiesPanel=document.createElement('section');opportunitiesPanel.id='site-seo-opportunities';opportunitiesPanel.setAttribute('aria-label','Ranked SEO opportunities');
+  const opportunityTitle=document.createElement('h3');opportunityTitle.textContent='SEO opportunities';opportunitiesPanel.append(opportunityTitle);
+  const opportunityNote=document.createElement('p');opportunityNote.className='hint small';opportunityNote.textContent='Ranked by finding severity, then number of affected audited URLs. This is a work-priority guide, not an estimate of traffic or ranking gains.';opportunitiesPanel.append(opportunityNote);
+  if(!opportunities.length){const empty=document.createElement('p');empty.textContent='No non-informational findings in this audit batch.';opportunitiesPanel.append(empty)}
+  else{const table=document.createElement('ol');for(const issue of opportunities.slice(0,10)){const item=document.createElement('li');const name=document.createElement('strong');name.textContent=issue.title;item.append(name);const context=document.createElement('span');context.textContent=' · '+issue.severity+' · '+issue.affectedPages+' affected URL(s) · '+issue.verificationStatus;item.append(context);table.append(item)}opportunitiesPanel.append(table);if(opportunities.length>10){const more=document.createElement('p');more.className='hint small';more.textContent='Showing 10 of '+opportunities.length+' opportunities. See Issue Center for all findings.';opportunitiesPanel.append(more)}}
+  siteResults.append(opportunitiesPanel);
   // V2.5: store bounded summary-only history, never HTML or full reports.
   const historyKey='micirql-seo-history-v1:'+url.origin;
   const fixTrackerKey='micirql-seo-fix-tracker-v1:'+url.origin;
