@@ -393,3 +393,13 @@ test('SEO audit history stays local and compares public scores',()=>{
  assert.ok(html.includes("localStorage.removeItem(historyKey)"));
  assert.ok(html.includes("Saved only in this browser."));
 });
+
+test('audit comparisons use overlapping public pages and retain page-level finding codes',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes('publicPages:publicEligible.map(p=>p.url)'));
+ assert.ok(html.includes('issuePairs:publicEligible.flatMap'));
+ assert.ok(html.includes('const common=new Set([...currentPages].filter(url=>beforePages.has(url)))'));
+ assert.ok(html.includes("common.has(entry.url)"));
+ assert.ok(html.includes('Only overlapping pages are compared'));
+ assert.ok(html.includes('Earlier score-only snapshots lack page-level evidence.'));
+});
