@@ -2,6 +2,7 @@ const PRESETS={375:812,768:1024,1440:900};
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 let captureBusy=false;
 let seoBusy=false;
+let discoveryBusy=false;
 async function progress(done,total,state='capturing',message=''){await chrome.storage.local.set({captureProgress:{percent:state==='complete'?100:Math.round(done/Math.max(1,total)*95),done,total,state,message}})}
 async function zipMessage(action,extra={}){const response=await chrome.runtime.sendMessage({target:'ZIP_OFFSCREEN',action,...extra});if(!response?.ok)throw Error(response?.error||'ZIP operation failed');return response}
 async function ensureZipDocument(){const url=chrome.runtime.getURL('offscreen.html');const contexts=await chrome.runtime.getContexts({contextTypes:['OFFSCREEN_DOCUMENT'],documentUrls:[url]});if(!contexts.length)await chrome.offscreen.createDocument({url:'offscreen.html',reasons:['BLOBS'],justification:'Create screenshot ZIP files entirely on the user device.'})}
@@ -275,7 +276,9 @@ chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
  const trustedOrigins=new Set(['https://tools.micirql.com','https://export.micirql.com']);
  if(sender.tab){let senderOrigin;try{senderOrigin=new URL(sender.url||sender.tab.url).origin}catch{return false}if(!trustedOrigins.has(senderOrigin))return false;}
  if(message?.type==='DISCOVER_SUBPAGE'){
-  discoverLocalSubpage(message.url).then(sendResponse).catch(error=>sendResponse({ok:false,error:error.message||'Discovery failed'}));
+  if(discoveryBusy){sendResponse({ok:false,error:'Another page discovery is already running. Finish it before starting a new one.'});return false;}
+  discoveryBusy=true;
+  discoverLocalSubpage(message.url).then(sendResponse).catch(error=>sendResponse({ok:false,error:error.message||'Discovery failed'})).finally(()=>{discoveryBusy=false});
   return true;
  }
  if(message?.type==='READ_SEO_HTML'){
