@@ -178,3 +178,20 @@ test('missing image alt includes exact bounded img source evidence',()=>{
  assert.ok(issue.evidence[0].snippet.includes('<img'));
  assert.ok(!issue.evidence.some(x=>x.value==='/media/icon.svg'));
 });
+
+test('classifies internal external fragment email and telephone links',()=>{
+ const html='<html><body><h1>Example</h1><a href="/about">About</a><a href="https://other.test/">External</a><a href="#details">Details</a><a href="mailto:hello@example.com">Email</a><a href="tel:+123456789">Call</a></body></html>';
+ const report=inspectSeoHtml(html,'https://example.com/');
+ assert.equal(report.linkTypes.internal,1);
+ assert.equal(report.linkTypes.external,1);
+ assert.equal(report.linkTypes.fragment,1);
+ assert.equal(report.linkTypes.email,1);
+ assert.equal(report.linkTypes.telephone,1);
+ assert.equal(report.linkTypes.invalid,0);
+});
+test('invalid link URLs produce finding but mail and fragment links do not',()=>{
+ const html='<html><body><h1>Example</h1><a href="http://[invalid">Broken</a><a href="mailto:a@example.com">Mail</a><a href="#top">Top</a></body></html>';
+ const report=inspectSeoHtml(html,'https://example.com/');
+ assert.equal(report.linkTypes.invalid,1);
+ assert.ok(report.findings.some(x=>x.code==='invalid_link_urls'));
+});
