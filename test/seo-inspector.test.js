@@ -218,3 +218,12 @@ test('literal resolved URLs are not flagged as templates',()=>{
  const report=inspectSeoHtml('<a href="/services/root-canal">Service</a>','https://example.com/');
  assert.equal(report.findings.some(x=>x.code==='unresolved_link_template'),false);
 });
+
+test('percent encoded placeholder links are flagged without double decoding',()=>{
+ const html='<html><body><h1>Heading</h1><a href="/specialties/%24%7Bitem.link%7D">Template</a><a href="/appointments?lid=%24%7Bclinic.id%7D">Appointment</a><a href="/literal/%2524%257Bnot-a-template%257D">Encoded text</a></body></html>';
+ const report=inspectSeoHtml(html,'https://example.com/');
+ const issue=report.findings.find(f=>f.code==='unresolved_link_template');
+ assert.equal(issue.evidence.length,2);
+ assert.ok(issue.evidence.some(e=>e.value.includes('%24%7Bitem.link%7D')));
+ assert.ok(!issue.evidence.some(e=>e.value.includes('%2524%257B')));
+});
