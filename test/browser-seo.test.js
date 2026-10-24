@@ -476,3 +476,13 @@ test('SEO Studio V2.3 shows three severity-first actions and collapses category 
  assert.ok(html.includes("document.createElement('details');technicalOverview.id='site-technical-overview'"));
  assert.ok(html.includes("if(!related.length)continue"));
 });
+
+
+test('SEO Studio V2.4 exports prioritized per-page action plan CSV safely',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("actionExport.id='site-action-export'"));
+ assert.ok(html.includes("'Affected URL','Scope','Verification'"));
+ assert.ok(html.includes("issue.affectedUrls.length?issue.affectedUrls:['']"));
+ assert.ok(html.includes("safe.replace(/\"/g,'\"\"')"));
+ assert.ok(html.includes("downloadReport('csv',lines.join("));
+});
