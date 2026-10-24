@@ -399,42 +399,7 @@ siteButton.addEventListener('click',async()=>{
   const overviewNote=document.createElement('p');overviewNote.className='hint small';overviewNote.textContent='Average uses complete, scored HTML pages only. Issue counts represent grouped findings, not distinct broken pages or verified search ranking impact.';overview.append(overviewNote);
   siteResults.prepend(overview);
   siteReport.overview={completeScoredPages:eligible.length,averageHtmlScore:mean,averageScope:'public_pages_only',publicScoredPages:publicEligible.length,issueGroupsBySeverity:severityTotals};
-  // Keep small, privacy-preserving summary snapshots locally, never page HTML.
-  const historyKey='micirql-seo-history-v1:'+siteReport.website;
-  let previousHistory=[];
-  try{const parsed=JSON.parse(localStorage.getItem(historyKey)||'[]');if(Array.isArray(parsed))previousHistory=parsed.filter(x=>x&&typeof x.score==='number'&&typeof x.date==='string').slice(-10)}catch{}
-  const historyPanel=document.createElement('section');historyPanel.id='site-history-dashboard';historyPanel.setAttribute('aria-label','Local audit history');
-  const historyTitle=document.createElement('h3');historyTitle.textContent='Reports & audit history';historyPanel.append(historyTitle);
-  const historyText=document.createElement('p');historyText.className='hint small';historyText.textContent='Saved only in this browser. Scores are public-page HTML heuristics, not search rankings.';historyPanel.append(historyText);
-  const latest=previousHistory.at(-1);
-  const comparison=document.createElement('p');comparison.className='history-comparison';
-  comparison.textContent=mean===null?'No public-page score available':latest?'Public HTML: '+mean+'/100 · Previous: '+latest.score+'/100 · Change: '+(mean-latest.score>0?'+':'')+(mean-latest.score)+' points':'Public HTML: '+mean+'/100 · First saved audit';historyPanel.append(comparison);
-  const historyActions=document.createElement('div');historyActions.className='history-actions';
-  const clearHistory=document.createElement('button');clearHistory.type='button';clearHistory.textContent='Clear local history';
-  const historyList=document.createElement('ol');historyList.className='history-list';
-  const renderHistory=()=>{historyList.replaceChildren();for(const record of [...previousHistory].reverse()){const li=document.createElement('li');li.textContent=new Date(record.date).toLocaleString()+' · '+record.score+'/100 · '+record.pages+' public pages';historyList.append(li)}if(!previousHistory.length){const li=document.createElement('li');li.textContent='No saved history';historyList.append(li)}};
-  clearHistory.addEventListener('click',()=>{previousHistory=[];try{localStorage.removeItem(historyKey)}catch{}renderHistory();comparison.textContent='Local history cleared. Current audit is still available.'});
-  historyActions.append(clearHistory);historyPanel.append(historyActions,historyList);siteResults.append(historyPanel);
-  if(mean!==null){const snapshot={date:siteReport.generatedAt,score:mean,pages:publicEligible.length,publicPages:publicEligible.map(p=>p.url),issuePairs:publicEligible.flatMap(p=>(p.findings||[]).map(issue=>({url:p.url,code:issue.code})))};previousHistory=[...previousHistory,snapshot].slice(-10);try{localStorage.setItem(historyKey,JSON.stringify(previousHistory))}catch{}}
-  renderHistory();
-  // Compare only the intersection of audited public URLs, never assume an absent page was fixed.
-  const previousComparable=[...previousHistory].slice(0,-1).reverse().find(x=>Array.isArray(x.publicPages)&&Array.isArray(x.issuePairs));
-  const comparisonPanel=document.createElement('div');comparisonPanel.className='history-delta';
-  const comparisonTitle=document.createElement('h4');comparisonTitle.textContent='Changes since comparable audit';comparisonPanel.append(comparisonTitle);
-  const comparisonText=document.createElement('p');comparisonText.className='hint small';comparisonPanel.append(comparisonText);
-  if(previousComparable){
-   const beforePages=new Set(previousComparable.publicPages),currentPages=new Set(publicEligible.map(p=>p.url));
-   const common=new Set([...currentPages].filter(url=>beforePages.has(url)));
-   const oldIssues=new Set(previousComparable.issuePairs.filter(entry=>common.has(entry.url)).map(entry=>entry.code+'|'+entry.url));
-   const newIssues=new Set(publicEligible.filter(p=>common.has(p.url)).flatMap(p=>(p.findings||[]).map(issue=>issue.code+'|'+p.url)));
-   const resolved=[...oldIssues].filter(key=>!newIssues.has(key));
-   const introduced=[...newIssues].filter(key=>!oldIssues.has(key));
-   comparisonText.textContent=common.size+' common public pages · '+resolved.length+' resolved findings · '+introduced.length+' new findings. Only overlapping pages are compared; different audit coverage is excluded.';
-   const changes=document.createElement('details');const label=document.createElement('summary');label.textContent='View changed findings';changes.append(label);
-   for(const [heading,items] of [['Resolved',resolved],['New',introduced]]){const h=document.createElement('h5');h.textContent=heading;changes.append(h);const list=document.createElement('ul');for(const item of items.slice(0,30)){const li=document.createElement('li');li.textContent=item.replace('|',' · ');list.append(li)}if(items.length>30){const li=document.createElement('li');li.textContent=(items.length-30)+' more findings';list.append(li)}changes.append(list)}
-   comparisonPanel.append(changes);
-  }else comparisonText.textContent='Run another audit with the same pages to compare individual findings. Earlier score-only snapshots lack page-level evidence.';
-  historyPanel.append(comparisonPanel);
+  // The unified V2.5 audit history above replaces the legacy score-only history dashboard.
   // Searchable page-level results complement the grouped issue center.
   const pageDashboard=document.createElement('section');pageDashboard.id='site-page-dashboard';pageDashboard.setAttribute('aria-label','Audited page results');
   const pageTitle=document.createElement('h3');pageTitle.textContent='Audited pages';pageDashboard.append(pageTitle);
