@@ -47,13 +47,13 @@ siteButton.addEventListener('click',async()=>{
    const groups=new Map();
    for(const report of reports){
     if(report.partial||report.auditStatus!=='complete'||!report[field]?.trim())continue;
-    const key=field==='canonical'?report[field].trim():report[field].trim().replace(/\\s+/g,' ').toLocaleLowerCase();
+    const key=field==='canonical'?report[field].trim():report[field].trim().replace(/\s+/g,' ').toLocaleLowerCase();
     if(!groups.has(key))groups.set(key,[]);
     groups.get(key).push(report.url);
    }
    for(const urls of groups.values()){
     if(urls.length<2)continue;
-    siteFindings.push({code,severity:field==='canonical'?'medium':'medium',message:'Same '+label+' found on '+urls.length+' audited pages.',affectedUrls:urls});
+    siteFindings.push({code,severity:'medium',message:'Same '+label+' found on '+urls.length+' audited pages.',affectedUrls:urls});
    }
   }
   siteReport={schemaVersion:1,tool:'seo-site',generatedAt:new Date().toISOString(),website:url.origin,pagesDiscovered:discovered.pages.length,pagesSelected:pages.length,pagesAnalyzed:reports.length,failures,reports,siteFindings,scope:'bounded_browser_html_audit'};
