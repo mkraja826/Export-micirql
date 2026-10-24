@@ -109,6 +109,13 @@ form.addEventListener('submit',async event=>{
   const data=inspectSeoHtml(document.getElementById('html').value,parsed.href,{partial:partialCapture});
   lastReport={schemaVersion:1,tool:'seo',generatedAt:new Date().toISOString(),...data};jsonButton.disabled=false;textButton.disabled=false;
   const score=document.createElement('div');score.className='score';score.textContent=data.score===null?'Not scored':String(data.score)+'/100';const sub=document.createElement('small');sub.textContent=' · '+(data.scoreLabel||'SEO score');score.append(sub);out.append(score);
+  if(data.scoring){
+   const breakdown=document.createElement('div');breakdown.className='summary';
+   const start=document.createElement('span');start.textContent='Starting score: 100';breakdown.append(start);
+   for(const [category,points] of Object.entries(data.scoring.categoryDeductions)){const chip=document.createElement('span');chip.textContent=category+': −'+points;breakdown.append(chip)}
+   const coverage=document.createElement('p');coverage.className='small hint';coverage.textContent='Coverage: '+(data.partial?'Partial HTML snapshot':'Provided page HTML only')+' · Page score, not full-site or Google ranking.';
+   out.append(breakdown,coverage);
+  }
   const scoringNote=document.createElement('p');scoringNote.className='small hint';scoringNote.textContent=data.scoreExplanation;out.append(scoringNote);
   if(data.partial||data.auditStatus==='invalid_error_page'){const warning=document.createElement('p');warning.className='notice';warning.textContent=data.partial?'Large-page capture: this provisional audit uses a compact SEO snapshot. Some elements may be omitted.':'An error page was captured, not the intended website. This audit has no valid SEO score.';out.append(warning)}
   const h=document.createElement('h2');h.textContent='SEO findings';out.append(h);
