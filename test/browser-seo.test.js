@@ -549,3 +549,14 @@ test('SEO Studio V2.5 permits exporting and deleting browser-local audit history
  assert.ok(html.includes("saved.splice(found,1)"));
  assert.ok(html.includes("historyControls.className='history-controls'"));
 });
+
+
+test('SEO Studio V2.6 health snapshot preserves scoring scope and audit coverage caveats',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("healthSummary.className='health-summary'"));
+ assert.ok(html.includes("healthGrid.className='health-grid'"));
+ assert.ok(html.includes("mean===null?'Not scored'"));
+ assert.ok(html.includes("Math.round(reports.length/pages.length*100)"));
+ assert.ok(html.includes('Search traffic and rankings are not measured.'));
+ assert.ok(html.includes('Completion is the percentage of selected pages successfully inspected'));
+});
