@@ -77,3 +77,19 @@ test('UI inspector reports restricted zoom',()=>{
  const report=inspectUiHtml('<head><meta name="viewport" content="width=device-width,maximum-scale=1"></head><main>Content</main><nav>Menu</nav>','https://example.com/');
  assert.ok(report.findings.some(x=>x.code==='zoom_restricted'));
 });
+
+test('multiple canonical declarations are high severity',()=>{
+ const html='<html lang="en"><head><title>Example Detailed Website Page Title</title><link rel="canonical" href="https://example.com/a"><link rel="canonical" href="https://example.com/b"></head><body><h1>Example</h1></body></html>';
+ const report=inspectSeoHtml(html,'https://example.com/a');
+ assert.ok(report.findings.some(f=>f.code==='multiple_canonicals'&&f.severity==='high'));
+});
+test('Googlebot-specific noindex is surfaced even without generic robots tag',()=>{
+ const html='<html lang="en"><head><title>Example Detailed Website Page Title</title><meta name="googlebot" content="noindex,follow"></head><body><h1>Example</h1></body></html>';
+ const report=inspectSeoHtml(html,'https://example.com/');
+ assert.ok(report.findings.some(f=>f.code==='noindex'&&f.severity==='high'));
+});
+test('generic and Googlebot noindex result in one finding',()=>{
+ const html='<head><meta name="robots" content="noindex"><meta name="googlebot" content="noindex"></head>';
+ const report=inspectSeoHtml(html,'https://example.com/');
+ assert.equal(report.findings.filter(f=>f.code==='noindex').length,1);
+});
