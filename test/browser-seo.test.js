@@ -127,3 +127,14 @@ test('SEO audit caps browser-local batches and checkpoints at 60 pages',()=>{
  assert.match(page,/id="site-progress" max="60"/);
  assert.match(page,/up to 60 same-origin pages/);
 });
+
+test('SEO page discovery supports user-selected URLs within the 60-page limit',()=>{
+ const page=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(page,/id="site-discover"/);
+ assert.match(page,/id="site-page-list"/);
+ assert.match(page,/id="site-all"/);
+ assert.match(page,/id="site-none"/);
+ assert.match(page,/selectedDiscovery\.selected\.size>=limit/);
+ assert.match(page,/selectedDiscovery\.pages\.filter\(p=>selectedDiscovery\.selected\.has\(p\)\)\.slice\(0,maxPages\)/);
+ assert.match(page,/\.slice\(0,60\)/);
+});
