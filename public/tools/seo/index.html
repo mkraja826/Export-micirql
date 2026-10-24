@@ -106,7 +106,9 @@ siteButton.addEventListener('click',async()=>{
   const checkpoint=readCheckpoint(url.origin);
   const reusable=checkpoint&&JSON.stringify(checkpoint.pages)===JSON.stringify(pages)?checkpoint.reports:[];
   const reports=[],failures=[];
-  const cached=new Map(reusable.filter(r=>r&&pages.includes(r.url)&&r.auditStatus==='complete').map(r=>[r.url,r]));
+  const cached=new Map(reusable.filter(r=>r&&pages.includes(r.requestedUrl||r.url)&&r.auditStatus==='complete').map(r=>[r.requestedUrl||r.url,r]));
+  const resumedCount=pages.filter(p=>cached.has(p)).length;
+  if(resumedCount)siteStatus.textContent='Restoring '+resumedCount+' completed pages; inspecting '+(pages.length-resumedCount)+' remaining…';
   for(let i=0;i<pages.length;i++){
    if(cached.has(pages[i])){reports.push(cached.get(pages[i]));siteProgress.value=i+1;continue}
    siteStatus.textContent='Inspecting page '+(i+1)+' of '+pages.length+'…';
@@ -116,7 +118,7 @@ siteButton.addEventListener('click',async()=>{
      const response=await extensionRequest('MICIRQL_SEO_READ','MICIRQL_SEO_RESULT',pages[i],90000);
      if(!response.ok)throw Error(response.error||'Inspection failed');
      const report=inspectSeoHtml(response.html,response.url||pages[i],{partial:response.partial===true});
-     report.pageRole=suggestedPageRole(report.url);report.pageRoleSource='suggested_from_url';report.attempts=attempt;reports.push(report);saveCheckpoint(url.origin,pages,reports);lastError=null;break;
+     report.requestedUrl=pages[i];report.pageRole=suggestedPageRole(report.url);report.pageRoleSource='suggested_from_url';report.attempts=attempt;reports.push(report);saveCheckpoint(url.origin,pages,reports);lastError=null;break;
     }catch(error){
      lastError=error;
      if(attempt<2)siteStatus.textContent='Retrying page '+(i+1)+' of '+pages.length+' (attempt 2 of 2)…';
@@ -127,6 +129,7 @@ siteButton.addEventListener('click',async()=>{
   }
   // Keep completed page findings if any page failed, so retrying this selection only rechecks failures.
   if(!failures.length)try{localStorage.removeItem(checkpointKey)}catch{}
+  siteStatus.textContent=failures.length?'Audit finished: '+reports.length+' completed, '+failures.length+' failed. Rerun this selection to retry failed pages using saved results.':'Audit finished: '+reports.length+' pages completed.';
   const siteFindings=[];
   // Cross-page findings are separate from individual page scores: do not
   // retroactively alter per-page scores based on a capped discovery sample.
