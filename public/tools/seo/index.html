@@ -181,7 +181,8 @@ siteButton.addEventListener('click',async()=>{
     else if(issue.code==='images_missing_alt')sample.observed='Images missing alt: '+report.imagesMissingAlt;
     else if(issue.code==='missing_og_image')sample.observed='Open Graph image: '+(report.ogImage||'(missing)');
     else if(issue.code==='noindex')sample.observed='Robots: '+(report.robots||'(not declared)');
-    if(sample.observed)issueMap.get(key).pageEvidence.push(sample);
+    if(Array.isArray(issue.evidence)&&issue.evidence.length)sample.elements=issue.evidence;
+    if(sample.observed||sample.elements)issueMap.get(key).pageEvidence.push(sample);
    }
   }
   for(const issue of siteFindings){
@@ -250,7 +251,7 @@ siteButton.addEventListener('click',async()=>{
     const summary=document.createElement('summary');summary.style.cursor='pointer';summary.textContent=issue.verificationStatus+' · '+issue.severity.toUpperCase()+' · '+issue.code.replaceAll('_',' ')+' · '+issue.affectedUrls.length+' affected pages';details.append(summary);
     const explanation=document.createElement('p');explanation.textContent=issue.message;details.append(explanation);
     const list=document.createElement('ul');
-    for(const affected of issue.affectedUrls){const item=document.createElement('li');item.textContent=affected;const evidence=issue.pageEvidence?.find(e=>e.url===affected);if(evidence){const observed=document.createElement('div');observed.className='hint small';observed.textContent='Observed HTML metadata: '+evidence.observed;item.append(observed)}list.append(item)}
+    for(const affected of issue.affectedUrls){const item=document.createElement('li');item.textContent=affected;const evidence=issue.pageEvidence?.find(e=>e.url===affected);if(evidence){const observed=document.createElement('div');observed.className='hint small';observed.textContent='Observed HTML metadata: '+evidence.observed;item.append(observed)}if(evidence?.elements){const snippets=document.createElement('ul');for(const entry of evidence.elements){const li=document.createElement('li');li.className='hint small';li.textContent=entry.element+' '+(entry.attribute||'')+' '+(entry.value||entry.snippet||'');snippets.append(li)}item.append(snippets)}list.append(item)}
     const fix=document.createElement('p');fix.className='small';fix.textContent='Suggested action: '+issue.recommendation;details.append(fix);details.append(list);issueContainer.append(details);
    }
    if(!visible.length){const empty=document.createElement('p');empty.className='hint';empty.textContent='No issues for this severity in the inspected pages.';issueContainer.append(empty)}
