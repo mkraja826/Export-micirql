@@ -293,3 +293,11 @@ test('verified HTTP errors are grouped by referring page without treating unveri
  assert.ok(html.includes('for(const page of entry.referringPages||[])'));
  assert.ok(html.includes('ordered.slice(0,30)'));
 });
+
+test('unverified destination retry control preserves confirmed HTTP results',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes('Retry unverified checks'));
+ assert.ok(html.includes("if(row.classification==='unverified')completed.delete(destination)"));
+ assert.ok(html.includes('retryButton.disabled=running||uncertain===0'));
+ assert.ok(html.includes("+' unverified. Network failures can be retried.'"));
+});
