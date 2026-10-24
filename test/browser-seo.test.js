@@ -256,3 +256,12 @@ test('SEO triage does not pretend to measure search traffic impact',()=>{
  assert.match(html,/issue\.triageReason=/);
  assert.match(html,/siteReport\.issueCenter=issues/);
 });
+
+test('SEO issue center includes safe remediation and verification steps',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/const fixDetails=/);
+ assert.match(html,/issue\.fixGuide=details/);
+ assert.match(html,/How to fix and verify/);
+ assert.match(html,/verificationRequired:true/);
+ assert.match(html,/code\.textContent=issue\.fixGuide\.example/);
+});
