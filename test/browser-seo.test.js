@@ -299,7 +299,7 @@ test('unverified destination retry control preserves confirmed HTTP results',()=
  assert.ok(html.includes('Retry unverified checks'));
  assert.ok(html.includes("if(row.classification==='unverified')completed.delete(destination)"));
  assert.ok(html.includes('retryButton.disabled=running||uncertain===0'));
- assert.ok(html.includes("+' unverified. Network failures can be retried.'"));
+ assert.ok(html.includes("+' network failures). Network failures can be retried.'"));
 });
 
 test('authentication routes are classified as application and waive inappropriate indexability penalties',()=>{
@@ -409,7 +409,7 @@ test('large link result tables batch DOM work and report accurate filtered count
  assert.ok(html.includes("const fragment=document.createDocumentFragment()"));
  assert.ok(html.includes("if(matches>100)continue"));
  assert.ok(html.includes("rows.append(fragment)"));
- assert.ok(html.includes("Math.min(matches,100)+' of '+matches+' matching destinations'"));
+ assert.ok(html.includes("Math.min(matches,100)+' of '+matches+' matching destinations ('"));
 });
 
 test('link verification tracks active requests and preserves timeout reasons in CSV',()=>{
