@@ -370,3 +370,16 @@ test('SEO issues dashboard shows grouped severity and actionable evidence',()=>{
  assert.ok(html.includes("issueNext.textContent='Suggested action: '+issue.recommendation"));
  assert.ok(html.includes("Counts represent grouped HTML findings"));
 });
+
+test('technical SEO overview filters the existing issue center',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("technicalOverview.id='site-technical-overview'"));
+ assert.ok(html.includes("technicalGrid.className='technical-grid'"));
+ assert.ok(html.includes("['Metadata','metadata']"));
+ assert.ok(html.includes("['Indexability','indexability']"));
+ assert.ok(html.includes("['Content & headings','content']"));
+ assert.ok(html.includes("['Structured data','structured_data']"));
+ assert.ok(html.includes("['Links','links']"));
+ assert.ok(html.includes("control.addEventListener('click'"));
+ assert.ok(html.includes("renderIssues();issueContainer.scrollIntoView"));
+});
