@@ -12,7 +12,8 @@ export function inspectSeoHtml(html,url,options={}){
  const links=[...head.matchAll(/<link\b[^>]*>/gi)].map(m=>m[0]);
  const findMeta=(key,value)=>{const tag=meta.find(t=>attribute(t,key).toLowerCase()===value);return tag?attribute(tag,'content'):''};
  const description=findMeta('name','description'),robots=findMeta('name','robots'),viewport=findMeta('name','viewport');
- const canonicalTag=links.find(t=>attribute(t,'rel').toLowerCase().split(/\s+/).includes('canonical'));
+ const canonicalTags=links.filter(t=>attribute(t,'rel').toLowerCase().split(/\s+/).includes('canonical'));
+ const canonicalTag=canonicalTags[0];
  const canonical=canonicalTag?attribute(canonicalTag,'href'):'';
  const htmlTag=(html.match(/<html\b[^>]*>/i)||[])[0]||'';
  const lang=attribute(htmlTag,'lang'),h1Count=[...html.matchAll(/<h1(?:\s|>)/gi)].length;
@@ -36,11 +37,13 @@ export function inspectSeoHtml(html,url,options={}){
  else if(description.length<70||description.length>170)add('description_length','low','Review description length (rough guideline: 70–170 characters).',4,'metadata');
  if(h1Count!==1)add('heading_count','medium','Use one clear H1 heading.',10,'content');
  if(headingSkips)add('heading_hierarchy','low','Heading levels skip steps in '+headingSkips+' place(s).',4,'content');
+ if(canonicalTags.length>1)add('multiple_canonicals','high','Multiple canonical link elements can create conflicting indexability signals.',12,'indexability');
  if(!canonical)add('missing_canonical','medium','Declare a canonical URL.',8,'indexability');
  else{try{if(!['http:','https:'].includes(new URL(canonical,url).protocol))add('canonical_invalid','medium','Canonical URL is invalid.',7,'indexability')}catch{add('canonical_invalid','medium','Canonical URL is invalid.',7,'indexability')}}
  if(!lang)add('missing_language','medium','Add the document language attribute.',5,'technical');
  if(!viewport)add('missing_viewport','medium','Add a mobile viewport meta tag.',8,'technical');
- if(/\bnoindex\b/i.test(robots))add('noindex','high','This page requests noindex; confirm it should be excluded from search.',25,'indexability');
+ const googlebotRobots=findMeta('name','googlebot');
+ if(/\bnoindex\b/i.test(robots)||/\bnoindex\b/i.test(googlebotRobots))add('noindex','high','This page requests noindex for search crawlers; confirm it should be excluded from search.',25,'indexability');
  if(!ogTitle)add('missing_og_title','low','Add Open Graph title for social sharing.',3,'social');
  if(!ogDescription)add('missing_og_description','low','Add Open Graph description.',3,'social');
  if(!ogImage)add('missing_og_image','low','Add Open Graph image.',3,'social');
