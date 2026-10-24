@@ -56,7 +56,7 @@ test('site audit labels page roles without changing individual SEO scores',()=>{
  const page=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  assert.match(page,/function suggestedPageRole\(url\)/);
  assert.match(page,/pageRoleSource='suggested_from_url'/);
- assert.match(page,/p\.pageRole==='public'/);
+ assert.match(page,/groups\[p\.pageRole\]/);
  assert.match(page,/Roles are editable suggestions/);
 });
 
