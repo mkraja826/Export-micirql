@@ -265,3 +265,14 @@ test('SEO issue center includes safe remediation and verification steps',()=>{
  assert.match(html,/verificationRequired:true/);
  assert.match(html,/code\.textContent=issue\.fixGuide\.example/);
 });
+
+test('SEO link verifier has bounded workers, pause, local checkpoint and CSV export',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/micirql-seo-link-check-v2:/);
+ assert.match(html,/Promise\.all\(\[worker\(\),worker\(\)\]\)/);
+ assert.match(html,/Pause verification/);
+ assert.match(html,/Start \/ resume verification/);
+ assert.match(html,/Download link CSV/);
+ assert.match(html,/stop=true/);
+ assert.match(html,/siteReport\.linkVerification=\[\.\.\.completed\.values\(\)\]/);
+});
