@@ -645,7 +645,7 @@ test('V2.7 SEO opportunities prioritize observed severity without projecting sea
  assert.ok(html.includes("b.affectedPages-a.affectedPages"));
  assert.ok(html.includes("siteReport.opportunities=opportunities"));
  assert.ok(html.includes('not an estimate of traffic or ranking gains'));
- assert.ok(html.includes("opportunities.slice(0,10)"));
+ assert.ok(html.includes("selected.slice(0,25)"));
 });
 
 
@@ -655,13 +655,13 @@ test('V2.7 opportunities include actionable text and bounded affected-page evide
  assert.ok(html.includes("toggle.textContent='How to fix and affected pages'"));
  assert.ok(html.includes("action.textContent=issue.recommendation"));
  assert.ok(html.includes("issue.affectedUrls.slice(0,10)"));
- assert.ok(html.includes("row.textContent=address"));
+ assert.ok(html.includes("jump.textContent='Inspect '+address"));
 });
 
 
 test('V2.7 opportunity filtering and CSV action-plan export are bounded and spreadsheet safe',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
- assert.ok(html.includes("severityFilter.setAttribute('aria-label','Filter SEO opportunities by severity')"));
+ assert.ok(html.includes("opportunitySeverityFilter.setAttribute('aria-label','Filter SEO opportunities by severity')"));
  assert.ok(html.includes("reachFilter.setAttribute('aria-label','Minimum affected pages')"));
  assert.ok(html.includes("const filteredOpportunities=()=>opportunities.filter("));
  assert.ok(html.includes("selected.slice(0,25)"));
