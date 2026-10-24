@@ -269,6 +269,21 @@ siteButton.addEventListener('click',async()=>{
     const details=document.createElement('details');details.className='finding';details.dataset.severity=issue.severity;
     const summary=document.createElement('summary');summary.style.cursor='pointer';summary.textContent=issue.verificationStatus+' · '+issue.severity.toUpperCase()+' · '+issue.code.replaceAll('_',' ')+' · '+issue.affectedUrls.length+' affected pages';details.append(summary);
     const explanation=document.createElement('p');explanation.textContent=issue.message;details.append(explanation);if(issue.targetExamples?.length){const examples=document.createElement('p');examples.className='hint small';examples.textContent='Not inspected (examples): '+issue.targetExamples.join(', ');details.append(examples)}
+    if(issue.code==='internal_links_unverified'&&issue.targetExamples?.length){
+     const checkButton=document.createElement('button');checkButton.type='button';checkButton.textContent='Check up to 10 destinations in my browser';
+     checkButton.addEventListener('click',async()=>{
+      checkButton.disabled=true;const results=document.createElement('ul');details.append(results);
+      for(const destination of issue.targetExamples.slice(0,10)){
+       const item=document.createElement('li');item.textContent=destination+' — checking…';results.append(item);
+       try{
+        const status=await extensionRequest('MICIRQL_SEO_LINK_CHECK','MICIRQL_SEO_LINK_RESULT',destination,20000);
+        item.textContent=destination+' — '+(status.classification||'unverified')+(Number.isInteger(status.status)?' (HTTP '+status.status+')':' (status unavailable)');
+       }catch{item.textContent=destination+' — unverified (extension or network check unavailable)'}
+      }
+      checkButton.textContent='Checked listed destinations';
+     });
+     details.append(checkButton);
+    }
     const list=document.createElement('ul');
     for(const affected of issue.affectedUrls){const item=document.createElement('li');item.textContent=affected;const evidence=issue.pageEvidence?.find(e=>e.url===affected);if(evidence){const observed=document.createElement('div');observed.className='hint small';observed.textContent='Observed HTML metadata: '+evidence.observed;item.append(observed)}if(evidence?.elements){const snippets=document.createElement('ul');for(const entry of evidence.elements){const li=document.createElement('li');li.className='hint small';li.textContent=entry.element+' '+(entry.attribute||'')+' '+(entry.value||entry.snippet||'');snippets.append(li)}item.append(snippets)}list.append(item)}
     const fix=document.createElement('p');fix.className='small';fix.textContent='Suggested action: '+issue.recommendation;details.append(fix);details.append(list);issueContainer.append(details);
