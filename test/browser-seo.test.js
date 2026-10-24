@@ -171,3 +171,11 @@ test('SEO discovery timeout refreshes on real extension progress with hard safet
  assert.match(page,/resetTimer\(\);return/);
  assert.match(page,/Extension stopped responding/);
 });
+
+test('extension prevents overlapping discovery operations across SEO Studio tabs',()=>{
+ const background=readFileSync(new URL('../extension/background.js',import.meta.url),'utf8');
+ assert.match(background,/let discoveryBusy=false/);
+ assert.match(background,/if\(discoveryBusy\)/);
+ assert.match(background,/discoveryBusy=true/);
+ assert.match(background,/finally\(\(\)=>\{discoveryBusy=false\}\)/);
+});
