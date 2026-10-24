@@ -168,3 +168,13 @@ test('invalid JSON-LD includes script index and bounded text evidence',()=>{
  assert.equal(issue?.evidence?.[0]?.index,1);
  assert.ok(issue.evidence[0].snippet.includes('"@type"'));
 });
+
+test('missing image alt includes exact bounded img source evidence',()=>{
+ const html='<html><body><h1>Images</h1><img src="/media/hero.jpg"><img src="/media/icon.svg" alt=""><img src="/media/portrait.png" alt="Doctor portrait"></body></html>';
+ const report=inspectSeoHtml(html,'https://example.com/');
+ const issue=report.findings.find(x=>x.code==='images_missing_alt');
+ assert.equal(report.imagesMissingAlt,1);
+ assert.equal(issue.evidence[0].value,'/media/hero.jpg');
+ assert.ok(issue.evidence[0].snippet.includes('<img'));
+ assert.ok(!issue.evidence.some(x=>x.value==='/media/icon.svg'));
+});
