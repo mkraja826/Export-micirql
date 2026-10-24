@@ -669,3 +669,13 @@ test('V2.7 opportunity filtering and CSV action-plan export are bounded and spre
  assert.ok(html.includes("downloadReport('csv',rows.map(row=>row.map(csvCell).join(','))"));
  assert.ok(html.includes("replace(/^[=+"));
 });
+
+
+test('V2.7 opportunity inspection links current evidence to audited page filtering',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("evidence.textContent='Evidence: '+issue.verificationStatus"));
+ assert.ok(html.includes("jump.textContent='Inspect '+address"));
+ assert.ok(html.includes("document.getElementById('site-page-dashboard')"));
+ assert.ok(html.includes("search.value=address;role.value='all'"));
+ assert.ok(html.includes("search.dispatchEvent(new Event('input',{bubbles:true}))"));
+});
