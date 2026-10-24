@@ -100,7 +100,12 @@ export function inspectSeoHtml(html,url,options={}){
  }
  // Template placeholders in href attributes are source-level evidence, not a network failure.
  // Limit matching to explicit unresolved syntax to avoid treating ordinary URLs as broken.
- const templateLinks=[...new Set(anchorTags.map(match=>attribute('<a '+match[1]+'>','href').trim()).filter(href=>/\$\{[^}]+\}|\{\{[^}]+\}\}/.test(href)))];
+ const templateLinks=[...new Set(anchorTags.map(match=>attribute('<a '+match[1]+'>','href').trim()).filter(href=>{
+  // Decode at most once: encoded braces and dollar signs can hide a shipped placeholder.
+  let candidate=href;
+  try{candidate=decodeURIComponent(href)}catch{}
+  return /\$\{[^}]+\}|\{\{[^}]+\}\}/.test(candidate);
+ }))];
  if(templateLinks.length)add('unresolved_link_template','high',templateLinks.length+' distinct link destination(s) contain unresolved template placeholders. Replace placeholders with real URLs before publishing.',8,'links');
  const linksMissingName=linkIssues.filter(x=>x.code==='link_missing_name');
  const insecureLinks=linkIssues.filter(x=>x.code==='link_http');
