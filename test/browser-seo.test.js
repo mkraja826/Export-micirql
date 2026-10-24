@@ -384,24 +384,21 @@ test('technical SEO overview filters the existing issue center',()=>{
  assert.ok(html.includes("renderIssues();issueContainer.scrollIntoView"));
 });
 
-test('SEO audit history stays local and compares public scores',()=>{
+test('SEO audit history stores compact summaries under one namespace',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
- assert.ok(html.includes("historyKey='micirql-seo-history-v1:'+siteReport.website"));
- assert.ok(html.includes("previousHistory.at(-1)"));
- assert.ok(html.includes("mean-latest.score"));
- assert.ok(html.includes("previousHistory=[...previousHistory,snapshot].slice(-10)"));
+ assert.ok(html.includes("const historyKey='micirql-seo-history-v1:'+url.origin"));
+ assert.equal((html.match(/const historyKey=/g)||[]).length,1);
+ assert.ok(html.includes("auditHistory.slice(-10)"));
  assert.ok(html.includes("localStorage.removeItem(historyKey)"));
- assert.ok(html.includes("Saved only in this browser."));
+ assert.ok(html.includes("No page HTML is saved."));
 });
 
-test('audit comparisons use overlapping public pages and retain page-level finding codes',()=>{
+test('audit comparisons use exact overlapping page URLs and retain issue codes',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
- assert.ok(html.includes('publicPages:publicEligible.map(p=>p.url)'));
- assert.ok(html.includes('issuePairs:publicEligible.flatMap'));
- assert.ok(html.includes('const common=new Set([...currentPages].filter(url=>beforePages.has(url)))'));
- assert.ok(html.includes("common.has(entry.url)"));
- assert.ok(html.includes('Only overlapping pages are compared'));
- assert.ok(html.includes('Earlier score-only snapshots lack page-level evidence.'));
+ assert.ok(html.includes('auditedUrls:reports.map(page=>page.url).sort()'));
+ assert.ok(html.includes('const comparableUrls=oldUrls?new Set('));
+ assert.ok(html.includes("issue.code+'|'+page"));
+ assert.ok(html.includes('Different audited URL sets'));
 });
 
 test('large link result tables batch DOM work and report accurate filtered counts',()=>{
