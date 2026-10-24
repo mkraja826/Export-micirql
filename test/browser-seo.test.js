@@ -398,7 +398,7 @@ test('audit comparisons use exact overlapping page URLs and retain issue codes',
  assert.ok(html.includes('auditedUrls:reports.map(page=>page.url).sort()'));
  assert.ok(html.includes('const comparableUrls=oldUrls?new Set('));
  assert.ok(html.includes("issue.code+'|'+page"));
- assert.ok(html.includes('Different audited URL sets'));
+ assert.ok(html.includes('Different completed URL sets'));
 });
 
 test('large link result tables batch DOM work and report accurate filtered counts',()=>{
@@ -626,4 +626,13 @@ test('SEO progress PDF report escapes content and includes verification caveats'
  assert.ok(html.includes("const esc=value=>String(value??'').replace("));
  assert.ok(html.includes("win.document.write(html)"));
  assert.ok(html.includes("Different audited page sets can make average scores misleading."));
+});
+
+
+test('history comparisons only classify issues on fully inspected pages',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("completedUrls:reports.filter(page=>page.auditStatus==='complete'&&!page.partial).map(page=>page.url).sort()"));
+ assert.ok(html.includes("const currentUrls=new Set(summarySnapshot.completedUrls)"));
+ assert.ok(html.includes("const oldUrls=Array.isArray(previous.completedUrls)?new Set(previous.completedUrls):null"));
+ assert.ok(html.includes('Older audit did not store complete-page evidence; page-level resolution cannot be confirmed.'));
 });
