@@ -246,3 +246,13 @@ test('site SEO dashboard exposes transparent audit coverage and severity overvie
  assert.match(html,/completeScoredPages:eligible.length/);
  assert.match(html,/siteResults.prepend\(overview\)/);
 });
+
+test('SEO triage does not pretend to measure search traffic impact',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/Investigate first/);
+ assert.match(html,/Review next/);
+ assert.match(html,/Lower priority/);
+ assert.match(html,/issue\.fixScope=sameElement/);
+ assert.match(html,/issue\.triageReason=/);
+ assert.match(html,/siteReport\.issueCenter=issues/);
+});
