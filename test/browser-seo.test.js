@@ -536,7 +536,7 @@ test('SEO Studio V2.5 compares exact audited URLs and distinguishes recurring pa
  assert.ok(html.includes('oldUrls.size===currentUrls.size'));
  assert.ok(html.includes('const comparableUrls=oldUrls?new Set('));
  assert.ok(html.includes("['Newly observed',newly],['No longer observed',cleared],['Recurring',recurring]"));
- assert.ok(html.includes('Older audit did not store exact URL coverage'));
+ assert.ok(html.includes('Older audit did not store complete-page evidence'));
 });
 
 
