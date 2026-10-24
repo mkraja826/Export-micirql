@@ -325,3 +325,11 @@ test('text export explains page-role score adjustments and absent HTTP verificat
  assert.ok(html.includes("HTTP link verification: "));
  assert.ok(html.includes("not performed or no results saved"));
 });
+
+test('site overview averages public pages separately from application and legal pages',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("const publicEligible=eligible.filter(p=>p.pageRole==='public')"));
+ assert.ok(html.includes("'Public HTML average'"));
+ assert.ok(html.includes("averageScope:'public_pages_only'"));
+ assert.ok(html.includes("publicScoredPages:publicEligible.length"));
+});
