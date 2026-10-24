@@ -283,7 +283,7 @@ test('verified link dashboard supports text search, status filtering, and safe r
  assert.match(html,/Filter link status/);
  assert.match(html,/entry\.classification!==filter\.value/);
  assert.match(html,/td\.textContent=String\(value\)/);
- assert.match(html,/Use CSV for complete results/);
+ assert.match(html,/Use CSV for all results/);
 });
 
 test('verified HTTP errors are grouped by referring page without treating unverified links as broken',()=>{
