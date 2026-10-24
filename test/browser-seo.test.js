@@ -222,3 +222,10 @@ test('SEO Studio inline module parses, so extension connection detection can ini
  assert.ok(source,'SEO Studio module should be present');
  assert.doesNotThrow(()=>new Script(source.replace(/^import\s+[^\n]+\n/gm,'')));
 });
+
+test('cross-page canonical grouping resolves relative URLs and ignores trailing slash',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/new URL\(report\[field\],report\.url\)/);
+ assert.match(html,/c\.hash=''/);
+ assert.match(html,/c\.pathname=c\.pathname\.replace/);
+});
