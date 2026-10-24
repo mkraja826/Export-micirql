@@ -23,8 +23,13 @@ export function inspectSeoHtml(html,url,options={}){
  const missingAltTags=imageTags.filter(t=>!/\salt\s*=/i.test(t));
  const imagesMissingAlt=missingAltTags.length;
  const structuredDataCount=[...html.matchAll(/<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>/gi)].length;
- const headingLevels=[...html.matchAll(/<h([1-6])(?:\s|>)/gi)].map(m=>Number(m[1]));
- let headingSkips=0;for(let i=1;i<headingLevels.length;i++)if(headingLevels[i]>headingLevels[i-1]+1)headingSkips++;
+ const headingMatches=[...html.matchAll(/<h([1-6])\\b[^>]*>([\\s\\S]*?)<\\/h\\1\\s*>/gi)];
+ const headingLevels=headingMatches.map(m=>Number(m[1]));
+ const headingLabel=m=>decode(m[2].replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ')).slice(0,140);
+ const headingEvidence=[];
+ for(let i=1;i<headingMatches.length;i++)if(headingLevels[i]>headingLevels[i-1]+1)
+  headingEvidence.push({element:'heading',from:'H'+headingLevels[i-1],to:'H'+headingLevels[i],previousText:headingLabel(headingMatches[i-1]),currentText:headingLabel(headingMatches[i])});
+ const headingSkips=headingEvidence.length;
  const findings=[];
  const add=(code,severity,message,points=0,category='technical')=>findings.push({code,severity,message,points,category});
  const errorPage=/\b(?:cloudflare|connection timed out)\b/i.test(title)&&/\b(?:5(?:0[0-9]|2[0-9])|4(?:0[34]|2[9]))\b/.test(title)||/<title[^>]*>[^<]*(?:403 forbidden|404 not found|502 bad gateway|503 service unavailable|504 gateway timeout|522 connection timed out)[^<]*<\/title>/i.test(head)||/cf-error-code|cf-error-details|cloudflare-error-500s/i.test(html.slice(0,120000));
@@ -146,7 +151,7 @@ export function inspectSeoHtml(html,url,options={}){
   catch{jsonEvidence.invalid_json_ld.push(entry)}
  }
  for(const finding of findings){
-  const evidence=finding.code==='unresolved_link_template'?templateLinks.map(value=>({element:'a',attribute:'href',value:safeSnippet(value)})):(finding.code==='images_missing_alt'?imageEvidence:(linkEvidence[finding.code]||jsonEvidence[finding.code]));
+  const evidence=finding.code==='unresolved_link_template'?templateLinks.map(value=>({element:'a',attribute:'href',value:safeSnippet(value)})):(finding.code==='heading_hierarchy'?headingEvidence:finding.code==='images_missing_alt'?imageEvidence:(linkEvidence[finding.code]||jsonEvidence[finding.code]));
   if(evidence?.length)finding.evidence=evidence.slice(0,5);
  }
 
