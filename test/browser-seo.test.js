@@ -591,3 +591,15 @@ test('SEO Studio V2.6 fix tracking persists user statuses without claiming audit
  assert.ok(html.includes("localStorage.setItem(fixTrackerKey,JSON.stringify(fixTracker))"));
  assert.ok(html.includes("feedback.textContent=saveFixTracker()?'Saved in this browser'"));
 });
+
+
+test('SEO fix verification requires later complete audit and distinguishes still detected findings',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("verification.id='site-fix-verification'"));
+ assert.ok(html.includes("auditedAt>markedAt"));
+ assert.ok(html.includes("completedUrls.has(page)"));
+ assert.ok(html.includes("issueOccurrences.has(key)?'Still detected':'Verified absent'"));
+ assert.ok(html.includes("state==='Awaiting verification'"));
+ assert.ok(html.includes("markedAt:status==='fixed'"));
+ assert.ok(html.includes("Verified absent means the finding was not detected"));
+});
