@@ -411,3 +411,14 @@ test('large link result tables batch DOM work and report accurate filtered count
  assert.ok(html.includes("rows.append(fragment)"));
  assert.ok(html.includes("Math.min(matches,100)+' of '+matches+' matching destinations'"));
 });
+
+test('link verification tracks active requests and preserves timeout reasons in CSV',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes('activeChecks=0'));
+ assert.ok(html.includes('activeChecks++;refresh()'));
+ assert.ok(html.includes("reason:reply.reason||null"));
+ assert.ok(html.includes("row.reason='extension_error'"));
+ assert.ok(html.includes("row.reason=error?.message?.includes('timed out')?'timeout':'request_failed'"));
+ assert.ok(html.includes("' timeouts, '+requestFailed+' network failures"));
+ assert.ok(html.includes("'Reason','Final URL'"));
+});
