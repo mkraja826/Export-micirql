@@ -15,6 +15,7 @@ const checks=[
  ['/responsive-website-testing/',async r=>{if(!(await r.text()).includes('Responsive Website Screenshot Testing'))throw Error('Guide missing')}],
 ];
 checks.push(['/tools/screenshots/',async r=>{const t=await r.text();if(!t.includes('Screenshot')||!t.includes('MiCirql'))throw Error('Screenshot Studio missing')}]);
+checks.push(['/tools/seo/',async r=>{const t=await r.text();for(const marker of ['MiCirql SEO Studio','site-export-pdf','site-audit-history','site-progress-report','Print progress report / Save PDF'])if(!t.includes(marker))throw Error('SEO Studio missing marker: '+marker)}]);
 let failures=0;
 for(const [path,verify] of checks){
  try{const r=await fetch(base+path,{signal:AbortSignal.timeout(15000)});if(!r.ok)throw Error(httpFailure(r));await verify(r);console.log('PASS',path)}
