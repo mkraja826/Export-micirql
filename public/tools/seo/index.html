@@ -334,7 +334,7 @@ siteButton.addEventListener('click',async()=>{
   let fixTracker={};
   try{const saved=JSON.parse(localStorage.getItem(fixTrackerKey)||'{}');if(saved&&typeof saved==='object'&&!Array.isArray(saved))fixTracker=saved}catch{}
   const saveFixTracker=()=>{try{localStorage.setItem(fixTrackerKey,JSON.stringify(fixTracker));return true}catch{return false}};
-  const summarySnapshot={date:siteReport.generatedAt,website:siteReport.website,analyzed:reports.length,selected:pages.length,failed:failures.length,averageScore:null,auditedUrls:reports.map(page=>page.url).sort(),issues:issues.map(issue=>({code:issue.code,severity:issue.severity,affectedUrls:issue.affectedUrls.slice(0,100)}))};
+  const summarySnapshot={date:siteReport.generatedAt,website:siteReport.website,analyzed:reports.length,selected:pages.length,failed:failures.length,averageScore:null,auditedUrls:reports.map(page=>page.url).sort(),completedUrls:reports.filter(page=>page.auditStatus==='complete'&&!page.partial).map(page=>page.url).sort(),issues:issues.map(issue=>({code:issue.code,severity:issue.severity,affectedUrls:issue.affectedUrls.slice(0,100)}))};
   const eligibleScores=reports.filter(page=>Number.isFinite(page.score)&&!page.partial&&page.auditStatus==='complete').map(page=>page.score);
   summarySnapshot.averageScore=eligibleScores.length?Math.round(eligibleScores.reduce((total,score)=>total+score,0)/eligibleScores.length):null;
   let auditHistory=[];
@@ -372,8 +372,8 @@ siteButton.addEventListener('click',async()=>{
    const diff=document.createElement('p');diff.className='notice';historyPanel.append(diff);
    const compareHistory=()=>{
     const previous=auditHistory[Number(historySelect.value)];if(!previous)return;
-    const currentUrls=new Set(summarySnapshot.auditedUrls);
-    const oldUrls=Array.isArray(previous.auditedUrls)?new Set(previous.auditedUrls):null;
+    const currentUrls=new Set(summarySnapshot.completedUrls);
+    const oldUrls=Array.isArray(previous.completedUrls)?new Set(previous.completedUrls):null;
     const sameCoverage=oldUrls!==null&&oldUrls.size===currentUrls.size&&[...currentUrls].every(page=>oldUrls.has(page));
     const scoreDelta=summarySnapshot.averageScore===null||!Number.isFinite(previous.averageScore)?'Not comparable':(summarySnapshot.averageScore-previous.averageScore>0?'+':'')+(summarySnapshot.averageScore-previous.averageScore)+' points';
     const keys=snapshot=>new Set(snapshot.issues.flatMap(issue=>issue.affectedUrls.map(page=>issue.code+'|'+page)));
@@ -381,7 +381,7 @@ siteButton.addEventListener('click',async()=>{
     const comparableUrls=oldUrls?new Set([...currentUrls].filter(page=>oldUrls.has(page))):new Set();
     const comparableKey=key=>comparableUrls.has(key.slice(key.indexOf('|')+1));
     const newly=[...now].filter(key=>comparableKey(key)&&!before.has(key)),cleared=[...before].filter(key=>comparableKey(key)&&!now.has(key)),recurring=[...now].filter(key=>comparableKey(key)&&before.has(key));
-    const coverageMessage=!oldUrls?'Older audit did not store exact URL coverage; page-level resolution cannot be confirmed.':sameCoverage?'Exact audited URL sets match.':'Different audited URL sets: changes only compare '+comparableUrls.size+' overlapping pages.';
+    const coverageMessage=!oldUrls?'Older audit did not store complete-page evidence; page-level resolution cannot be confirmed.':sameCoverage?'Complete audited URL sets match.':'Different completed URL sets: changes only compare '+comparableUrls.size+' overlapping pages.';
     diff.textContent='Compared with '+new Date(previous.date).toLocaleString()+': average score change '+scoreDelta+'; '+newly.length+' newly observed, '+cleared.length+' no longer observed, '+recurring.length+' recurring issue/page occurrences on comparable pages. '+coverageMessage+' Different page sets may make average score changes misleading.';
     const previousTracker=historyPanel.querySelector('#site-history-tracker');if(previousTracker)previousTracker.remove();
     const tracker=document.createElement('section');tracker.id='site-history-tracker';tracker.setAttribute('aria-label','Issue change summary');
