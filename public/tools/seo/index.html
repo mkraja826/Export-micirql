@@ -324,7 +324,7 @@ siteButton.addEventListener('click',async()=>{
   siteReport.issueCenter=issues;
   // V2.5: store bounded summary-only history, never HTML or full reports.
   const historyKey='micirql-seo-history-v1:'+url.origin;
-  const summarySnapshot={date:siteReport.generatedAt,website:siteReport.website,analyzed:reports.length,selected:pages.length,failed:failures.length,averageScore:null,issues:issues.map(issue=>({code:issue.code,severity:issue.severity,affectedUrls:issue.affectedUrls.slice(0,100)}))};
+  const summarySnapshot={date:siteReport.generatedAt,website:siteReport.website,analyzed:reports.length,selected:pages.length,failed:failures.length,averageScore:null,auditedUrls:reports.map(page=>page.url).sort(),issues:issues.map(issue=>({code:issue.code,severity:issue.severity,affectedUrls:issue.affectedUrls.slice(0,100)}))};
   const eligibleScores=reports.filter(page=>Number.isFinite(page.score)&&!page.partial&&page.auditStatus==='complete').map(page=>page.score);
   summarySnapshot.averageScore=eligibleScores.length?Math.round(eligibleScores.reduce((total,score)=>total+score,0)/eligibleScores.length):null;
   let auditHistory=[];
@@ -344,12 +344,22 @@ siteButton.addEventListener('click',async()=>{
    const diff=document.createElement('p');diff.className='notice';historyPanel.append(diff);
    const compareHistory=()=>{
     const previous=auditHistory[Number(historySelect.value)];if(!previous)return;
-    const compatible=previous.analyzed===summarySnapshot.analyzed&&previous.selected===summarySnapshot.selected&&previous.failed===summarySnapshot.failed;
+    const currentUrls=new Set(summarySnapshot.auditedUrls);
+    const oldUrls=Array.isArray(previous.auditedUrls)?new Set(previous.auditedUrls):null;
+    const sameCoverage=oldUrls!==null&&oldUrls.size===currentUrls.size&&[...currentUrls].every(page=>oldUrls.has(page));
     const scoreDelta=summarySnapshot.averageScore===null||!Number.isFinite(previous.averageScore)?'Not comparable':(summarySnapshot.averageScore-previous.averageScore>0?'+':'')+(summarySnapshot.averageScore-previous.averageScore)+' points';
     const keys=snapshot=>new Set(snapshot.issues.flatMap(issue=>issue.affectedUrls.map(page=>issue.code+'|'+page)));
     const now=keys(summarySnapshot),before=keys(previous);
-    const newCount=[...now].filter(key=>!before.has(key)).length,resolvedCount=[...before].filter(key=>!now.has(key)).length;
-    diff.textContent='Compared with '+new Date(previous.date).toLocaleString()+': score change '+scoreDelta+'; '+newCount+' newly observed and '+resolvedCount+' no longer observed issue/page occurrences. '+(compatible?'Page counts match; individual page selections may still differ.':'Coverage differs (selected, analyzed or failed page counts). Treat changes as indicative, not confirmed SEO improvements.');
+    const comparableUrls=oldUrls?new Set([...currentUrls].filter(page=>oldUrls.has(page))):new Set();
+    const comparableKey=key=>comparableUrls.has(key.slice(key.indexOf('|')+1));
+    const newly=[...now].filter(key=>comparableKey(key)&&!before.has(key)),cleared=[...before].filter(key=>comparableKey(key)&&!now.has(key)),recurring=[...now].filter(key=>comparableKey(key)&&before.has(key));
+    const coverageMessage=!oldUrls?'Older audit did not store exact URL coverage; page-level resolution cannot be confirmed.':sameCoverage?'Exact audited URL sets match.':'Different audited URL sets: changes only compare '+comparableUrls.size+' overlapping pages.';
+    diff.textContent='Compared with '+new Date(previous.date).toLocaleString()+': average score change '+scoreDelta+'; '+newly.length+' newly observed, '+cleared.length+' no longer observed, '+recurring.length+' recurring issue/page occurrences on comparable pages. '+coverageMessage+' Different page sets may make average score changes misleading.';
+    const previousList=historyPanel.querySelector('#site-history-issue-list');if(previousList)previousList.remove();
+    const list=document.createElement('details');list.id='site-history-issue-list';const summary=document.createElement('summary');summary.textContent='View page-level changes';list.append(summary);
+    const groups=[['Newly observed',newly],['No longer observed',cleared],['Recurring',recurring]];
+    for(const [label,values] of groups){const heading=document.createElement('h4');heading.textContent=label+' ('+values.length+')';list.append(heading);const entries=document.createElement('ul');for(const key of values.slice(0,50)){const entry=document.createElement('li');entry.textContent=key.replace('|',' · ');entries.append(entry)}list.append(entries);if(values.length>50){const more=document.createElement('p');more.textContent='Showing first 50 of '+values.length+' occurrences.';list.append(more)}}
+    historyPanel.append(list);
    };historySelect.addEventListener('change',compareHistory);compareHistory();
   }else{const empty=document.createElement('p');empty.className='hint';empty.textContent='First saved audit for this website; comparisons appear after the next run.';historyPanel.append(empty)}
   try{auditHistory.push(summarySnapshot);localStorage.setItem(historyKey,JSON.stringify(auditHistory.slice(-10)))}catch{const note=document.createElement('p');note.className='hint';note.textContent='Browser storage unavailable; this run was not saved.';historyPanel.append(note)}
