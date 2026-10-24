@@ -194,3 +194,9 @@ test('SEO checkpoint matches requested URLs even when inspection redirects',()=>
  assert.match(page,/const resumedCount=pages\.filter\(p=>cached\.has\(p\)\)\.length/);
  assert.match(page,/Rerun this selection to retry failed pages using saved results/);
 });
+
+test('coverage note does not misrepresent manually selected pages as first discovered pages',()=>{
+ const page=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(page,/discovered pages were selected for this audit/);
+ assert.doesNotMatch(page,/Only the first '\+pages\.length/);
+});
