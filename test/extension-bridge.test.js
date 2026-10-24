@@ -21,7 +21,7 @@ function setup(){
  async function dispatch(type,extra={},sourceOrigin=origin){
   return listeners.message({source:window,origin:sourceOrigin,data:{source:'micirql-web',type,id:'qa-1',...extra}});
  }
- return {dispatch,sent,requests,progress:(data)=>changeHandler?.({captureProgress:{newValue:data}},'local'),hasListener:()=>Boolean(changeHandler)};
+ return {dispatch,sent,requests,progress:(data)=>changeHandler?.({captureProgress:{newValue:data}},'local'),discoveryProgress:(data)=>changeHandler?.({seoDiscoveryProgress:{newValue:data}},'local'),hasListener:()=>Boolean(changeHandler)};
 }
 test('site bridge discovers linked pages locally and returns result to first-party origin',async()=>{
  const h=setup();
@@ -73,7 +73,7 @@ test('extension announces protocol 2 and all website capture capabilities',async
 test('site bridge forwards discovery progress and cleans up its listener',async()=>{
  const h=setup();
  const pending=h.dispatch('MICIRQL_DISCOVER',{url:'https://example.com/'});
- h.progress({done:1,found:1,errors:0});
+ h.discoveryProgress({done:1,found:1,errors:0});
  await pending;
  const update=h.sent.find(x=>x.payload.type==='MICIRQL_DISCOVER_PROGRESS');
  assert.equal(update?.payload.progress.done,1);
