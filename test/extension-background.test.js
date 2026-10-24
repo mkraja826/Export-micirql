@@ -234,3 +234,27 @@ test('60 unique pages pass batch validation before opening Chrome',async()=>{
  assert.match(response.error,/Expected mock browser boundary/);
  assert.equal(created,1);
 });
+
+test('partial viewport failure does not stop subsequent widths or pages',async()=>{
+ let listener,current='https://example.com/',captures=0,removed=0;const progress=[];
+ const chrome={runtime:{id:'micirql-test',onMessage:{addListener(fn){listener=fn}}},storage:{local:{async set(v){progress.push(v.captureProgress)}}},
+ tabs:{onUpdated:{addListener(){},removeListener(){}},async create(){return {id:99,status:'complete'}},
+ async update(_id,{url}){current=url;return {id:99,status:'complete'}},
+ async get(){return {id:99,status:'complete',url:current}},async remove(){removed++}},
+ debugger:{async attach(){},async detach(){},async sendCommand(_t,method,params={}){
+ if(method==='Page.getLayoutMetrics')return {cssContentSize:{height:1000}};
+ if(method==='Page.captureScreenshot'){captures++;if(current.endsWith('/')&&params.clip.width===375)throw Error('Simulated 375px capture error');return {data:'YWJj'};}
+ return {};
+ }}};
+ runInNewContext(background,{chrome,URL,Promise,setTimeout,clearTimeout});
+ const result=await new Promise(resolve=>listener({type:'CAPTURE',url:'https://example.com/',pages:['https://example.com/','https://example.com/contact'],widths:[375,768,1440],format:'png',returnImages:true},{id:'micirql-test'},resolve));
+ assert.equal(result.ok,true,result.error);
+ assert.equal(result.count,5);
+ assert.equal(result.errors.length,1);
+ assert.equal(result.errors[0].width,375);
+ assert.equal(result.images.length,5);
+ assert.equal(progress.at(-1).state,'complete');
+ assert.equal(progress.at(-1).percent,100);
+ assert.equal(removed,1);
+ assert.ok(captures>=8,'Failed viewport receives three attempts before continuing');
+});
