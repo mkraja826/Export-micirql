@@ -147,6 +147,7 @@ siteButton.addEventListener('click',async()=>{
    }
   }
   // Missing from the selected crawl is NOT proof of a broken link.
+  const decodeTemplate=value=>{try{return decodeURIComponent(value)}catch{return value}};
   const normalizeLink=u=>{try{const parsed=new URL(u);parsed.hash='';parsed.search='';parsed.pathname=parsed.pathname.replace(/\/+$/,'')||'/';return parsed.href}catch{return u}};
   const audited=new Set(reports.map(r=>normalizeLink(r.url)));
   const pending=new Map();
@@ -339,23 +340,56 @@ siteButton.addEventListener('click',async()=>{
     const details=document.createElement('details');details.className='finding';details.dataset.severity=issue.severity;
     const summary=document.createElement('summary');summary.style.cursor='pointer';summary.textContent=issue.triageTier+' · '+issue.severity.toUpperCase()+' · '+issue.code.replaceAll('_',' ')+' · '+issue.affectedUrls.length+' affected pages';details.append(summary);
     const explanation=document.createElement('p');explanation.textContent=issue.message;details.append(explanation);if(issue.targetExamples?.length){const examples=document.createElement('p');examples.className='hint small';examples.textContent='Not inspected (examples): '+issue.targetExamples.join(', ');details.append(examples)}
-    if(issue.code==='internal_links_unverified'&&issue.targetExamples?.length){
-     const checkButton=document.createElement('button');checkButton.type='button';checkButton.textContent='Check up to 10 destinations in my browser';
-     checkButton.addEventListener('click',async()=>{
-      checkButton.disabled=true;const results=document.createElement('ul');details.append(results);
-      for(const destination of issue.targetExamples.slice(0,10)){
-       const referringPages=[...new Set(pending.get(destination)||[])];
-       const item=document.createElement('li');item.textContent=destination+' — checking…';results.append(item);
-       try{
-        const status=await extensionRequest('MICIRQL_SEO_LINK_CHECK','MICIRQL_SEO_LINK_RESULT',destination,20000);
-        const verification={destination,referringPages,checkedAt:new Date().toISOString(),status:status.ok===true&&Number.isInteger(status.status)?status.status:null,classification:status.ok===true?(status.classification||'unverified'):'unverified',finalUrl:status.ok===true?status.finalUrl||null:null};
-        siteReport.linkVerification=siteReport.linkVerification.filter(x=>x.destination!==destination).concat(verification);
-        item.textContent=destination+' — '+verification.classification+(verification.status!==null?' (HTTP '+verification.status+')':' (status unavailable)')+' · linked from '+referringPages.length+' page(s)';
-       }catch{siteReport.linkVerification=siteReport.linkVerification.filter(x=>x.destination!==destination).concat({destination,referringPages,checkedAt:new Date().toISOString(),status:null,classification:'unverified'});item.textContent=destination+' — unverified (extension or network check unavailable)'}
+    if(issue.code==='internal_links_unverified'&&pending.size){
+     const queue=[...pending.keys()].filter(destination=>!/\$\{[^}]+\}|\{\{[^}]+\}\}/.test(decodeTemplate(destination)));
+     const scopeKey='micirql-seo-link-check-v2:'+siteReport.website;
+     const saved=(()=>{try{const data=JSON.parse(localStorage.getItem(scopeKey)||'null');return data&&Date.now()-data.savedAt<86400000&&Array.isArray(data.rows)?data.rows:[]}catch{return []}})();
+     const completed=new Map(saved.filter(x=>queue.includes(x.destination)).map(x=>[x.destination,x]));
+     for(const x of completed.values())siteReport.linkVerification.push(x);
+     let running=false,stop=false;
+     const statusLine=document.createElement('p');statusLine.className='hint small';
+     const startButton=document.createElement('button');startButton.type='button';
+     const stopButton=document.createElement('button');stopButton.type='button';stopButton.textContent='Pause verification';stopButton.disabled=true;
+     const exportButton=document.createElement('button');exportButton.type='button';exportButton.textContent='Download link CSV';
+     const save=()=>{try{localStorage.setItem(scopeKey,JSON.stringify({savedAt:Date.now(),rows:[...completed.values()]}))}catch{}};
+     const refresh=()=>{
+      const checked=completed.size, broken=[...completed.values()].filter(x=>x.classification==='broken').length;
+      statusLine.textContent='Verified '+checked+'/'+queue.length+' destinations · '+broken+' confirmed 404/410 · '+(queue.length-checked)+' pending. Failed or blocked checks remain unverified.';
+      startButton.textContent=running?'Checking links…':checked===queue.length?'Recheck destinations':'Start / resume verification';
+      startButton.disabled=running;
+     };
+     refresh();
+     startButton.addEventListener('click',async()=>{
+      if(running)return;
+      if(completed.size===queue.length)completed.clear();
+      stop=false;running=true;stopButton.disabled=false;refresh();
+      const remaining=queue.filter(destination=>!completed.has(destination));
+      let cursor=0;
+      async function worker(){
+       while(!stop&&cursor<remaining.length){
+        const destination=remaining[cursor++];
+        const referringPages=[...new Set(pending.get(destination)||[])];
+        let row={destination,referringPages,checkedAt:new Date().toISOString(),status:null,classification:'unverified',finalUrl:null};
+        try{
+         const reply=await extensionRequest('MICIRQL_SEO_LINK_CHECK','MICIRQL_SEO_LINK_RESULT',destination,20000);
+         if(reply.ok===true){row={...row,status:Number.isInteger(reply.status)?reply.status:null,classification:reply.classification||'unverified',finalUrl:reply.finalUrl||null}}
+        }catch{}
+        completed.set(destination,row);
+        siteReport.linkVerification=[...completed.values()];
+        save();refresh();
+       }
       }
-      checkButton.textContent='Checked listed destinations';
+      await Promise.all([worker(),worker()]);
+      running=false;stopButton.disabled=true;refresh();
      });
-     details.append(checkButton);
+     stopButton.addEventListener('click',()=>{stop=true;stopButton.disabled=true;statusLine.textContent='Pausing after active checks finish…'});
+     exportButton.addEventListener('click',()=>{
+      const cell=value=>'"'+String(value??'').replace(/"/g,'""')+'"';
+      const lines=[['Destination','Classification','HTTP Status','Final URL','Checked At','Referring Pages'].map(cell).join(',')];
+      for(const row of siteReport.linkVerification||[])lines.push([row.destination,row.classification,row.status??'',row.finalUrl||'',row.checkedAt,(row.referringPages||[]).join(' | ')].map(cell).join(','));
+      downloadReport('csv',lines.join('\r\n'),'text/csv;charset=utf-8');
+     });
+     details.append(statusLine,startButton,stopButton,exportButton);
     }
     if(issue.sharedEvidence?.length){
      const heading=document.createElement('p');heading.className='small';heading.textContent='Repeated element evidence (sampled; '+issue.sharedEvidence.length+' unique examples):';details.append(heading);
