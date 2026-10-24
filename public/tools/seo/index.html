@@ -62,8 +62,9 @@ siteButton.addEventListener('click',async()=>{
     siteFindings.push({code,severity:'medium',message:'Same '+label+' found on '+urls.length+' audited pages.',affectedUrls:urls});
    }
   }
-  siteReport={schemaVersion:1,tool:'seo-site',generatedAt:new Date().toISOString(),website:url.origin,pagesDiscovered:discovered.pages.length,pagesSelected:pages.length,pagesAnalyzed:reports.length,failures,reports,siteFindings,scope:'bounded_browser_html_audit'};
+  siteReport={schemaVersion:1,tool:'seo-site',generatedAt:new Date().toISOString(),website:url.origin,pagesDiscovered:discovered.pages.length,pagesSelected:pages.length,pagesAnalyzed:reports.length,failures,reports,siteFindings,coverage:{selected:pages.length,analyzed:reports.length,failed:failures.length,discovered:discovered.pages.length,discoveryTruncated:discovered.truncated===true,selectionLimited:discovered.pages.length>pages.length,successfulPercent:Math.round(reports.length/pages.length*100)},scope:'bounded_browser_html_audit'};
   siteExport.disabled=false;siteExportText.disabled=false;
+  const coverage=document.createElement('p');coverage.className='notice';coverage.textContent='Audit coverage: '+reports.length+'/'+pages.length+' selected pages analyzed ('+siteReport.coverage.successfulPercent+'%). '+(siteReport.coverage.selectionLimited?'Only the first '+pages.length+' discovered pages were selected. ':'')+(siteReport.coverage.discoveryTruncated?'Discovery reached its page limit; more pages may exist. ':'')+'Unvisited pages are not scored.';siteResults.append(coverage);
   const roleSummary=document.createElement('div');roleSummary.className='summary';roleSummary.id='site-role-summary';
   function refreshRoleSummary(){
    roleSummary.replaceChildren();
@@ -173,7 +174,7 @@ siteButton.addEventListener('click',async()=>{
 siteExport.addEventListener('click',()=>{if(siteReport)downloadReport('json',JSON.stringify(siteReport,null,2),'application/json')});
 siteExportText.addEventListener('click',()=>{
  if(!siteReport)return;
- const lines=['MiCirql Site SEO Audit','Website: '+siteReport.website,'Analyzed: '+siteReport.pagesAnalyzed+'/'+siteReport.pagesSelected,'Failed: '+siteReport.failures.length,'','Limitations:',...siteReport.reportNotes,'','Prioritized issues:'];
+ const lines=['MiCirql Site SEO Audit','Website: '+siteReport.website,'Analyzed: '+siteReport.pagesAnalyzed+'/'+siteReport.pagesSelected,'Failed: '+siteReport.failures.length,'Coverage: '+siteReport.coverage.successfulPercent+'% of selected pages','Discovered pages: '+siteReport.coverage.discovered,'Discovery limited: '+(siteReport.coverage.discoveryTruncated?'yes':'no'),'Selection limited: '+(siteReport.coverage.selectionLimited?'yes':'no'),'','Limitations:',...siteReport.reportNotes,'','Prioritized issues:'];
  for(const issue of siteReport.issueCenter)lines.push('',issue.severity.toUpperCase()+' · '+issue.code+' · '+issue.affectedUrls.length+' pages',issue.message,'Suggested action: '+issue.recommendation,...issue.affectedUrls.map(url=>' - '+url));
  lines.push('','Failed inspections:',...siteReport.failures.map(f=>f.url+' — '+f.error));
  downloadReport('txt',lines.join('\n'),'text/plain');
