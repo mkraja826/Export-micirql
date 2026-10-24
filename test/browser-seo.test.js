@@ -32,3 +32,13 @@ test('SEO Studio offers a bounded browser-first multi-page audit',()=>{
  assert.match(page,/failures\.push/);
  assert.match(page,/siteExport\.disabled=false/);
 });
+
+test('multi-page SEO report records cross-page duplicate metadata without altering page scores',()=>{
+ const page=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(page,/duplicate_title/);
+ assert.match(page,/duplicate_description/);
+ assert.match(page,/duplicate_canonical/);
+ assert.match(page,/affectedUrls:urls/);
+ assert.match(page,/reports,siteFindings,scope/);
+ assert.match(page,/report\.partial\|\|report\.auditStatus!=='complete'/);
+});
