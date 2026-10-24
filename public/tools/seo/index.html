@@ -16,12 +16,27 @@ const siteButton=document.getElementById('site-run'),siteExport=document.getElem
 function extensionRequest(type,resultType,url,timeout=60000){
  return new Promise((resolve,reject)=>{
   const id='seo-'+Date.now()+'-'+Math.random().toString(36).slice(2);
-  const timer=setTimeout(()=>{window.removeEventListener('message',receive);reject(Error('Extension request timed out'))},timeout);
-  function receive(event){
-   if(event.source!==window||event.origin!==location.origin||event.data?.source!=='micirql-extension'||event.data.type!==resultType||event.data.id!==id)return;
-   clearTimeout(timer);window.removeEventListener('message',receive);resolve(event.data);
+  let timer;
+  const progressType=type==='MICIRQL_DISCOVER'?'MICIRQL_DISCOVER_PROGRESS':null;
+  const started=Date.now(),hardLimit=1800000;
+  function cleanup(){clearTimeout(timer);window.removeEventListener('message',receive)}
+  function resetTimer(){
+   clearTimeout(timer);
+   const remaining=hardLimit-(Date.now()-started);
+   if(remaining<=0){cleanup();reject(Error('Extension discovery exceeded its 30-minute safety limit. Retry a smaller site or batch.'));return}
+   timer=setTimeout(()=>{cleanup();reject(Error('Extension stopped responding. Check Chrome extension status and retry.'))},Math.min(timeout,remaining));
   }
-  window.addEventListener('message',receive);
+  function receive(event){
+   if(event.source!==window||event.origin!==location.origin||event.data?.source!=='micirql-extension'||event.data.id!==id)return;
+   if(progressType&&event.data.type===progressType){
+    const p=event.data.progress||{};
+    siteStatus.textContent='Discovering pages in Chrome: '+(p.done||0)+' inspected, '+(p.found||0)+' found'+(p.errors?' · '+p.errors+' inaccessible':'')+'…';
+    resetTimer();return;
+   }
+   if(event.data.type!==resultType)return;
+   cleanup();resolve(event.data);
+  }
+  window.addEventListener('message',receive);resetTimer();
   window.postMessage({source:'micirql-web',type,id,url},location.origin);
  });
 }
