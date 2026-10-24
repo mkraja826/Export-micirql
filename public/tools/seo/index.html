@@ -73,7 +73,7 @@ function renderSelection(){
 document.getElementById('site-page-search').addEventListener('input',renderSelection);
 document.getElementById('site-page-role').addEventListener('change',renderSelection);
 document.getElementById('site-limit').addEventListener('change',()=>{if(selectedDiscovery){selectedDiscovery.selected=new Set([...selectedDiscovery.selected].slice(0,chosenLimit()));renderSelection()}});
-document.getElementById('site-all').addEventListener('click',()=>{if(selectedDiscovery){selectedDiscovery.selected=new Set(selectedDiscovery.pages.slice(0,chosenLimit()));renderSelection()}});
+document.getElementById('site-all').addEventListener('click',()=>{if(selectedDiscovery){const q=document.getElementById('site-page-search').value.trim().toLowerCase(),role=document.getElementById('site-page-role').value;const visible=selectedDiscovery.pages.filter(p=>p.toLowerCase().includes(q)&&(role==='all'||suggestedPageRole(p)===role));selectedDiscovery.selected=new Set([...selectedDiscovery.selected,...visible].slice(0,chosenLimit()));renderSelection()}});
 document.getElementById('site-none').addEventListener('click',()=>{if(selectedDiscovery){selectedDiscovery.selected.clear();renderSelection()}});
 async function discoverForAudit(url){
  siteStatus.textContent='Discovering same-origin pages…';
