@@ -422,3 +422,14 @@ test('link verification tracks active requests and preserves timeout reasons in 
  assert.ok(html.includes("' timeouts, '+requestFailed+' network failures"));
  assert.ok(html.includes("'Reason','Final URL'"));
 });
+
+test('SEO Studio V2 starts with website audit and keeps single-page inspection accessible',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes('<h1>SEO Studio</h1>'));
+ assert.ok(html.indexOf('id="site-heading"')>html.indexOf('id="advanced-inspector"'));
+ assert.ok(html.includes('<details id="advanced-inspector"'));
+ assert.ok(html.includes('class="panel audit-workspace"'));
+ assert.ok(html.includes('aria-label="SEO Studio sections"'));
+ assert.ok(html.includes("discovered.truncated===true?' Discovery was truncated"));
+ assert.ok(!html.includes('Limited to first 20 discovered pages.'));
+});
