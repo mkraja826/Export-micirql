@@ -41,7 +41,7 @@ export function inspectSeoHtml(html,url,options={}){
   if(h1Count!==1)add('heading_count','medium','Use one clear H1 heading.',10,'content');
   if(headingSkips)add('heading_hierarchy','low','Heading levels skip steps in '+headingSkips+' place(s).',4,'content');
  }
- const titleTagCount=[...head.matchAll(/<title\\b[^>]*>/gi)].length;
+ const titleTagCount=[...head.matchAll(/<title\b[^>]*>/gi)].length;
  const descriptionTagCount=meta.filter(t=>attribute(t,'name').toLowerCase()==='description').length;
  if(titleTagCount>1)add('multiple_titles','medium',titleTagCount+' title tags found in the document head; use one unambiguous title.',6,'metadata');
  if(descriptionTagCount>1)add('multiple_descriptions','medium',descriptionTagCount+' meta description tags found; use one unambiguous description.',6,'metadata');
@@ -78,6 +78,17 @@ export function inspectSeoHtml(html,url,options={}){
   if(javascriptLinks.length)add('links_javascript','medium',javascriptLinks.length+' link(s) use javascript: URLs rather than crawlable destinations.',4,'links');
  }else if(linkIssues.length)add('links_unverified','info','Partial HTML capture: link findings require complete-page verification.',0,'links');
  if(!structuredDataCount)add('no_structured_data','info','Consider relevant JSON-LD structured data where applicable.',0,'structured_data');
+
+ const jsonLdScripts=[...html.matchAll(/<script\b(?=[^>]*\btype\s*=\s*["']application\/ld\+json["'])[^>]*>([\s\S]*?)<\/script\s*>/gi)];
+ let invalidJsonLd=0,untypedJsonLd=0;
+ const hasSchemaType=value=>Array.isArray(value)?value.some(hasSchemaType):Boolean(value&&typeof value==='object'&&(value['@type']||(Array.isArray(value['@graph'])&&value['@graph'].some(hasSchemaType))));
+ for(const script of jsonLdScripts){
+  try{if(!hasSchemaType(JSON.parse(script[1].trim())))untypedJsonLd++}
+  catch{invalidJsonLd++}
+ }
+ if(invalidJsonLd)add('invalid_json_ld','medium',invalidJsonLd+' JSON-LD script(s) contain invalid JSON. Check syntax before relying on this structured data.',7,'structured_data');
+ if(untypedJsonLd)add('json_ld_missing_type','low',untypedJsonLd+' valid JSON-LD script(s) have no detectable @type, including @graph nodes.',3,'structured_data');
+
  const deductions=findings.reduce((sum,f)=>sum+(f.points||0),0);
  const score=Math.max(0,100-deductions);
  // Category figures are deduction summaries, not independent 0–100 scores.
