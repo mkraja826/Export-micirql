@@ -162,3 +162,12 @@ test('SEO rediscovery invalidates stale start URLs and prevents overlapping audi
  assert.match(page,/siteButton\.disabled=true;discoverButton\.disabled=true/);
  assert.match(page,/siteButton\.disabled=false;discoverButton\.disabled=false/);
 });
+
+test('SEO discovery timeout refreshes on real extension progress with hard safety limit',()=>{
+ const page=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(page,/MICIRQL_DISCOVER_PROGRESS/);
+ assert.match(page,/hardLimit=1800000/);
+ assert.match(page,/if\(progressType&&event\.data\.type===progressType\)/);
+ assert.match(page,/resetTimer\(\);return/);
+ assert.match(page,/Extension stopped responding/);
+});
