@@ -121,7 +121,7 @@ siteButton.addEventListener('click',async()=>{
      report.requestedUrl=pages[i];report.pageRole=suggestedPageRole(report.url);report.pageRoleSource='suggested_from_url';report.attempts=attempt;reports.push(report);saveCheckpoint(url.origin,pages,reports);lastError=null;break;
     }catch(error){
      lastError=error;
-     if(attempt<2)siteStatus.textContent='Retrying page '+(i+1)+' of '+pages.length+' (attempt 2 of 2)…';
+     if(attempt<2){siteStatus.textContent='Retrying page '+(i+1)+' of '+pages.length+' after a short recovery pause (attempt 2 of 2)…';await new Promise(resolve=>setTimeout(resolve,1500));}
     }
    }
    if(lastError)failures.push({url:pages[i],error:lastError.message||'Inspection failed',attempts:2});
