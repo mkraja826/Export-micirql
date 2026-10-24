@@ -116,7 +116,14 @@ test('SEO audit resumes previously completed pages from a bounded local checkpoi
 test('SEO site audit offers bounded selectable batch sizes',()=>{
  const page=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  assert.match(page,/id="site-limit"/);
- for(const size of [10,20,40])assert.match(page,new RegExp('<option value="'+size+'"'));
+ for(const size of [10,20,40,60])assert.match(page,new RegExp('<option value="'+size+'"'));
  assert.match(page,/if\(!\[10,20,40\]\.includes\(maxPages\)\)/);
  assert.match(page,/requestedLimit:maxPages/);
+});
+
+test('SEO audit caps browser-local batches and checkpoints at 60 pages',()=>{
+ const page=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(page,/saved\.reports\.length>60/);
+ assert.match(page,/id="site-progress" max="60"/);
+ assert.match(page,/up to 60 same-origin pages/);
 });
