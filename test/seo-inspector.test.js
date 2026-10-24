@@ -205,3 +205,16 @@ test('relative same-origin links resolve against the current page',()=>{
  const report=inspectSeoHtml('<body><h1>Example</h1><a href="../contact?from=about#form">Contact</a></body>','https://example.com/about/team');
  assert.deepEqual(report.internalLinkTargets,['https://example.com/contact?from=about']);
 });
+
+test('unresolved href templates are findings with bounded evidence',()=>{
+ const html='<html lang="en"><head><title>Example Page With Useful Descriptive Title</title></head><body><h1>Welcome</h1><a href="/services/${item.link}">Service</a><a href="/{{slug}}">Details</a></body></html>';
+ const report=inspectSeoHtml(html,'https://example.com/');
+ const finding=report.findings.find(x=>x.code==='unresolved_link_template');
+ assert.equal(finding.severity,'high');
+ assert.equal(finding.evidence.length,2);
+ assert.ok(finding.evidence[0].value.includes('${item.link}'));
+});
+test('literal resolved URLs are not flagged as templates',()=>{
+ const report=inspectSeoHtml('<a href="/services/root-canal">Service</a>','https://example.com/');
+ assert.equal(report.findings.some(x=>x.code==='unresolved_link_template'),false);
+});
