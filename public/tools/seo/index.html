@@ -453,7 +453,7 @@ siteButton.addEventListener('click',async()=>{
   technicalOverview.append(technicalGrid);siteResults.append(technicalOverview);
   const issueContainer=document.createElement('div');issueContainer.id='site-issues';siteResults.append(issueContainer);
   const issueTitles={missing_title:'Page title is missing',missing_meta_description:'Search description is missing',missing_description:'Search description is missing',missing_h1:'Main page heading is missing',multiple_h1:'Multiple main headings detected',missing_canonical:'Preferred page URL is not specified',noindex:'Page is excluded from search indexing',internal_links_unverified:'Some internal links still need verification',broken_internal_links:'Broken internal links detected',images_missing_alt:'Images are missing descriptions',missing_alt:'Images are missing descriptions',thin_content:'Page has limited written content'};
-  const issueTitle=code=>issueTitles[code]||code.replaceAll('_',' ').replace(/\\b\\w/g,character=>character.toUpperCase());
+  const issueTitle=code=>issueTitles[code]||code.replaceAll('_',' ').replace(/\b\w/g,character=>character.toUpperCase());
   function renderIssues(){
    issueContainer.replaceChildren();
    const selected=severityFilter.value;
