@@ -8,8 +8,8 @@ function downloadReport(extension,body,mime){const blob=new Blob([body],{type:mi
 const jsonButton=document.getElementById('export-json'),textButton=document.getElementById('export-text');jsonButton.addEventListener('click',()=>{if(lastReport)downloadReport('json',JSON.stringify(lastReport,null,2),'application/json')});textButton.addEventListener('click',()=>{if(!lastReport)return;const lines=['MiCirql SEO Report','Website: '+lastReport.url,'Scope: '+lastReport.scope,'Score: '+(lastReport.score===null?'Not scored':lastReport.score+'/100'),'Audit status: '+lastReport.auditStatus,'Scoring note: '+(lastReport.scoreExplanation||''),'','Title: '+lastReport.title,'Description: '+lastReport.description,'Canonical: '+lastReport.canonical,'Language: '+lastReport.lang,'Robots: '+lastReport.robots,'H1 count: '+lastReport.h1Count,'','Findings:',...lastReport.findings.map(x=>x.severity.toUpperCase()+' '+x.code+': '+x.message)];downloadReport('txt',lines.join('\n'),'text/plain')});
 function suggestedPageRole(url){
  const path=new URL(url).pathname.toLowerCase();
- if(/(?:^|\\/)(?:privacy|privacy-policy|terms|terms-of-service|delete-account)(?:\\/|$)/.test(path))return 'legal';
- if(/(?:^|\\/)(?:portal|dashboard|login|signin|signup|account|app)(?:\\/|$)/.test(path))return 'application';
+ if(/(?:^|\/)(?:privacy|privacy-policy|terms|terms-of-service|delete-account)(?:\/|$)/.test(path))return 'legal';
+ if(/(?:^|\/)(?:portal|dashboard|login|signin|signup|account|app)(?:\/|$)/.test(path))return 'application';
  return 'public';
 }
 const siteButton=document.getElementById('site-run'),siteExport=document.getElementById('site-export'),siteExportText=document.getElementById('site-export-text'),siteStatus=document.getElementById('site-status'),siteProgress=document.getElementById('site-progress'),siteResults=document.getElementById('site-results');let siteReport=null;
