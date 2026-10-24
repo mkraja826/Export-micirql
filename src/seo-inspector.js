@@ -98,6 +98,10 @@ export function inspectSeoHtml(html,url,options={}){
    }
   }catch{}
  }
+ // Template placeholders in href attributes are source-level evidence, not a network failure.
+ // Limit matching to explicit unresolved syntax to avoid treating ordinary URLs as broken.
+ const templateLinks=[...new Set(anchorTags.map(match=>attribute('<a '+match[1]+'>','href').trim()).filter(href=>/\\$\\{[^}]+\\}|\\{\\{[^}]+\\}\\}/.test(href)))];
+ if(templateLinks.length)add('unresolved_link_template','high',templateLinks.length+' distinct link destination(s) contain unresolved template placeholders. Replace placeholders with real URLs before publishing.',8,'links');
  const linksMissingName=linkIssues.filter(x=>x.code==='link_missing_name');
  const insecureLinks=linkIssues.filter(x=>x.code==='link_http');
  const javascriptLinks=linkIssues.filter(x=>x.code==='link_javascript');
@@ -133,7 +137,7 @@ export function inspectSeoHtml(html,url,options={}){
   catch{jsonEvidence.invalid_json_ld.push(entry)}
  }
  for(const finding of findings){
-  const evidence=finding.code==='images_missing_alt'?imageEvidence:(linkEvidence[finding.code]||jsonEvidence[finding.code]);
+  const evidence=finding.code==='unresolved_link_template'?templateLinks.map(value=>({element:'a',attribute:'href',value:safeSnippet(value)})):(finding.code==='images_missing_alt'?imageEvidence:(linkEvidence[finding.code]||jsonEvidence[finding.code]));
   if(evidence?.length)finding.evidence=evidence.slice(0,5);
  }
 
