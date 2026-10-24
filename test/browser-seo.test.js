@@ -301,3 +301,11 @@ test('unverified destination retry control preserves confirmed HTTP results',()=
  assert.ok(html.includes('retryButton.disabled=running||uncertain===0'));
  assert.ok(html.includes("+' unverified. Network failures can be retried.'"));
 });
+
+test('authentication routes are classified as application and waive inappropriate indexability penalties',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes('forgot-password|reset-password|password-reset'));
+ assert.ok(html.includes('report.contextualFindings=excluded.map'));
+ assert.ok(html.includes("['noindex','missing_canonical'].includes(item.code)"));
+ assert.ok(html.includes('report.score=Math.min(100,report.score+waived)'));
+});
