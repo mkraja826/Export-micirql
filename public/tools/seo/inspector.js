@@ -52,5 +52,9 @@ export function inspectSeoHtml(html,url,options={}){
  if(!structuredDataCount)add('no_structured_data','info','Consider relevant JSON-LD structured data where applicable.',0,'structured_data');
  const deductions=findings.reduce((sum,f)=>sum+(f.points||0),0);
  const score=Math.max(0,100-deductions);
- return {url,title,description,robots,canonical,lang,viewport,h1Count,ogTitle,ogDescription,ogImage,twitterCard,imageCount:imageTags.length,imagesMissingAlt,structuredDataCount,headingSkips,findings,scope:'static_html_only',auditStatus:isPartial?'partial':'complete',partial:isPartial,score,maxScore:100,scoreLabel:isPartial?'Provisional score':'SEO HTML score',scoreExplanation:'Heuristic static HTML score based on weighted findings. Not Google ranking, performance, accessibility, or a full-site SEO score.'};
+ // Category figures are deduction summaries, not independent 0–100 scores.
+ const categoryDeductions={};
+ for(const finding of findings){const key=finding.category||'technical';categoryDeductions[key]=(categoryDeductions[key]||0)+(finding.points||0)}
+ const scoring={method:'weighted_html_finding_deductions',startingScore:100,totalDeductions:deductions,categoryDeductions,appliedScore:score,scoreFloor:0,coverage:isPartial?'partial_html_snapshot':'provided_html_only'};
+ return {url,title,description,robots,canonical,lang,viewport,h1Count,ogTitle,ogDescription,ogImage,twitterCard,imageCount:imageTags.length,imagesMissingAlt,structuredDataCount,headingSkips,findings,scoring,scope:'static_html_only',auditStatus:isPartial?'partial':'complete',partial:isPartial,score,maxScore:100,scoreLabel:isPartial?'Provisional score':'SEO HTML score',scoreExplanation:'Heuristic static HTML score based on weighted findings. Not Google ranking, performance, accessibility, or a full-site SEO score.'};
 }
