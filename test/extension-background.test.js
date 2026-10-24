@@ -173,3 +173,23 @@ test('load-event recovery rejects a different origin',async()=>{
  runInNewContext(background+'\nthis.recover=waitForUsableTab;',context);
  await assert.rejects(context.recover(7,'https://example.com/',1),/Page load timed out/);
 });
+
+
+test('page discovery shares guarded same-origin loading recovery',async()=>{
+ let listener,removed=0;
+ const chrome={
+  runtime:{id:'micirql-extension',onMessage:{addListener(fn){listener=fn}}},
+  tabs:{onUpdated:{addListener(){},removeListener(){}},
+   async create(){return {id:101,status:'complete'}},
+   async update(){return {id:101,status:'complete'}},
+   async get(){return {id:101,status:'complete',url:'https://example.com/'}},
+   async remove(){removed++}},
+  scripting:{async executeScript(){return [{result:[]}]}}
+ };
+ runInNewContext(background,{chrome,URL,Promise,setTimeout,clearTimeout});
+ const response=await new Promise(resolve=>listener({type:'DISCOVER_SUBPAGE',url:'https://example.com/'},{id:'micirql-extension'},resolve));
+ assert.equal(response.ok,true,response.error);
+ assert.deepEqual(Array.from(response.pages),['https://example.com/']);
+ assert.equal(removed,1);
+ assert.match(background,/await waitForUsableTab\(tab.id,page,25000\)/);
+});
