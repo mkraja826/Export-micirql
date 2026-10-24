@@ -256,6 +256,26 @@ siteButton.addEventListener('click',async()=>{
   for(const issue of issues)issue.recommendation=advice[issue.code]||'Review the finding against the page purpose before making changes.';
   siteReport.reportNotes=['Scores reflect bounded HTML checks, not Google rankings.','Page roles are suggestions or manual selections.','Only pages discovered and analyzed in this batch are included.'];
   siteReport.issueCenter=issues;
+  // Compact, transparent overview: issue groups are not individual defects.
+  const overview=document.createElement('section');overview.id='site-audit-overview';overview.setAttribute('aria-label','SEO audit overview');
+  const overviewHeading=document.createElement('h3');overviewHeading.textContent='Audit at a glance';overview.append(overviewHeading);
+  const overviewStats=document.createElement('div');overviewStats.className='summary';
+  const severityTotals={high:0,medium:0,low:0,info:0};
+  for(const issue of issues)if(issue.severity in severityTotals)severityTotals[issue.severity]++;
+  const eligible=reports.filter(p=>p.score!==null&&!p.partial&&p.auditStatus==='complete');
+  const mean=eligible.length?Math.round(eligible.reduce((sum,p)=>sum+p.score,0)/eligible.length):null;
+  for(const [name,value] of [
+   ['Pages audited',reports.length+'/'+pages.length],
+   ['Complete HTML average',mean===null?'Not available':mean+'/100 ('+eligible.length+' pages)'],
+   ['Failed pages',failures.length],
+   ['High-priority groups',severityTotals.high],
+   ['Medium-priority groups',severityTotals.medium],
+   ['Other issue groups',severityTotals.low+severityTotals.info]
+  ]){const item=document.createElement('span');const nameText=document.createElement('strong');nameText.textContent=name+': ';item.append(nameText,document.createTextNode(String(value)));overviewStats.append(item)}
+  overview.append(overviewStats);
+  const overviewNote=document.createElement('p');overviewNote.className='hint small';overviewNote.textContent='Average uses complete, scored HTML pages only. Issue counts represent grouped findings, not distinct broken pages or verified search ranking impact.';overview.append(overviewNote);
+  siteResults.prepend(overview);
+  siteReport.overview={completeScoredPages:eligible.length,averageHtmlScore:mean,issueGroupsBySeverity:severityTotals};
   const issueHeading=document.createElement('h3');issueHeading.textContent='Prioritized issue center';siteResults.append(issueHeading);
   const filterLabel=document.createElement('label');filterLabel.textContent='Issue severity';filterLabel.className='small';
   const severityFilter=document.createElement('select');severityFilter.id='site-issue-filter';severityFilter.setAttribute('aria-label','Filter site issues by severity');
