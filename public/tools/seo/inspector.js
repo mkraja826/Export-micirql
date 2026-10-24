@@ -35,8 +35,12 @@ export function inspectSeoHtml(html,url,options={}){
  else if(title.length<15||title.length>65)add('title_length','low','Review title length (rough guideline: 15–65 characters).',5,'metadata');
  if(!description)add('missing_description','medium','Add a unique meta description.',12,'metadata');
  else if(description.length<70||description.length>170)add('description_length','low','Review description length (rough guideline: 70–170 characters).',4,'metadata');
- if(h1Count!==1)add('heading_count','medium','Use one clear H1 heading.',10,'content');
- if(headingSkips)add('heading_hierarchy','low','Heading levels skip steps in '+headingSkips+' place(s).',4,'content');
+ if(isPartial){
+  add('heading_unverified','info','Heading structure is not verified in a partial HTML capture. Reinspect the fully loaded page before recommending heading changes.',0,'content');
+ }else{
+  if(h1Count!==1)add('heading_count','medium','Use one clear H1 heading.',10,'content');
+  if(headingSkips)add('heading_hierarchy','low','Heading levels skip steps in '+headingSkips+' place(s).',4,'content');
+ }
  if(canonicalTags.length>1)add('multiple_canonicals','high','Multiple canonical link elements can create conflicting indexability signals.',12,'indexability');
  if(!canonical)add('missing_canonical','medium','Declare a canonical URL.',8,'indexability');
  else{try{if(!['http:','https:'].includes(new URL(canonical,url).protocol))add('canonical_invalid','medium','Canonical URL is invalid.',7,'indexability')}catch{add('canonical_invalid','medium','Canonical URL is invalid.',7,'indexability')}}
