@@ -25,6 +25,18 @@ function extensionRequest(type,resultType,url,timeout=60000){
   window.postMessage({source:'micirql-web',type,id,url},location.origin);
  });
 }
+// Persist only compact SEO findings for a single site, never raw page HTML.
+const checkpointKey='micirql-seo-checkpoint-v1';
+function readCheckpoint(origin){
+ try{
+  const saved=JSON.parse(localStorage.getItem(checkpointKey)||'null');
+  if(!saved||saved.website!==origin||Date.now()-saved.savedAt>86400000||!Array.isArray(saved.reports)||saved.reports.length>20)return null;
+  return saved;
+ }catch{return null}
+}
+function saveCheckpoint(origin,pages,reports){
+ try{localStorage.setItem(checkpointKey,JSON.stringify({website:origin,pages,savedAt:Date.now(),reports}))}catch{/* Storage disabled or full: audit still runs. */}
+}
 siteButton.addEventListener('click',async()=>{
  if(!extensionReady){siteStatus.textContent='Connect or reload the Chrome extension first.';return}
  let url;try{url=new URL(document.getElementById('url').value);if(!['http:','https:'].includes(url.protocol)||url.username||url.password)throw Error()}catch{siteStatus.textContent='Enter a valid HTTP(S) website URL.';return}
@@ -36,8 +48,12 @@ siteButton.addEventListener('click',async()=>{
   const pages=[...new Set((discovered.pages||[]).filter(p=>{try{return new URL(p).origin===url.origin}catch{return false}}))].slice(0,20);
   if(!pages.length)throw Error('No accessible pages found');
   siteProgress.max=pages.length;
+  const checkpoint=readCheckpoint(url.origin);
+  const reusable=checkpoint&&JSON.stringify(checkpoint.pages)===JSON.stringify(pages)?checkpoint.reports:[];
   const reports=[],failures=[];
+  const cached=new Map(reusable.filter(r=>r&&pages.includes(r.url)&&r.auditStatus==='complete').map(r=>[r.url,r]));
   for(let i=0;i<pages.length;i++){
+   if(cached.has(pages[i])){reports.push(cached.get(pages[i]));siteProgress.value=i+1;continue}
    siteStatus.textContent='Inspecting page '+(i+1)+' of '+pages.length+'…';
    let lastError=null;
    for(let attempt=1;attempt<=2;attempt++){
@@ -45,7 +61,7 @@ siteButton.addEventListener('click',async()=>{
      const response=await extensionRequest('MICIRQL_SEO_READ','MICIRQL_SEO_RESULT',pages[i],90000);
      if(!response.ok)throw Error(response.error||'Inspection failed');
      const report=inspectSeoHtml(response.html,response.url||pages[i],{partial:response.partial===true});
-     report.pageRole=suggestedPageRole(report.url);report.pageRoleSource='suggested_from_url';report.attempts=attempt;reports.push(report);lastError=null;break;
+     report.pageRole=suggestedPageRole(report.url);report.pageRoleSource='suggested_from_url';report.attempts=attempt;reports.push(report);saveCheckpoint(url.origin,pages,reports);lastError=null;break;
     }catch(error){
      lastError=error;
      if(attempt<2)siteStatus.textContent='Retrying page '+(i+1)+' of '+pages.length+' (attempt 2 of 2)…';
@@ -54,6 +70,7 @@ siteButton.addEventListener('click',async()=>{
    if(lastError)failures.push({url:pages[i],error:lastError.message||'Inspection failed',attempts:2});
    siteProgress.value=i+1;
   }
+  try{localStorage.removeItem(checkpointKey)}catch{}
   const siteFindings=[];
   // Cross-page findings are separate from individual page scores: do not
   // retroactively alter per-page scores based on a capped discovery sample.
