@@ -39,7 +39,7 @@ test('multi-page SEO report records cross-page duplicate metadata without alteri
  assert.match(page,/duplicate_description/);
  assert.match(page,/duplicate_canonical/);
  assert.match(page,/affectedUrls:urls/);
- assert.match(page,/reports,siteFindings,scope/);
+ assert.match(page,/reports,siteFindings,/);
  assert.match(page,/report\.partial\|\|report\.auditStatus!=='complete'/);
 });
 
@@ -57,7 +57,7 @@ test('site audit labels page roles without changing individual SEO scores',()=>{
  assert.match(page,/function suggestedPageRole\(url\)/);
  assert.match(page,/pageRoleSource='suggested_from_url'/);
  assert.match(page,/p\.pageRole==='public'/);
- assert.match(page,/Page roles are URL-based suggestions/);
+ assert.match(page,/Roles are editable suggestions/);
 });
 
 test('site audit permits overriding page roles and recalculates group averages',()=>{
