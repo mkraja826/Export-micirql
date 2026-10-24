@@ -39,11 +39,19 @@ siteButton.addEventListener('click',async()=>{
   const reports=[],failures=[];
   for(let i=0;i<pages.length;i++){
    siteStatus.textContent='Inspecting page '+(i+1)+' of '+pages.length+'…';
-   try{
-    const response=await extensionRequest('MICIRQL_SEO_READ','MICIRQL_SEO_RESULT',pages[i],90000);
-    if(!response.ok)throw Error(response.error||'Inspection failed');
-    const report=inspectSeoHtml(response.html,response.url||pages[i],{partial:response.partial===true});report.pageRole=suggestedPageRole(report.url);report.pageRoleSource='suggested_from_url';reports.push(report);
-   }catch(error){failures.push({url:pages[i],error:error.message||'Inspection failed'})}
+   let lastError=null;
+   for(let attempt=1;attempt<=2;attempt++){
+    try{
+     const response=await extensionRequest('MICIRQL_SEO_READ','MICIRQL_SEO_RESULT',pages[i],90000);
+     if(!response.ok)throw Error(response.error||'Inspection failed');
+     const report=inspectSeoHtml(response.html,response.url||pages[i],{partial:response.partial===true});
+     report.pageRole=suggestedPageRole(report.url);report.pageRoleSource='suggested_from_url';report.attempts=attempt;reports.push(report);lastError=null;break;
+    }catch(error){
+     lastError=error;
+     if(attempt<2)siteStatus.textContent='Retrying page '+(i+1)+' of '+pages.length+' (attempt 2 of 2)…';
+    }
+   }
+   if(lastError)failures.push({url:pages[i],error:lastError.message||'Inspection failed',attempts:2});
    siteProgress.value=i+1;
   }
   const siteFindings=[];
@@ -62,7 +70,7 @@ siteButton.addEventListener('click',async()=>{
     siteFindings.push({code,severity:'medium',message:'Same '+label+' found on '+urls.length+' audited pages.',affectedUrls:urls});
    }
   }
-  siteReport={schemaVersion:1,tool:'seo-site',generatedAt:new Date().toISOString(),website:url.origin,pagesDiscovered:discovered.pages.length,pagesSelected:pages.length,pagesAnalyzed:reports.length,failures,reports,siteFindings,coverage:{selected:pages.length,analyzed:reports.length,failed:failures.length,discovered:discovered.pages.length,discoveryTruncated:discovered.truncated===true,selectionLimited:discovered.pages.length>pages.length,successfulPercent:Math.round(reports.length/pages.length*100)},scope:'bounded_browser_html_audit'};
+  siteReport={schemaVersion:1,tool:'seo-site',generatedAt:new Date().toISOString(),website:url.origin,pagesDiscovered:discovered.pages.length,pagesSelected:pages.length,pagesAnalyzed:reports.length,failures,reports,siteFindings,retryPolicy:{maxAttemptsPerPage:2,sequential:true},coverage:{selected:pages.length,analyzed:reports.length,failed:failures.length,discovered:discovered.pages.length,discoveryTruncated:discovered.truncated===true,selectionLimited:discovered.pages.length>pages.length,successfulPercent:Math.round(reports.length/pages.length*100)},scope:'bounded_browser_html_audit'};
   siteExport.disabled=false;siteExportText.disabled=false;
   const coverage=document.createElement('p');coverage.className='notice';coverage.textContent='Audit coverage: '+reports.length+'/'+pages.length+' selected pages analyzed ('+siteReport.coverage.successfulPercent+'%). '+(siteReport.coverage.selectionLimited?'Only the first '+pages.length+' discovered pages were selected. ':'')+(siteReport.coverage.discoveryTruncated?'Discovery reached its page limit; more pages may exist. ':'')+'Unvisited pages are not scored.';siteResults.append(coverage);
   const roleSummary=document.createElement('div');roleSummary.className='summary';roleSummary.id='site-role-summary';
@@ -167,7 +175,7 @@ siteButton.addEventListener('click',async()=>{
    }
    siteResults.append(panel);
   }
-  for(const failure of failures){const row=document.createElement('p');row.className='finding';row.dataset.severity='high';row.textContent='FAILED · '+failure.url+' · '+failure.error;siteResults.append(row)}
+  for(const failure of failures){const row=document.createElement('p');row.className='finding';row.dataset.severity='high';row.textContent='FAILED after '+failure.attempts+' attempts · '+failure.url+' · '+failure.error;siteResults.append(row)}
  }catch(error){siteStatus.textContent=error.message||'Site audit failed'}
  finally{siteButton.disabled=false}
 });
