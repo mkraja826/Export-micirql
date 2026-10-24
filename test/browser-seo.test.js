@@ -76,3 +76,12 @@ test('site issue center groups findings by severity and affected URLs',()=>{
  assert.match(page,/affectedUrls:\[\.\.\.new Set\(issue\.affectedUrls\)\]/);
  assert.match(page,/severityFilter\.addEventListener\('change',renderIssues\)/);
 });
+
+test('site report offers readable export with affected URLs and recommendations',()=>{
+ const page=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(page,/id="site-export-text"/);
+ assert.match(page,/siteExportText\.addEventListener\('click'/);
+ assert.match(page,/siteReport\.reportNotes=/);
+ assert.match(page,/issue\.recommendation/);
+ assert.match(page,/siteReport\.failures\.map/);
+});
