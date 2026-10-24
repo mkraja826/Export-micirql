@@ -360,3 +360,13 @@ test('SEO Studio provides responsive overview and searchable audited-page result
  assert.ok(html.includes("page.score===null?'Not scored':page.score+'/100'"));
  assert.ok(html.includes('#site-page-dashboard .table-scroll{overflow-x:auto}'));
 });
+
+test('SEO issues dashboard shows grouped severity and actionable evidence',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("issueDashboard.id='site-issue-dashboard'"));
+ assert.ok(html.includes("issuePulse.className='issue-pulse'"));
+ assert.ok(html.includes("issueContainer.id='site-issues'"));
+ assert.ok(html.includes("issueMeta.className='issue-meta'"));
+ assert.ok(html.includes("issueNext.textContent='Suggested action: '+issue.recommendation"));
+ assert.ok(html.includes("Counts represent grouped HTML findings"));
+});
