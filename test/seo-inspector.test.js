@@ -155,3 +155,16 @@ test('accepts typed JSON-LD graph and detects untyped JSON-LD',()=>{
  assert.ok(!inspectSeoHtml(good,'https://example.com/').findings.some(x=>x.code==='json_ld_missing_type'));
  assert.ok(inspectSeoHtml(bad,'https://example.com/').findings.some(x=>x.code==='json_ld_missing_type'));
 });
+
+test('link finding evidence includes affected href and is bounded',()=>{
+ const r=inspectSeoHtml('<html><body><h1>Home</h1><a href="http://example.org/old">Old</a></body></html>','https://example.com/');
+ const issue=r.findings.find(x=>x.code==='links_http');
+ assert.ok(issue?.evidence?.some(x=>x.attribute==='href'&&x.value==='http://example.org/old'));
+ assert.ok(issue.evidence.every(x=>x.value.length<=240));
+});
+test('invalid JSON-LD includes script index and bounded text evidence',()=>{
+ const r=inspectSeoHtml('<html><body><h1>Home</h1><script type="application/ld+json">{"@type": }</script></body></html>','https://example.com/');
+ const issue=r.findings.find(x=>x.code==='invalid_json_ld');
+ assert.equal(issue?.evidence?.[0]?.index,1);
+ assert.ok(issue.evidence[0].snippet.includes('"@type"'));
+});
