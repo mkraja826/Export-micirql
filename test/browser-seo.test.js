@@ -486,3 +486,15 @@ test('SEO Studio V2.4 exports prioritized per-page action plan CSV safely',()=>{
  assert.ok(html.includes("safe.replace(/\"/g,'\"\"')"));
  assert.ok(html.includes("downloadReport('csv',lines.join("));
 });
+
+
+test('SEO Studio V2.4 offers a printable client summary without changing audit scores',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes('id="site-export-pdf" disabled'));
+ assert.ok(html.includes('sitePrintButton.disabled=false'));
+ assert.ok(html.includes('function printClientSeoReport(report)'));
+ assert.ok(html.includes('window.open(\'\',\'_blank\')'));
+ assert.ok(html.includes('escapeHTML(issue.recommendation)'));
+ assert.ok(html.includes('report.coverage?.discoveryTruncated'));
+ assert.ok(html.includes('Average excludes incomplete and unscored pages.'));
+});
