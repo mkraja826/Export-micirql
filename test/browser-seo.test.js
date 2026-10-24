@@ -603,3 +603,15 @@ test('SEO fix verification requires later complete audit and distinguishes still
  assert.ok(html.includes("markedAt:status==='fixed'"));
  assert.ok(html.includes("Verified absent means the finding was not detected"));
 });
+
+
+test('SEO progress summary reports audit evidence and browser-local fix verification without ranking claims',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("progressPanel.id='site-progress-report'"));
+ assert.ok(html.includes("auditsAvailable:auditHistory.length+1"));
+ assert.ok(html.includes("verifiedAbsent:verificationTotals.verified"));
+ assert.ok(html.includes("stillDetected:verificationTotals.unresolved"));
+ assert.ok(html.includes("awaitingVerification:verificationTotals.pending"));
+ assert.ok(html.includes("reportType:'seo-progress-summary'"));
+ assert.ok(html.includes("no search rankings or traffic data."));
+});
