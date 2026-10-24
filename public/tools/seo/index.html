@@ -62,8 +62,24 @@ siteButton.addEventListener('click',async()=>{
   const average=scored.length?Math.round(scored.reduce((sum,p)=>sum+p.score,0)/scored.length):null;
   siteStatus.textContent=reports.length+' analyzed, '+failures.length+' failed. '+(average===null?'No complete pages eligible for average.':'Average HTML score for '+scored.length+' complete pages: '+average+'/100.')+(discovered.pages.length>20?' Limited to first 20 discovered pages.':'');
   for(const issue of siteFindings){const row=document.createElement('p');row.className='finding';row.dataset.severity=issue.severity;row.textContent=issue.code.replaceAll('_',' ').toUpperCase()+' · '+issue.message+' '+issue.affectedUrls.join(', ');siteResults.append(row)}
+  // Native details remain keyboard accessible and show evidence without requiring AI.
   for(const report of reports){
-   const row=document.createElement('p');row.className='finding';row.textContent=(report.score===null?'Not scored':report.score+'/100')+' · '+report.url+' · '+report.findings.length+' findings'+(report.partial?' · Partial':'');siteResults.append(row);
+   const panel=document.createElement('details');panel.className='finding';
+   const counts={high:0,medium:0,low:0,info:0};
+   for(const item of report.findings)if(item.severity in counts)counts[item.severity]++;
+   panel.dataset.severity=counts.high?'high':counts.medium?'medium':counts.low?'low':'info';
+   const summary=document.createElement('summary');summary.style.cursor='pointer';summary.style.fontWeight='700';
+   summary.textContent=(report.score===null?'Not scored':report.score+'/100')+' · '+new URL(report.url).pathname+' · '+report.findings.length+' findings'+(report.partial?' · Provisional':'');
+   panel.append(summary);
+   const address=document.createElement('p');address.className='small hint';address.textContent=report.url;panel.append(address);
+   const detail=document.createElement('p');detail.className='small';
+   detail.textContent='High '+counts.high+' · Medium '+counts.medium+' · Low '+counts.low+' · Info '+counts.info+' · '+(report.scoreExplanation||'');panel.append(detail);
+   if(!report.findings.length){const clean=document.createElement('p');clean.textContent='No findings from the available HTML checks.';panel.append(clean)}
+   for(const item of [...report.findings].sort((a,b)=>({high:0,medium:1,low:2,info:3}[a.severity]??4)-({high:0,medium:1,low:2,info:3}[b.severity]??4))){
+    const line=document.createElement('p');line.className='finding';line.dataset.severity=item.severity;
+    line.textContent=item.severity.toUpperCase()+' · '+item.message+(item.points?' (−'+item.points+' points)':'');panel.append(line);
+   }
+   siteResults.append(panel);
   }
   for(const failure of failures){const row=document.createElement('p');row.className='finding';row.dataset.severity='high';row.textContent='FAILED · '+failure.url+' · '+failure.error;siteResults.append(row)}
  }catch(error){siteStatus.textContent=error.message||'Site audit failed'}
