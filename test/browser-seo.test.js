@@ -117,7 +117,7 @@ test('SEO site audit offers bounded selectable batch sizes',()=>{
  const page=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  assert.match(page,/id="site-limit"/);
  for(const size of [10,20,40,60])assert.match(page,new RegExp('<option value="'+size+'"'));
- assert.match(page,/if\(!\[10,20,40\]\.includes\(maxPages\)\)/);
+ assert.match(page,/if\(!\[10,20,40,60\]\.includes\(maxPages\)\)/);
  assert.match(page,/requestedLimit:maxPages/);
 });
 
