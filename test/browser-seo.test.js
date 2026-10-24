@@ -657,3 +657,15 @@ test('V2.7 opportunities include actionable text and bounded affected-page evide
  assert.ok(html.includes("issue.affectedUrls.slice(0,10)"));
  assert.ok(html.includes("row.textContent=address"));
 });
+
+
+test('V2.7 opportunity filtering and CSV action-plan export are bounded and spreadsheet safe',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("severityFilter.setAttribute('aria-label','Filter SEO opportunities by severity')"));
+ assert.ok(html.includes("reachFilter.setAttribute('aria-label','Minimum affected pages')"));
+ assert.ok(html.includes("const filteredOpportunities=()=>opportunities.filter("));
+ assert.ok(html.includes("selected.slice(0,25)"));
+ assert.ok(html.includes("exportOpportunities.addEventListener('click'"));
+ assert.ok(html.includes("downloadReport('csv',rows.map(row=>row.map(csvCell).join(','))"));
+ assert.ok(html.includes("replace(/^[=+"));
+});
