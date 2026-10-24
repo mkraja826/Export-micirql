@@ -171,8 +171,17 @@ siteButton.addEventListener('click',async()=>{
   for(const report of reports){
    for(const issue of report.findings){
     const key=issue.code+'|'+issue.severity;
-    if(!issueMap.has(key))issueMap.set(key,{code:issue.code,severity:issue.severity,category:issue.category||'other',message:issue.message,affectedUrls:[]});
+    if(!issueMap.has(key))issueMap.set(key,{code:issue.code,severity:issue.severity,category:issue.category||'other',message:issue.message,affectedUrls:[],pageEvidence:[]});
     issueMap.get(key).affectedUrls.push(report.url);
+    const sample={url:report.url};
+    if(issue.code==='missing_title'||issue.code==='title_length'||issue.code==='duplicate_title'||issue.code==='multiple_titles')sample.observed='Title: '+(report.title||'(missing)');
+    else if(issue.code.includes('description'))sample.observed='Description: '+(report.description||'(missing)');
+    else if(issue.code.includes('canonical'))sample.observed='Canonical: '+(report.canonical||'(missing)');
+    else if(issue.code.includes('heading'))sample.observed='H1 count: '+report.h1Count+'; heading skips: '+(report.headingSkips??'unverified');
+    else if(issue.code==='images_missing_alt')sample.observed='Images missing alt: '+report.imagesMissingAlt;
+    else if(issue.code==='missing_og_image')sample.observed='Open Graph image: '+(report.ogImage||'(missing)');
+    else if(issue.code==='noindex')sample.observed='Robots: '+(report.robots||'(not declared)');
+    if(sample.observed)issueMap.get(key).pageEvidence.push(sample);
    }
   }
   for(const issue of siteFindings){
@@ -241,7 +250,7 @@ siteButton.addEventListener('click',async()=>{
     const summary=document.createElement('summary');summary.style.cursor='pointer';summary.textContent=issue.verificationStatus+' · '+issue.severity.toUpperCase()+' · '+issue.code.replaceAll('_',' ')+' · '+issue.affectedUrls.length+' affected pages';details.append(summary);
     const explanation=document.createElement('p');explanation.textContent=issue.message;details.append(explanation);
     const list=document.createElement('ul');
-    for(const affected of issue.affectedUrls){const item=document.createElement('li');item.textContent=affected;list.append(item)}
+    for(const affected of issue.affectedUrls){const item=document.createElement('li');item.textContent=affected;const evidence=issue.pageEvidence?.find(e=>e.url===affected);if(evidence){const observed=document.createElement('div');observed.className='hint small';observed.textContent='Observed HTML metadata: '+evidence.observed;item.append(observed)}list.append(item)}
     const fix=document.createElement('p');fix.className='small';fix.textContent='Suggested action: '+issue.recommendation;details.append(fix);details.append(list);issueContainer.append(details);
    }
    if(!visible.length){const empty=document.createElement('p');empty.className='hint';empty.textContent='No issues for this severity in the inspected pages.';issueContainer.append(empty)}
