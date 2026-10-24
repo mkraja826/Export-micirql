@@ -87,6 +87,17 @@ export function inspectSeoHtml(html,url,options={}){
   }catch{linkTypes.invalid++;invalidLinkExamples.push(href)}
  }
  if(!isPartial&&invalidLinkExamples.length)add('invalid_link_urls','medium',invalidLinkExamples.length+' link destination(s) are invalid or non-navigable. Examples: '+invalidLinkExamples.slice(0,3).join(', '),4,'links');
+ const internalLinkTargets=[];
+ for(const match of anchorTags){
+  const href=attribute('<a '+match[1]+'>','href').trim();
+  if(!href||href.startsWith('#'))continue;
+  try{
+   const resolved=new URL(href,url),base=new URL(url);
+   if(['http:','https:'].includes(resolved.protocol)&&resolved.origin===base.origin){
+    resolved.hash='';internalLinkTargets.push(resolved.href);
+   }
+  }catch{}
+ }
  const linksMissingName=linkIssues.filter(x=>x.code==='link_missing_name');
  const insecureLinks=linkIssues.filter(x=>x.code==='link_http');
  const javascriptLinks=linkIssues.filter(x=>x.code==='link_javascript');
@@ -132,5 +143,5 @@ export function inspectSeoHtml(html,url,options={}){
  const categoryDeductions={};
  for(const finding of findings){const key=finding.category||'technical';categoryDeductions[key]=(categoryDeductions[key]||0)+(finding.points||0)}
  const scoring={method:'weighted_html_finding_deductions',startingScore:100,totalDeductions:deductions,categoryDeductions,appliedScore:score,scoreFloor:0,coverage:isPartial?'partial_html_snapshot':'provided_html_only'};
- return {url,title,description,robots,canonical,lang,viewport,h1Count,ogTitle,ogDescription,ogImage,twitterCard,imageCount:imageTags.length,imagesMissingAlt,structuredDataCount,headingSkips,linkTypes,findings,scoring,scope:'static_html_only',auditStatus:isPartial?'partial':'complete',partial:isPartial,score,maxScore:100,scoreLabel:isPartial?'Provisional score':'SEO HTML score',scoreExplanation:'Heuristic static HTML score based on weighted findings. Not Google ranking, performance, accessibility, or a full-site SEO score.'};
+ return {url,title,description,robots,canonical,lang,viewport,h1Count,ogTitle,ogDescription,ogImage,twitterCard,imageCount:imageTags.length,imagesMissingAlt,structuredDataCount,headingSkips,linkTypes,internalLinkTargets:[...new Set(internalLinkTargets)].slice(0,500),findings,scoring,scope:'static_html_only',auditStatus:isPartial?'partial':'complete',partial:isPartial,score,maxScore:100,scoreLabel:isPartial?'Provisional score':'SEO HTML score',scoreExplanation:'Heuristic static HTML score based on weighted findings. Not Google ranking, performance, accessibility, or a full-site SEO score.'};
 }
