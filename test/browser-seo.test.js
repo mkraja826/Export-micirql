@@ -28,7 +28,7 @@ test('SEO Studio offers a bounded browser-first multi-page audit',()=>{
  assert.match(page,/id="site-export"/);
  assert.match(page,/MICIRQL_DISCOVER_RESULT/);
  assert.match(page,/MICIRQL_SEO_RESULT/);
- assert.match(page,/\.slice\(0,40\)/);
+ assert.match(page,/\.slice\(0,maxPages\)/);
  assert.match(page,/failures\.push/);
  assert.match(page,/siteExport\.disabled=false/);
 });
@@ -111,4 +111,12 @@ test('SEO audit resumes previously completed pages from a bounded local checkpoi
  assert.match(page,/cached\.has\(pages\[i\]\)/);
  assert.match(page,/saveCheckpoint\(url\.origin,pages,reports\)/);
  assert.match(page,/localStorage\.removeItem\(checkpointKey\)/);
+});
+
+test('SEO site audit offers bounded selectable batch sizes',()=>{
+ const page=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(page,/id="site-limit"/);
+ for(const size of [10,20,40])assert.match(page,new RegExp('<option value="'+size+'"'));
+ assert.match(page,/if\(!\[10,20,40\]\.includes\(maxPages\)\)/);
+ assert.match(page,/requestedLimit:maxPages/);
 });
