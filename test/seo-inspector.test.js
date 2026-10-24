@@ -247,3 +247,14 @@ test('heading skip evidence includes levels and neighboring heading labels',()=>
  assert.equal(finding.evidence[0].previousText,'Implants');
  assert.equal(finding.evidence[0].currentText,'Case study');
 });
+
+test('JV Dental fixtures: repeated branding, long doctor metadata and heading skips are independently reported',()=>{
+ const title=inspectSeoHtml('<html><head><title>Root Canal Treatment in Hyderabad | JV Dental | JV Dental</title><meta name="description" content="Example dental root canal care in Hyderabad with appointment options and treatment information for patients."></head><body><h1>Root canal</h1></body></html>','https://jvdental.com/dental-treatments/root-canal-treatment');
+ assert.ok(title.findings.some(f=>f.code==='duplicate_title_brand'));
+ const doctor=inspectSeoHtml('<html><head><title>Dr Nithin | JV Dental</title><meta name="description" content="First summary of doctor profile"><meta name="description" content="Second summary"></head><body><h1>Doctor</h1></body></html>','https://jvdental.com/doctors/dr-nithin');
+ assert.ok(doctor.findings.some(f=>f.code==='multiple_descriptions'));
+ const hierarchy=inspectSeoHtml('<html><head><title>Clinical Cases | JV Dental</title></head><body><h1>Cases</h1><h3>Guided implant case</h3></body></html>','https://jvdental.com/cases');
+ const issue=hierarchy.findings.find(f=>f.code==='heading_hierarchy');
+ assert.equal(issue.evidence[0].from,'H1');
+ assert.equal(issue.evidence[0].to,'H3');
+});
