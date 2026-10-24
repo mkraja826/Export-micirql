@@ -341,3 +341,12 @@ test('SEO checkpoint invalidates old scoring versions without losing retry featu
  assert.ok(html.includes('const checkpoint=readCheckpoint(url.origin)'));
  assert.ok(html.includes('saveCheckpoint(url.origin,pages,reports)'));
 });
+
+test('TXT audit export includes exact heading transition evidence',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("lines.push('','Heading hierarchy evidence:')"));
+ assert.ok(html.includes("item.element==='heading'&&item.from&&item.to"));
+ assert.ok(html.includes("heading.from+' → '+heading.to"));
+ assert.ok(html.includes("heading.previousText||'(empty)'"));
+ assert.ok(html.includes("heading.currentText||'(empty)'"));
+});
