@@ -462,7 +462,7 @@ siteButton.addEventListener('click',async()=>{
      const saved=(()=>{try{const data=JSON.parse(localStorage.getItem(scopeKey)||'null');return data&&Date.now()-data.savedAt<86400000&&Array.isArray(data.rows)?data.rows:[]}catch{return []}})();
      const completed=new Map(saved.filter(x=>queue.includes(x.destination)).map(x=>[x.destination,x]));
      for(const x of completed.values())siteReport.linkVerification.push(x);
-     let running=false,stop=false;
+     let running=false,stop=false,activeChecks=0;
      const statusLine=document.createElement('p');statusLine.className='hint small';
      const startButton=document.createElement('button');startButton.type='button';
      const stopButton=document.createElement('button');stopButton.type='button';stopButton.textContent='Pause verification';stopButton.disabled=true;
@@ -512,7 +512,9 @@ siteButton.addEventListener('click',async()=>{
      const refresh=()=>{
       const checked=completed.size, broken=[...completed.values()].filter(x=>x.classification==='broken').length;
       const uncertain=[...completed.values()].filter(x=>x.classification==='unverified').length;
-      statusLine.textContent='Verified '+checked+'/'+queue.length+' destinations · '+broken+' confirmed 404/410 · '+(queue.length-checked)+' pending · '+uncertain+' unverified. Network failures can be retried.';
+      const timedOut=[...completed.values()].filter(x=>x.reason==='timeout').length;
+      const requestFailed=[...completed.values()].filter(x=>x.reason==='request_failed').length;
+      statusLine.textContent='Verified '+checked+'/'+queue.length+' destinations · '+broken+' confirmed 404/410 · '+(queue.length-checked)+' pending · '+activeChecks+' active · '+uncertain+' unverified ('+timedOut+' timeouts, '+requestFailed+' network failures). Network failures can be retried.';
       startButton.textContent=running?'Checking links…':checked===queue.length?'Recheck destinations':'Start / resume verification';
       startButton.disabled=running;retryButton.disabled=running||uncertain===0;renderResults();renderSources();
      };
@@ -525,13 +527,15 @@ siteButton.addEventListener('click',async()=>{
       let cursor=0;
       async function worker(){
        while(!stop&&cursor<remaining.length){
-        const destination=remaining[cursor++];
+        const destination=remaining[cursor++];activeChecks++;refresh();
         const referringPages=[...new Set(pending.get(destination)||[])];
-        let row={destination,referringPages,checkedAt:new Date().toISOString(),status:null,classification:'unverified',finalUrl:null};
+        let row={destination,referringPages,checkedAt:new Date().toISOString(),status:null,classification:'unverified',finalUrl:null,reason:null};
         try{
          const reply=await extensionRequest('MICIRQL_SEO_LINK_CHECK','MICIRQL_SEO_LINK_RESULT',destination,20000);
-         if(reply.ok===true){row={...row,status:Number.isInteger(reply.status)?reply.status:null,classification:reply.classification||'unverified',finalUrl:reply.finalUrl||null}}
-        }catch{}
+         if(reply.ok===true){row={...row,status:Number.isInteger(reply.status)?reply.status:null,classification:reply.classification||'unverified',finalUrl:reply.finalUrl||null,reason:reply.reason||null}}
+         else row.reason='extension_error';
+        }catch(error){row.reason=error?.message?.includes('timed out')?'timeout':'request_failed'}
+        activeChecks=Math.max(0,activeChecks-1);
         completed.set(destination,row);
         siteReport.linkVerification=[...completed.values()];
         save();refresh();
@@ -548,8 +552,8 @@ siteButton.addEventListener('click',async()=>{
      stopButton.addEventListener('click',()=>{stop=true;stopButton.disabled=true;statusLine.textContent='Pausing after active checks finish…'});
      exportButton.addEventListener('click',()=>{
       const cell=value=>'"'+String(value??'').replace(/"/g,'""')+'"';
-      const lines=[['Destination','Classification','HTTP Status','Final URL','Checked At','Referring Pages'].map(cell).join(',')];
-      for(const row of siteReport.linkVerification||[])lines.push([row.destination,row.classification,row.status??'',row.finalUrl||'',row.checkedAt,(row.referringPages||[]).join(' | ')].map(cell).join(','));
+      const lines=[['Destination','Classification','HTTP Status','Reason','Final URL','Checked At','Referring Pages'].map(cell).join(',')];
+      for(const row of siteReport.linkVerification||[])lines.push([row.destination,row.classification,row.status??'',row.reason||'',row.finalUrl||'',row.checkedAt,(row.referringPages||[]).join(' | ')].map(cell).join(','));
       downloadReport('csv',lines.join('\r\n'),'text/csv;charset=utf-8');
      });
      details.append(statusLine,startButton,stopButton,retryButton,exportButton);
