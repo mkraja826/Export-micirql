@@ -679,3 +679,14 @@ test('V2.7 opportunity inspection links current evidence to audited page filteri
  assert.ok(html.includes("search.value=address;role.value='all'"));
  assert.ok(html.includes("search.dispatchEvent(new Event('input',{bubbles:true}))"));
 });
+
+
+test('V2.7 developer remediation examples use safe text nodes and scoped checklists',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes('const remediationExamples={'));
+ assert.ok(html.includes('missing_canonical:{steps:'));
+ assert.ok(html.includes('images_missing_alt:{steps:'));
+ assert.ok(html.includes("guideTitle.textContent='Developer checklist'"));
+ assert.ok(html.includes('code.textContent=guide.example'));
+ assert.ok(html.includes("code.setAttribute('aria-label','Illustrative HTML example')"));
+});
