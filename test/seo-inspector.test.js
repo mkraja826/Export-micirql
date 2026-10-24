@@ -195,3 +195,13 @@ test('invalid link URLs produce finding but mail and fragment links do not',()=>
  assert.equal(report.linkTypes.invalid,1);
  assert.ok(report.findings.some(x=>x.code==='invalid_link_urls'));
 });
+
+test('internal link targets are resolved and deduplicated without fragments',()=>{
+ const html='<html><body><h1>Example</h1><a href="/services#details">Services</a><a href="https://example.com/services">Again</a><a href="https://elsewhere.test/">External</a><a href="mailto:hi@example.com">Email</a></body></html>';
+ const report=inspectSeoHtml(html,'https://example.com/');
+ assert.deepEqual(report.internalLinkTargets,['https://example.com/services']);
+});
+test('relative same-origin links resolve against the current page',()=>{
+ const report=inspectSeoHtml('<body><h1>Example</h1><a href="../contact?from=about#form">Contact</a></body>','https://example.com/about/team');
+ assert.deepEqual(report.internalLinkTargets,['https://example.com/contact?from=about']);
+});
