@@ -270,6 +270,20 @@ async function readWebsiteHtml(url){
   return {ok:true,url:finalUrl.href,html,partial:value?.partial===true,originalLength:value?.originalLength||html.length};
  }finally{try{await chrome.tabs.remove(tab.id)}catch{}}
 }
+async function checkSeoLinkStatus(rawUrl){
+ const target=new URL(rawUrl);
+ if(!['https:','http:'].includes(target.protocol))throw Error('Only HTTP(S) URLs may be checked');
+ const controller=new AbortController();
+ const timeout=setTimeout(()=>controller.abort(),12000);
+ try{
+  // GET is used because some production websites reject HEAD; never read the response body.
+  const response=await fetch(target.href,{method:'GET',redirect:'follow',credentials:'omit',cache:'no-store',signal:controller.signal});
+  try{await response.body?.cancel()}catch{}
+  const status=response.status;
+  return {ok:true,url:target.href,finalUrl:response.url,status,classification:status===404||status===410?'broken':status>=500?'server_error':status>=200&&status<400?'reachable':'unverified'};
+ }catch(error){return {ok:true,url:target.href,status:null,classification:'unverified',reason:error.name==='AbortError'?'timeout':'request_failed'}}
+ finally{clearTimeout(timeout)}
+}
 chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
  if(sender.id!==chrome.runtime.id)return false;
  // The first-party site bridge can request page inspection; reject other web-tab senders.
@@ -279,6 +293,10 @@ chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
   if(discoveryBusy){sendResponse({ok:false,error:'Another page discovery is already running. Finish it before starting a new one.'});return false;}
   discoveryBusy=true;
   discoverLocalSubpage(message.url).then(sendResponse).catch(error=>sendResponse({ok:false,error:error.message||'Discovery failed'})).finally(()=>{discoveryBusy=false});
+  return true;
+ }
+ if(message?.type==='CHECK_SEO_LINK'){
+  checkSeoLinkStatus(message.url).then(sendResponse).catch(error=>sendResponse({ok:false,error:error.message||'Invalid URL'}));
   return true;
  }
  if(message?.type==='READ_SEO_HTML'){
