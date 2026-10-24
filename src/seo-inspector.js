@@ -89,6 +89,24 @@ export function inspectSeoHtml(html,url,options={}){
  if(invalidJsonLd)add('invalid_json_ld','medium',invalidJsonLd+' JSON-LD script(s) contain invalid JSON. Check syntax before relying on this structured data.',7,'structured_data');
  if(untypedJsonLd)add('json_ld_missing_type','low',untypedJsonLd+' valid JSON-LD script(s) have no detectable @type, including @graph nodes.',3,'structured_data');
 
+ // Evidence is bounded, plain text; never render captured source as HTML.
+ const safeSnippet=s=>String(s||'').replace(/\s+/g,' ').slice(0,240);
+ const linkEvidence=linkIssues.reduce((groups,item)=>{
+  const key=item.code==='link_missing_name'?'links_missing_name':item.code==='link_http'?'links_http':'links_javascript';
+  (groups[key]??=[]).push({element:'a',attribute:'href',value:safeSnippet(item.href)});
+  return groups;
+ },{});
+ const jsonEvidence={invalid_json_ld:[],json_ld_missing_type:[]};
+ for(const [index,script] of jsonLdScripts.entries()){
+  const entry={element:'script[type="application/ld+json"]',index:index+1,snippet:safeSnippet(script[1])};
+  try{if(!hasSchemaType(JSON.parse(script[1].trim())))jsonEvidence.json_ld_missing_type.push(entry)}
+  catch{jsonEvidence.invalid_json_ld.push(entry)}
+ }
+ for(const finding of findings){
+  const evidence=linkEvidence[finding.code]||jsonEvidence[finding.code];
+  if(evidence?.length)finding.evidence=evidence.slice(0,5);
+ }
+
  const deductions=findings.reduce((sum,f)=>sum+(f.points||0),0);
  const score=Math.max(0,100-deductions);
  // Category figures are deduction summaries, not independent 0–100 scores.
