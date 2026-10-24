@@ -146,6 +146,25 @@ siteButton.addEventListener('click',async()=>{
     siteFindings.push({code,severity:'medium',message:'Same '+label+' found on '+urls.length+' audited pages.',affectedUrls:urls});
    }
   }
+  // Missing from the selected crawl is NOT proof of a broken link.
+  const normalizeLink=u=>{try{const parsed=new URL(u);parsed.hash='';parsed.search='';parsed.pathname=parsed.pathname.replace(/\/+$/,'')||'/';return parsed.href}catch{return u}};
+  const audited=new Set(reports.map(r=>normalizeLink(r.url)));
+  const pending=new Map();
+  for(const report of reports){
+   for(const target of report.internalLinkTargets||[]){
+    const normalized=normalizeLink(target);
+    if(audited.has(normalized))continue;
+    if(!pending.has(normalized))pending.set(normalized,[]);
+    pending.get(normalized).push(report.url);
+   }
+  }
+  if(pending.size){
+   const pageList=[...new Set([...pending.values()].flat())];
+   siteFindings.push({code:'internal_links_unverified',severity:'info',category:'links',
+    message:pending.size+' internal link destination(s) were not among successfully inspected pages. This does not establish HTTP 404 or any broken link; verify these URLs separately.',
+    affectedUrls:pageList,
+    targetExamples:[...pending.keys()].slice(0,10)});
+  }
   siteReport={schemaVersion:1,tool:'seo-site',generatedAt:new Date().toISOString(),website:url.origin,pagesDiscovered:discovered.pages.length,pagesSelected:pages.length,requestedLimit:maxPages,pagesAnalyzed:reports.length,failures,reports,siteFindings,retryPolicy:{maxAttemptsPerPage:2,sequential:true},coverage:{selected:pages.length,analyzed:reports.length,failed:failures.length,discovered:discovered.pages.length,discoveryTruncated:discovered.truncated===true,selectionLimited:discovered.pages.length>pages.length,successfulPercent:Math.round(reports.length/pages.length*100)},scope:'bounded_browser_html_audit'};
   siteExport.disabled=false;siteExportText.disabled=false;
   const coverage=document.createElement('p');coverage.className='notice';coverage.textContent='Audit coverage: '+reports.length+'/'+pages.length+' selected pages analyzed ('+siteReport.coverage.successfulPercent+'%). '+(siteReport.coverage.selectionLimited?'Only '+pages.length+' of '+discovered.pages.length+' discovered pages were selected for this audit. ':'')+(siteReport.coverage.discoveryTruncated?'Discovery reached its page limit; more pages may exist. ':'')+'Unvisited pages are not scored.';siteResults.append(coverage);
@@ -249,7 +268,7 @@ siteButton.addEventListener('click',async()=>{
    for(const issue of visible){
     const details=document.createElement('details');details.className='finding';details.dataset.severity=issue.severity;
     const summary=document.createElement('summary');summary.style.cursor='pointer';summary.textContent=issue.verificationStatus+' · '+issue.severity.toUpperCase()+' · '+issue.code.replaceAll('_',' ')+' · '+issue.affectedUrls.length+' affected pages';details.append(summary);
-    const explanation=document.createElement('p');explanation.textContent=issue.message;details.append(explanation);
+    const explanation=document.createElement('p');explanation.textContent=issue.message;details.append(explanation);if(issue.targetExamples?.length){const examples=document.createElement('p');examples.className='hint small';examples.textContent='Not inspected (examples): '+issue.targetExamples.join(', ');details.append(examples)}
     const list=document.createElement('ul');
     for(const affected of issue.affectedUrls){const item=document.createElement('li');item.textContent=affected;const evidence=issue.pageEvidence?.find(e=>e.url===affected);if(evidence){const observed=document.createElement('div');observed.className='hint small';observed.textContent='Observed HTML metadata: '+evidence.observed;item.append(observed)}if(evidence?.elements){const snippets=document.createElement('ul');for(const entry of evidence.elements){const li=document.createElement('li');li.className='hint small';li.textContent=entry.element+' '+(entry.attribute||'')+' '+(entry.value||entry.snippet||'');snippets.append(li)}item.append(snippets)}list.append(item)}
     const fix=document.createElement('p');fix.className='small';fix.textContent='Suggested action: '+issue.recommendation;details.append(fix);details.append(list);issueContainer.append(details);
