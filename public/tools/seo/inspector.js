@@ -34,6 +34,10 @@ export function inspectSeoHtml(html,url,options={}){
  }
  if(!title)add('missing_title','high','Add a descriptive page title.',20,'metadata');
  else if(title.length<15||title.length>65)add('title_length','low','Review title length (rough guideline: 15–65 characters).',5,'metadata');
+ // Repeated trailing brand segments usually indicate a duplicated title template.
+ const titleSegments=title.split(/\s+\|\s+/).map(x=>x.trim()).filter(Boolean);
+ if(titleSegments.length>=3&&titleSegments.at(-1).toLowerCase()===titleSegments.at(-2).toLowerCase())
+  add('duplicate_title_brand','low','The page title repeats its final brand segment: '+titleSegments.at(-1)+'. Review title template composition.',4,'metadata');
  if(!description)add('missing_description','medium','Add a unique meta description.',12,'metadata');
  else if(description.length<70||description.length>170)add('description_length','low','Review description length (rough guideline: 70–170 characters).',4,'metadata');
  if(isPartial){
