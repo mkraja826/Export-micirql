@@ -288,8 +288,8 @@ test('verified link dashboard supports text search, status filtering, and safe r
 
 test('verified HTTP errors are grouped by referring page without treating unverified links as broken',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
- assert.match(html,/Affected source pages \(verified errors\)/);
- assert.match(html,/!\['broken','server_error'\\]/);
- assert.match(html,/for\\(const page of entry.referringPages\\|\\|\\[\\]\\)/);
- assert.match(html,/ordered\\.slice\\(0,30\\)/);
+ assert.ok(html.includes('Affected source pages (verified errors)'));
+ assert.ok(html.includes("['broken','server_error'].includes(entry.classification)"));
+ assert.ok(html.includes('for(const page of entry.referringPages||[])'));
+ assert.ok(html.includes('ordered.slice(0,30)'));
 });
