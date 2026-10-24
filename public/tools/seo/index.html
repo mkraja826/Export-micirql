@@ -339,15 +339,15 @@ siteButton.addEventListener('click',async()=>{
   const opportunityTitle=document.createElement('h3');opportunityTitle.textContent='SEO opportunities';opportunitiesPanel.append(opportunityTitle);
   const opportunityNote=document.createElement('p');opportunityNote.className='hint small';opportunityNote.textContent='Ranked by finding severity, then number of affected audited URLs. This is a work-priority guide, not an estimate of traffic or ranking gains.';opportunitiesPanel.append(opportunityNote);
   const opportunityControls=document.createElement('div');opportunityControls.className='page-tools';
-  const severityFilter=document.createElement('select');severityFilter.setAttribute('aria-label','Filter SEO opportunities by severity');
-  for(const value of ['all','high','medium','low']){const option=document.createElement('option');option.value=value;option.textContent=value==='all'?'All severities':value[0].toUpperCase()+value.slice(1);severityFilter.append(option)}
+  const opportunitySeverityFilter=document.createElement('select');opportunitySeverityFilter.setAttribute('aria-label','Filter SEO opportunities by severity');
+  for(const value of ['all','high','medium','low']){const option=document.createElement('option');option.value=value;option.textContent=value==='all'?'All severities':value[0].toUpperCase()+value.slice(1);opportunitySeverityFilter.append(option)}
   const reachFilter=document.createElement('select');reachFilter.setAttribute('aria-label','Minimum affected pages');
   for(const [value,label] of [['1','At least 1 page'],['2','At least 2 pages'],['5','At least 5 pages'],['10','At least 10 pages']]){const option=document.createElement('option');option.value=value;option.textContent=label;reachFilter.append(option)}
   const exportOpportunities=document.createElement('button');exportOpportunities.type='button';exportOpportunities.textContent='Download action plan (CSV)';
-  opportunityControls.append(severityFilter,reachFilter,exportOpportunities);opportunitiesPanel.append(opportunityControls);
+  opportunityControls.append(opportunitySeverityFilter,reachFilter,exportOpportunities);opportunitiesPanel.append(opportunityControls);
   const opportunityCount=document.createElement('p');opportunityCount.className='hint small';opportunitiesPanel.append(opportunityCount);
   const opportunityList=document.createElement('ol');opportunitiesPanel.append(opportunityList);
-  const filteredOpportunities=()=>opportunities.filter(issue=>(severityFilter.value==='all'||issue.severity===severityFilter.value)&&issue.affectedPages>=Number(reachFilter.value));
+  const filteredOpportunities=()=>opportunities.filter(issue=>(opportunitySeverityFilter.value==='all'||issue.severity===opportunitySeverityFilter.value)&&issue.affectedPages>=Number(reachFilter.value));
   const remediationExamples={
    missing_title:{steps:['Add one descriptive title element inside head.','Make its wording specific to the page.','Re-audit the page.'],example:'<title>Service Name | Business Name</title>'},
    missing_description:{steps:['Write a concise and accurate page summary.','Add a unique description in the document head.','Re-audit the affected page.'],example:'<meta name="description" content="Brief, accurate summary of this page.">'},
@@ -385,7 +385,7 @@ siteButton.addEventListener('click',async()=>{
     item.append(detail);opportunityList.append(item)}
    if(selected.length>25){const more=document.createElement('li');more.textContent='Showing first 25 of '+selected.length+' matching opportunities.';opportunityList.append(more)}
   };
-  severityFilter.addEventListener('change',renderOpportunities);reachFilter.addEventListener('change',renderOpportunities);renderOpportunities();
+  opportunitySeverityFilter.addEventListener('change',renderOpportunities);reachFilter.addEventListener('change',renderOpportunities);renderOpportunities();
   exportOpportunities.addEventListener('click',()=>{
    const csvCell=value=>'"'+String(value??'').replace(/^[=+\-@\t\r]/,'\u0027$&').replace(/"/g,'""')+'"';
    const rows=[['Priority','Finding','Severity','Affected pages','Evidence status','Suggested action','Sample URLs'],...filteredOpportunities().map((issue,index)=>[index+1,issue.title,issue.severity,issue.affectedPages,issue.verificationStatus,issue.recommendation,issue.affectedUrls.join(' | ')])];
