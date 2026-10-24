@@ -355,7 +355,12 @@ siteButton.addEventListener('click',async()=>{
    for(const issue of selected.slice(0,25)){const item=document.createElement('li');const name=document.createElement('strong');name.textContent=issue.title;item.append(name);const context=document.createElement('span');context.textContent=' · '+issue.severity+' · '+issue.affectedPages+' affected URL(s) · '+issue.verificationStatus;item.append(context);
     const detail=document.createElement('details');const toggle=document.createElement('summary');toggle.textContent='How to fix and affected pages';detail.append(toggle);
     const action=document.createElement('p');action.textContent=issue.recommendation;detail.append(action);
-    const pages=document.createElement('ul');for(const address of issue.affectedUrls.slice(0,10)){const row=document.createElement('li');row.textContent=address;pages.append(row)}detail.append(pages);
+    const evidence=document.createElement('p');evidence.className='hint small';evidence.textContent='Evidence: '+issue.verificationStatus+'. Review the matching HTML finding and confirm the correction with another audit.';detail.append(evidence);
+    const pages=document.createElement('ul');for(const address of issue.affectedUrls.slice(0,10)){
+     const row=document.createElement('li');const jump=document.createElement('button');jump.type='button';jump.className='history-page-jump';jump.textContent='Inspect '+address;
+     jump.addEventListener('click',()=>{const dashboard=document.getElementById('site-page-dashboard');const search=dashboard?.querySelector('input[type=search]');const role=dashboard?.querySelector('select');if(!dashboard||!search||!role)return;search.value=address;role.value='all';search.dispatchEvent(new Event('input',{bubbles:true}));dashboard.scrollIntoView({behavior:'smooth',block:'start'})});
+     row.append(jump);pages.append(row)
+    }detail.append(pages);
     if(issue.affectedPages>10){const extra=document.createElement('p');extra.className='hint small';extra.textContent='Showing up to 10 URLs; view all affected pages in the Issue Center.';detail.append(extra)}
     item.append(detail);opportunityList.append(item)}
    if(selected.length>25){const more=document.createElement('li');more.textContent='Showing first 25 of '+selected.length+' matching opportunities.';opportunityList.append(more)}
