@@ -114,3 +114,14 @@ test('partial HTML captures do not turn missing or skipped headings into confirm
  assert.ok(partial.findings.some(x=>x.code==='heading_unverified'&&x.points===0));
  assert.equal(partial.auditStatus,'partial');
 });
+
+test('detects duplicate title and meta description tags in complete head',()=>{
+ const html='<html lang="en"><head><title>First page title for example</title><title>Second page title for example</title><meta name="description" content="Primary description"><meta name="description" content="Conflicting description"></head><body><h1>Example</h1></body></html>';
+ const report=inspectSeoHtml(html,'https://example.com/');
+ assert.ok(report.findings.some(f=>f.code==='multiple_titles'&&f.category==='metadata'));
+ assert.ok(report.findings.some(f=>f.code==='multiple_descriptions'&&f.category==='metadata'));
+});
+test('single title and description tags do not cause duplicate warnings',()=>{
+ const report=inspectSeoHtml('<head><title>Example page with one title</title><meta name="description" content="One unique description"></head><body><h1>Example</h1></body>','https://example.com/');
+ assert.ok(!report.findings.some(f=>f.code==='multiple_titles'||f.code==='multiple_descriptions'));
+});
