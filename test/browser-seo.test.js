@@ -147,3 +147,9 @@ test('SEO discovered-page selector supports search, page-type filters and count'
  assert.match(page,/suggestedPageRole\(p\)===role/);
  assert.match(page,/site-page-search'\)\.addEventListener\('input',renderSelection\)/);
 });
+
+test('large-site discovery uses a longer timeout than individual page inspection',()=>{
+ const page=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(page,/MICIRQL_DISCOVER_RESULT',url\.href,600000/);
+ assert.match(page,/MICIRQL_SEO_RESULT',pages\[i\],90000/);
+});
