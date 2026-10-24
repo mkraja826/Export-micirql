@@ -137,7 +137,7 @@ siteButton.addEventListener('click',async()=>{
    const groups=new Map();
    for(const report of reports){
     if(report.partial||report.auditStatus!=='complete'||!report[field]?.trim())continue;
-    const key=field==='canonical'?(()=>{try{const c=new URL(report[field],report.url);if(!['http:','https:'].includes(c.protocol))return report[field].trim();c.hash='';c.pathname=c.pathname.replace(/\\/+$/,'')||'/';return c.href}catch{return report[field].trim()}})():report[field].trim().replace(/\\s+/g,' ').toLocaleLowerCase();
+    const key=field==='canonical'?(()=>{try{const c=new URL(report[field],report.url);if(!['http:','https:'].includes(c.protocol))return report[field].trim();c.hash='';c.pathname=c.pathname.replace(/\/+$/,'')||'/';return c.href}catch{return report[field].trim()}})():report[field].trim().replace(/\s+/g,' ').toLocaleLowerCase();
     if(!groups.has(key))groups.set(key,[]);
     groups.get(key).push(report.url);
    }
