@@ -235,6 +235,7 @@ async function discoverLocalSubpage(url){
      if(normalized&&!seen.has(normalized)&&seen.size<60){seen.add(normalized);queued.push(normalized)}
     }
    }catch(error){visited.add(page);errors.push({url:page,message:error.message||'Could not inspect page'})}
+   try{await chrome.storage.local.set({seoDiscoveryProgress:{done:visited.size,total:60,found:successful.length,errors:errors.length}})}catch{}
   }
   return {ok:true,pages:successful,scanned:visited.size,errors,truncated:queued.length>0};
  }finally{try{await chrome.tabs.remove(tab.id)}catch{}}
