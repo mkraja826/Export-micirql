@@ -125,3 +125,21 @@ test('single title and description tags do not cause duplicate warnings',()=>{
  const report=inspectSeoHtml('<head><title>Example page with one title</title><meta name="description" content="One unique description"></head><body><h1>Example</h1></body>','https://example.com/');
  assert.ok(!report.findings.some(f=>f.code==='multiple_titles'||f.code==='multiple_descriptions'));
 });
+
+test('reports unnamed anchors, HTTP and javascript links with example evidence',()=>{
+ const html='<html lang="en"><head><title>Example page title with good length</title></head><body><h1>Home</h1><a href="/empty"><span aria-hidden="true"></span></a><a href="http://example.com/old">Old link</a><a href="javascript:void(0)">Action</a></body></html>';
+ const r=inspectSeoHtml(html,'https://example.com/');
+ for(const code of ['links_missing_name','links_http','links_javascript'])assert.ok(r.findings.some(x=>x.code===code),code);
+ assert.ok(r.findings.find(x=>x.code==='links_missing_name').message.includes('/empty'));
+});
+test('accessible text labels, aria labels, and image alt prevent empty link warnings',()=>{
+ const html='<html><body><h1>Home</h1><a href="/home">Home</a><a href="/search" aria-label="Search"><svg></svg></a><a href="/photo"><img src="/photo.jpg" alt="Photo"></a></body></html>';
+ const r=inspectSeoHtml(html,'https://example.com/');
+ assert.ok(!r.findings.some(x=>x.code==='links_missing_name'));
+});
+test('partial HTML captures do not receive link penalties',()=>{
+ const html='<html><body><a href="http://example.com"><span></span></a></body></html>';
+ const r=inspectSeoHtml(html,'https://example.com/',{partial:true});
+ assert.ok(r.findings.some(x=>x.code==='links_unverified'));
+ assert.ok(!r.findings.some(x=>['links_missing_name','links_http','links_javascript'].includes(x.code)));
+});
