@@ -636,3 +636,14 @@ test('history comparisons only classify issues on fully inspected pages',()=>{
  assert.ok(html.includes("const oldUrls=Array.isArray(previous.completedUrls)?new Set(previous.completedUrls):null"));
  assert.ok(html.includes('Older audit did not store complete-page evidence; page-level resolution cannot be confirmed.'));
 });
+
+
+test('V2.7 SEO opportunities prioritize observed severity without projecting search traffic',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("opportunitiesPanel.id='site-seo-opportunities'"));
+ assert.ok(html.includes("issue.severity!=='info'"));
+ assert.ok(html.includes("b.affectedPages-a.affectedPages"));
+ assert.ok(html.includes("siteReport.opportunities=opportunities"));
+ assert.ok(html.includes('not an estimate of traffic or ranking gains'));
+ assert.ok(html.includes("opportunities.slice(0,10)"));
+});
