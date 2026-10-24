@@ -700,6 +700,6 @@ test('V2.7 remediation library covers duplicates, headings, schema and links wit
 
 test('SEO remediation examples never terminate the inline script early',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
- assert.equal((html.match(/<\\/script>/g)||[]).length,1,'Inline module must have a single real closing script tag');
+ assert.equal((html.match(/<\/script>/g)||[]).length,1,'Inline module must have a single real closing script tag');
  assert.ok(html.includes(String.raw`Example Business"}<\/script>`),'JSON-LD example closing tag must be escaped in source');
 });
