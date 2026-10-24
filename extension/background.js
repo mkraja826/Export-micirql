@@ -219,7 +219,7 @@ async function discoverLocalSubpage(url){
    const page=queued.shift();
    try{
     await chrome.tabs.update(tab.id,{url:page});
-    await waitForTab(tab.id,25000);
+    await waitForUsableTab(tab.id,page,25000);
     await wait(300);
     const loaded=await chrome.tabs.get(tab.id);
     let finalUrl;
