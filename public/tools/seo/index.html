@@ -66,24 +66,24 @@ async function discoverForAudit(url){
  if(!found.ok)throw Error(found.error||'Discovery failed');
  const pages=[...new Set((found.pages||[]).filter(p=>{try{return new URL(p).origin===url.origin}catch{return false}}))].slice(0,60);
  if(!pages.length)throw Error('No accessible pages found');
- selectedDiscovery={origin:url.origin,pages,selected:new Set(pages.slice(0,chosenLimit())),discovered:found};
+ selectedDiscovery={origin:url.origin,startUrl:url.href,pages,selected:new Set(pages.slice(0,chosenLimit())),discovered:found};
  renderSelection();
  return found;
 }
 discoverButton.addEventListener('click',async()=>{
  if(!extensionReady){siteStatus.textContent='Connect the Chrome extension first.';return}
  let url;try{url=new URL(document.getElementById('url').value);if(!['http:','https:'].includes(url.protocol)||url.username||url.password)throw Error()}catch{siteStatus.textContent='Enter a valid HTTP(S) URL.';return}
- discoverButton.disabled=true;
+ discoverButton.disabled=true;siteButton.disabled=true;
  try{await discoverForAudit(url);siteStatus.textContent='Select the pages you want, then start the audit.'}catch(e){siteStatus.textContent=e.message}
- finally{discoverButton.disabled=false}
+ finally{discoverButton.disabled=false;siteButton.disabled=false}
 });
 siteButton.addEventListener('click',async()=>{
  if(!extensionReady){siteStatus.textContent='Connect or reload the Chrome extension first.';return}
  let url;try{url=new URL(document.getElementById('url').value);if(!['http:','https:'].includes(url.protocol)||url.username||url.password)throw Error()}catch{siteStatus.textContent='Enter a valid HTTP(S) website URL.';return}
- siteButton.disabled=true;siteExport.disabled=true;siteExportText.disabled=true;siteReport=null;siteResults.replaceChildren();siteProgress.hidden=false;siteProgress.value=0;
+ siteButton.disabled=true;discoverButton.disabled=true;siteExport.disabled=true;siteExportText.disabled=true;siteReport=null;siteResults.replaceChildren();siteProgress.hidden=false;siteProgress.value=0;
  try{
   const maxPages=chosenLimit();
-  if(!selectedDiscovery||selectedDiscovery.origin!==url.origin)await discoverForAudit(url);
+  if(!selectedDiscovery||selectedDiscovery.startUrl!==url.href)await discoverForAudit(url);
   const discovered=selectedDiscovery.discovered;
   const pages=selectedDiscovery.pages.filter(p=>selectedDiscovery.selected.has(p)).slice(0,maxPages);
   if(!pages.length)throw Error('No accessible pages found');
@@ -234,7 +234,7 @@ siteButton.addEventListener('click',async()=>{
   }
   for(const failure of failures){const row=document.createElement('p');row.className='finding';row.dataset.severity='high';row.textContent='FAILED after '+failure.attempts+' attempts · '+failure.url+' · '+failure.error;siteResults.append(row)}
  }catch(error){siteStatus.textContent=error.message||'Site audit failed'}
- finally{siteButton.disabled=false}
+ finally{siteButton.disabled=false;discoverButton.disabled=false}
 });
 siteExport.addEventListener('click',()=>{if(siteReport)downloadReport('json',JSON.stringify(siteReport,null,2),'application/json')});
 siteExportText.addEventListener('click',()=>{
