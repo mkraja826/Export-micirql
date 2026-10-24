@@ -241,7 +241,7 @@ test('SEO issue dashboard supports mobile-friendly finding and URL search',()=>{
 test('site SEO dashboard exposes transparent audit coverage and severity overview',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  assert.match(html,/id='site-audit-overview'/);
- assert.match(html,/Complete HTML average/);
+ assert.match(html,/Public HTML average/);
  assert.match(html,/High-priority groups/);
  assert.match(html,/completeScoredPages:eligible.length/);
  assert.match(html,/siteResults.prepend\(overview\)/);
