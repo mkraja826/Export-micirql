@@ -338,13 +338,34 @@ siteButton.addEventListener('click',async()=>{
   const opportunitiesPanel=document.createElement('section');opportunitiesPanel.id='site-seo-opportunities';opportunitiesPanel.setAttribute('aria-label','Ranked SEO opportunities');
   const opportunityTitle=document.createElement('h3');opportunityTitle.textContent='SEO opportunities';opportunitiesPanel.append(opportunityTitle);
   const opportunityNote=document.createElement('p');opportunityNote.className='hint small';opportunityNote.textContent='Ranked by finding severity, then number of affected audited URLs. This is a work-priority guide, not an estimate of traffic or ranking gains.';opportunitiesPanel.append(opportunityNote);
-  if(!opportunities.length){const empty=document.createElement('p');empty.textContent='No non-informational findings in this audit batch.';opportunitiesPanel.append(empty)}
-  else{const table=document.createElement('ol');for(const issue of opportunities.slice(0,10)){const item=document.createElement('li');const name=document.createElement('strong');name.textContent=issue.title;item.append(name);const context=document.createElement('span');context.textContent=' · '+issue.severity+' · '+issue.affectedPages+' affected URL(s) · '+issue.verificationStatus;item.append(context);
-   const detail=document.createElement('details');const toggle=document.createElement('summary');toggle.textContent='How to fix and affected pages';detail.append(toggle);
-   const action=document.createElement('p');action.textContent=issue.recommendation;detail.append(action);
-   const pages=document.createElement('ul');for(const address of issue.affectedUrls.slice(0,10)){const row=document.createElement('li');row.textContent=address;pages.append(row)}detail.append(pages);
-   if(issue.affectedPages>10){const extra=document.createElement('p');extra.className='hint small';extra.textContent='Showing up to 10 URLs; view all affected pages in the Issue Center.';detail.append(extra)}
-   item.append(detail);table.append(item)}opportunitiesPanel.append(table);if(opportunities.length>10){const more=document.createElement('p');more.className='hint small';more.textContent='Showing 10 of '+opportunities.length+' opportunities. See Issue Center for all findings.';opportunitiesPanel.append(more)}}
+  const opportunityControls=document.createElement('div');opportunityControls.className='page-tools';
+  const severityFilter=document.createElement('select');severityFilter.setAttribute('aria-label','Filter SEO opportunities by severity');
+  for(const value of ['all','high','medium','low']){const option=document.createElement('option');option.value=value;option.textContent=value==='all'?'All severities':value[0].toUpperCase()+value.slice(1);severityFilter.append(option)}
+  const reachFilter=document.createElement('select');reachFilter.setAttribute('aria-label','Minimum affected pages');
+  for(const [value,label] of [['1','At least 1 page'],['2','At least 2 pages'],['5','At least 5 pages'],['10','At least 10 pages']]){const option=document.createElement('option');option.value=value;option.textContent=label;reachFilter.append(option)}
+  const exportOpportunities=document.createElement('button');exportOpportunities.type='button';exportOpportunities.textContent='Download action plan (CSV)';
+  opportunityControls.append(severityFilter,reachFilter,exportOpportunities);opportunitiesPanel.append(opportunityControls);
+  const opportunityCount=document.createElement('p');opportunityCount.className='hint small';opportunitiesPanel.append(opportunityCount);
+  const opportunityList=document.createElement('ol');opportunitiesPanel.append(opportunityList);
+  const filteredOpportunities=()=>opportunities.filter(issue=>(severityFilter.value==='all'||issue.severity===severityFilter.value)&&issue.affectedPages>=Number(reachFilter.value));
+  const renderOpportunities=()=>{
+   opportunityList.replaceChildren();
+   const selected=filteredOpportunities();opportunityCount.textContent=selected.length+' of '+opportunities.length+' opportunities match';
+   if(!selected.length){const empty=document.createElement('li');empty.textContent='No opportunities match these filters.';opportunityList.append(empty);return}
+   for(const issue of selected.slice(0,25)){const item=document.createElement('li');const name=document.createElement('strong');name.textContent=issue.title;item.append(name);const context=document.createElement('span');context.textContent=' · '+issue.severity+' · '+issue.affectedPages+' affected URL(s) · '+issue.verificationStatus;item.append(context);
+    const detail=document.createElement('details');const toggle=document.createElement('summary');toggle.textContent='How to fix and affected pages';detail.append(toggle);
+    const action=document.createElement('p');action.textContent=issue.recommendation;detail.append(action);
+    const pages=document.createElement('ul');for(const address of issue.affectedUrls.slice(0,10)){const row=document.createElement('li');row.textContent=address;pages.append(row)}detail.append(pages);
+    if(issue.affectedPages>10){const extra=document.createElement('p');extra.className='hint small';extra.textContent='Showing up to 10 URLs; view all affected pages in the Issue Center.';detail.append(extra)}
+    item.append(detail);opportunityList.append(item)}
+   if(selected.length>25){const more=document.createElement('li');more.textContent='Showing first 25 of '+selected.length+' matching opportunities.';opportunityList.append(more)}
+  };
+  severityFilter.addEventListener('change',renderOpportunities);reachFilter.addEventListener('change',renderOpportunities);renderOpportunities();
+  exportOpportunities.addEventListener('click',()=>{
+   const csvCell=value=>'"'+String(value??'').replace(/^[=+\-@\t\r]/,'\u0027$&').replace(/"/g,'""')+'"';
+   const rows=[['Priority','Finding','Severity','Affected pages','Evidence status','Suggested action','Sample URLs'],...filteredOpportunities().map((issue,index)=>[index+1,issue.title,issue.severity,issue.affectedPages,issue.verificationStatus,issue.recommendation,issue.affectedUrls.join(' | ')])];
+   downloadReport('csv',rows.map(row=>row.map(csvCell).join(',')).join('\r\n'),'text/csv;charset=utf-8');
+  });
   siteResults.append(opportunitiesPanel);
   // V2.5: store bounded summary-only history, never HTML or full reports.
   const historyKey='micirql-seo-history-v1:'+url.origin;
