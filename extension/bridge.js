@@ -9,9 +9,16 @@ window.addEventListener('message',async event=>{
  if(type==='MICIRQL_EXTENSION_PING'){announce();return}
  if(typeof id!=='string'||id.length>100)return;
  if(type==='MICIRQL_DISCOVER'){
-  let result;
-  try{result=await chrome.runtime.sendMessage({type:'DISCOVER_SUBPAGE',url:event.data.url})}
-  catch(error){result={ok:false,error:error.message||'Discovery failed'}}
+  let result,listener;
+  try{
+   listener=(changes,area)=>{
+    if(area!=='local'||!changes.seoDiscoveryProgress)return;
+    reply('MICIRQL_DISCOVER_PROGRESS',id,{progress:changes.seoDiscoveryProgress.newValue});
+   };
+   chrome.storage.onChanged.addListener(listener);
+   result=await chrome.runtime.sendMessage({type:'DISCOVER_SUBPAGE',url:event.data.url});
+  }catch(error){result={ok:false,error:error.message||'Discovery failed'}}
+  finally{if(listener)chrome.storage.onChanged.removeListener(listener)}
   reply('MICIRQL_DISCOVER_RESULT',id,result||{ok:false,error:'No discovery response'});
  }
  if(type==='MICIRQL_CAPTURE'){
