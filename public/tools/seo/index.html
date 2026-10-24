@@ -371,12 +371,29 @@ siteButton.addEventListener('click',async()=>{
      };
      search.addEventListener('input',renderResults);filter.addEventListener('change',renderResults);
      dashboard.append(search,filter,summary,table);details.append(dashboard);
+     const sourceTitle=document.createElement('h4');sourceTitle.textContent='Affected source pages (verified errors)';
+     const sourceSummary=document.createElement('p');sourceSummary.className='hint small';
+     const sourceList=document.createElement('ul');
+     const renderSources=()=>{
+      sourceList.replaceChildren();const grouped=new Map();
+      for(const entry of completed.values()){
+       if(!['broken','server_error'].includes(entry.classification))continue;
+       for(const page of entry.referringPages||[]){if(!grouped.has(page))grouped.set(page,[]);grouped.get(page).push(entry)}
+      }
+      const ordered=[...grouped].sort((a,b)=>b[1].length-a[1].length);
+      sourceSummary.textContent=ordered.length+' source pages contain verified HTTP 404/410 or 5xx destinations. HTTP errors are response evidence, not necessarily permanent defects.';
+      for(const [page,entries] of ordered.slice(0,30)){
+       const li=document.createElement('li');const header=document.createElement('strong');header.textContent=page+' — '+entries.length+' destination(s)';li.append(header);
+       const targets=document.createElement('ul');for(const entry of entries.slice(0,10)){const target=document.createElement('li');target.textContent='HTTP '+entry.status+' · '+entry.destination;targets.append(target)}li.append(targets);sourceList.append(li);
+      }
+     };
+     dashboard.append(sourceTitle,sourceSummary,sourceList);
      const save=()=>{try{localStorage.setItem(scopeKey,JSON.stringify({savedAt:Date.now(),rows:[...completed.values()]}))}catch{}};
      const refresh=()=>{
       const checked=completed.size, broken=[...completed.values()].filter(x=>x.classification==='broken').length;
       statusLine.textContent='Verified '+checked+'/'+queue.length+' destinations · '+broken+' confirmed 404/410 · '+(queue.length-checked)+' pending. Failed or blocked checks remain unverified.';
       startButton.textContent=running?'Checking links…':checked===queue.length?'Recheck destinations':'Start / resume verification';
-      startButton.disabled=running;renderResults();
+      startButton.disabled=running;renderResults();renderSources();
      };
      refresh();
      startButton.addEventListener('click',async()=>{
