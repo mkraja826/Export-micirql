@@ -176,7 +176,7 @@ siteExportText.addEventListener('click',()=>{
  const lines=['MiCirql Site SEO Audit','Website: '+siteReport.website,'Analyzed: '+siteReport.pagesAnalyzed+'/'+siteReport.pagesSelected,'Failed: '+siteReport.failures.length,'','Limitations:',...siteReport.reportNotes,'','Prioritized issues:'];
  for(const issue of siteReport.issueCenter)lines.push('',issue.severity.toUpperCase()+' · '+issue.code+' · '+issue.affectedUrls.length+' pages',issue.message,'Suggested action: '+issue.recommendation,...issue.affectedUrls.map(url=>' - '+url));
  lines.push('','Failed inspections:',...siteReport.failures.map(f=>f.url+' — '+f.error));
- downloadReport('txt',lines.join('\\n'),'text/plain');
+ downloadReport('txt',lines.join('\n'),'text/plain');
 });
 const form=document.getElementById('audit'),out=document.getElementById('output'),btn=document.getElementById('run');
 function line(label,value){const p=document.createElement('p');const b=document.createElement('strong');b.textContent=label+': ';p.append(b,document.createTextNode(String(value||'Not present')));return p}
