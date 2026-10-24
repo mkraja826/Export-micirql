@@ -525,8 +525,13 @@ siteExport.addEventListener('click',()=>{if(siteReport)downloadReport('json',JSO
 siteExportText.addEventListener('click',()=>{
  if(!siteReport)return;
  const lines=['MiCirql Site SEO Audit','Website: '+siteReport.website,'Analyzed: '+siteReport.pagesAnalyzed+'/'+siteReport.pagesSelected,'Failed: '+siteReport.failures.length,'Coverage: '+siteReport.coverage.successfulPercent+'% of selected pages','Discovered pages: '+siteReport.coverage.discovered,'Discovery limited: '+(siteReport.coverage.discoveryTruncated?'yes':'no'),'Selection limited: '+(siteReport.coverage.selectionLimited?'yes':'no'),'','Limitations:',...siteReport.reportNotes,'','Prioritized issues:'];
+ lines.push('','Page-role scoring:');
+ for(const [role,data] of Object.entries(siteReport.roleSummary||{}))lines.push(' - '+role+': '+data.pageCount+' pages; average '+(data.average===null?'not available':data.average+'/100'));
+ const contextual=siteReport.reports.filter(page=>page.contextualFindings?.length);
+ lines.push('','Contextual findings (not deducted from score): '+contextual.reduce((count,page)=>count+page.contextualFindings.length,0));
+ for(const page of contextual){lines.push(' - '+page.url+' ['+page.pageRole+']');for(const finding of page.contextualFindings)lines.push('   '+finding.code+': '+finding.reason)}
  for(const issue of siteReport.issueCenter)lines.push('',issue.severity.toUpperCase()+' · '+issue.code+' · '+issue.affectedUrls.length+' pages',issue.message,'Suggested action: '+issue.recommendation,...issue.affectedUrls.map(url=>' - '+url));
- lines.push('','Verified link destinations:',...(siteReport.linkVerification||[]).flatMap(x=>[x.destination+' — '+x.classification+(x.status===null?'':' HTTP '+x.status),...x.referringPages.map(url=>'   from '+url)]));
+ lines.push('','HTTP link verification: '+((siteReport.linkVerification||[]).length?'results recorded':'not performed or no results saved'),'','Verified link destinations:',...(siteReport.linkVerification||[]).flatMap(x=>[x.destination+' — '+x.classification+(x.status===null?'':' HTTP '+x.status),...x.referringPages.map(url=>'   from '+url)]));
  lines.push('','Failed inspections:',...siteReport.failures.map(f=>f.url+' — '+f.error));
  downloadReport('txt',lines.join('\n'),'text/plain');
 });
