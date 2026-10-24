@@ -477,14 +477,17 @@ siteButton.addEventListener('click',async()=>{
      const head=document.createElement('thead');const headings=document.createElement('tr');for(const value of ['Destination','Status','HTTP','Referring pages']){const cell=document.createElement('th');cell.textContent=value;headings.append(cell)}head.append(headings);table.append(head);
      const rows=document.createElement('tbody');table.append(rows);
      const summary=document.createElement('p');summary.className='hint small';
-     const renderResults=()=>{rows.replaceChildren();const term=search.value.trim().toLowerCase();let shown=0;
+     const renderResults=()=>{rows.replaceChildren();const term=search.value.trim().toLowerCase();let matches=0;
+      const fragment=document.createDocumentFragment();
       for(const entry of completed.values()){
        if(filter.value!=='all'&&entry.classification!==filter.value)continue;
        if(term&&!([entry.destination,...(entry.referringPages||[])].join(' ').toLowerCase().includes(term)))continue;
-       if(shown++>=100)continue;
-       const tr=document.createElement('tr');for(const value of [entry.destination,entry.classification,entry.status??'—',(entry.referringPages||[]).join(', ')]){const td=document.createElement('td');td.textContent=String(value);td.style.overflowWrap='anywhere';td.style.padding='8px';td.style.borderBottom='1px solid #415575';tr.append(td)}rows.append(tr);
+       matches++;
+       if(matches>100)continue;
+       const tr=document.createElement('tr');for(const value of [entry.destination,entry.classification,entry.status??'—',(entry.referringPages||[]).join(', ')]){const td=document.createElement('td');td.textContent=String(value);td.style.overflowWrap='anywhere';td.style.padding='8px';td.style.borderBottom='1px solid #415575';tr.append(td)}fragment.append(tr);
       }
-      summary.textContent='Showing '+Math.min(shown,100)+' of '+completed.size+' checked destinations (first 100 matches). Use CSV for complete results.';
+      rows.append(fragment);
+      summary.textContent='Showing '+Math.min(matches,100)+' of '+matches+' matching destinations ('+completed.size+' checked total). Use CSV for all results.';
      };
      search.addEventListener('input',renderResults);filter.addEventListener('change',renderResults);
      dashboard.append(search,filter,summary,table);details.append(dashboard);
