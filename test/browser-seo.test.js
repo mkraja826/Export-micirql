@@ -580,3 +580,14 @@ test('SEO Studio V2.6 history entries navigate to current page evidence, not res
  assert.ok(html.includes("search.value=affectedUrl;role.value='all'"));
  assert.ok(html.includes("pageDashboard.scrollIntoView({behavior:'smooth',block:'start'})"));
 });
+
+
+test('SEO Studio V2.6 fix tracking persists user statuses without claiming audit resolution',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("const fixTrackerKey='micirql-seo-fix-tracker-v1:'+url.origin"));
+ assert.ok(html.includes("['fixed','Marked fixed (awaiting audit)']"));
+ assert.ok(html.includes("if(label!=='No longer observed')"));
+ assert.ok(html.includes("note.maxLength=240"));
+ assert.ok(html.includes("localStorage.setItem(fixTrackerKey,JSON.stringify(fixTracker))"));
+ assert.ok(html.includes("feedback.textContent=saveFixTracker()?'Saved in this browser'"));
+});
