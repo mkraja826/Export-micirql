@@ -70,6 +70,23 @@ export function inspectSeoHtml(html,url,options={}){
   if(/^http:\/\//i.test(href))linkIssues.push({code:'link_http',href});
   if(/^javascript:/i.test(href))linkIssues.push({code:'link_javascript',href});
  }
+ const linkTypes={internal:0,external:0,fragment:0,email:0,telephone:0,invalid:0,other:0};
+ const invalidLinkExamples=[];
+ for(const match of anchorTags){
+  const href=attribute('<a '+match[1]+'>','href').trim();
+  if(!href){linkTypes.other++;continue}
+  if(href.startsWith('#')){linkTypes.fragment++;continue}
+  if(/^mailto:/i.test(href)){linkTypes.email++;continue}
+  if(/^tel:/i.test(href)){linkTypes.telephone++;continue}
+  if(/^(?:javascript|data|vbscript):/i.test(href)){linkTypes.invalid++;invalidLinkExamples.push(href);continue}
+  try{
+   const resolved=new URL(href,url);
+   if(!['http:','https:'].includes(resolved.protocol)){linkTypes.other++;continue}
+   const base=new URL(url);
+   linkTypes[resolved.origin===base.origin?'internal':'external']++;
+  }catch{linkTypes.invalid++;invalidLinkExamples.push(href)}
+ }
+ if(!isPartial&&invalidLinkExamples.length)add('invalid_link_urls','medium',invalidLinkExamples.length+' link destination(s) are invalid or non-navigable. Examples: '+invalidLinkExamples.slice(0,3).join(', '),4,'links');
  const linksMissingName=linkIssues.filter(x=>x.code==='link_missing_name');
  const insecureLinks=linkIssues.filter(x=>x.code==='link_http');
  const javascriptLinks=linkIssues.filter(x=>x.code==='link_javascript');
@@ -115,5 +132,5 @@ export function inspectSeoHtml(html,url,options={}){
  const categoryDeductions={};
  for(const finding of findings){const key=finding.category||'technical';categoryDeductions[key]=(categoryDeductions[key]||0)+(finding.points||0)}
  const scoring={method:'weighted_html_finding_deductions',startingScore:100,totalDeductions:deductions,categoryDeductions,appliedScore:score,scoreFloor:0,coverage:isPartial?'partial_html_snapshot':'provided_html_only'};
- return {url,title,description,robots,canonical,lang,viewport,h1Count,ogTitle,ogDescription,ogImage,twitterCard,imageCount:imageTags.length,imagesMissingAlt,structuredDataCount,headingSkips,findings,scoring,scope:'static_html_only',auditStatus:isPartial?'partial':'complete',partial:isPartial,score,maxScore:100,scoreLabel:isPartial?'Provisional score':'SEO HTML score',scoreExplanation:'Heuristic static HTML score based on weighted findings. Not Google ranking, performance, accessibility, or a full-site SEO score.'};
+ return {url,title,description,robots,canonical,lang,viewport,h1Count,ogTitle,ogDescription,ogImage,twitterCard,imageCount:imageTags.length,imagesMissingAlt,structuredDataCount,headingSkips,linkTypes,findings,scoring,scope:'static_html_only',auditStatus:isPartial?'partial':'complete',partial:isPartial,score,maxScore:100,scoreLabel:isPartial?'Provisional score':'SEO HTML score',scoreExplanation:'Heuristic static HTML score based on weighted findings. Not Google ranking, performance, accessibility, or a full-site SEO score.'};
 }
