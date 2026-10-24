@@ -9,7 +9,7 @@ const jsonButton=document.getElementById('export-json'),textButton=document.getE
 function suggestedPageRole(url){
  const path=new URL(url).pathname.toLowerCase();
  if(/(?:^|\/)(?:privacy|privacy-policy|terms|terms-of-service|delete-account)(?:\/|$)/.test(path))return 'legal';
- if(/(?:^|\/)(?:portal|dashboard|login|signin|signup|account|app)(?:\/|$)/.test(path))return 'application';
+ if(/(?:^|\/)(?:portal|dashboard|login|signin|signup|register|registration|forgot-password|reset-password|password-reset|auth|account|patient|staff|app)(?:\/|$)/.test(path))return 'application';
  return 'public';
 }
 const siteButton=document.getElementById('site-run'),siteExport=document.getElementById('site-export'),siteExportText=document.getElementById('site-export-text'),siteStatus=document.getElementById('site-status'),siteProgress=document.getElementById('site-progress'),siteResults=document.getElementById('site-results');let siteReport=null;
@@ -118,7 +118,21 @@ siteButton.addEventListener('click',async()=>{
      const response=await extensionRequest('MICIRQL_SEO_READ','MICIRQL_SEO_RESULT',pages[i],90000);
      if(!response.ok)throw Error(response.error||'Inspection failed');
      const report=inspectSeoHtml(response.html,response.url||pages[i],{partial:response.partial===true});
-     report.requestedUrl=pages[i];report.pageRole=suggestedPageRole(report.url);report.pageRoleSource='suggested_from_url';report.attempts=attempt;reports.push(report);saveCheckpoint(url.origin,pages,reports);lastError=null;break;
+     report.requestedUrl=pages[i];report.pageRole=suggestedPageRole(report.url);report.pageRoleSource='suggested_from_url';report.attempts=attempt;
+     // Account and authentication routes are intentionally not search-indexed.
+     // Preserve evidence, but do not penalize noindex/missing canonical for these routes.
+     const authPath=new URL(report.url).pathname.toLowerCase();
+     if(report.pageRole==='application'&&/(?:^|\/)(?:login|signin|signup|register|registration|forgot-password|reset-password|password-reset)(?:\/|$)/.test(authPath)){
+      const excluded=report.findings.filter(item=>['noindex','missing_canonical'].includes(item.code));
+      if(excluded.length){
+       report.contextualFindings=excluded.map(item=>({...item,reason:'Authentication page: indexing and canonical requirements differ from public content pages.'}));
+       report.findings=report.findings.filter(item=>!['noindex','missing_canonical'].includes(item.code));
+       const waived=excluded.reduce((sum,item)=>sum+(item.points||0),0);
+       if(report.scoring){report.scoring.totalDeductions=Math.max(0,report.scoring.totalDeductions-waived);report.scoring.categoryDeductions.indexability=Math.max(0,(report.scoring.categoryDeductions.indexability||0)-waived);report.scoring.appliedScore=Math.min(100,report.scoring.startingScore-report.scoring.totalDeductions)}
+       report.score=Math.min(100,report.score+waived);
+      }
+     }
+     reports.push(report);saveCheckpoint(url.origin,pages,reports);lastError=null;break;
     }catch(error){
      lastError=error;
      if(attempt<2){siteStatus.textContent='Retrying page '+(i+1)+' of '+pages.length+' after a short recovery pause (attempt 2 of 2)…';await new Promise(resolve=>setTimeout(resolve,1500));}
