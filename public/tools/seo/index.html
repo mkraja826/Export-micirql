@@ -41,7 +41,8 @@ function extensionRequest(type,resultType,url,timeout=60000){
  });
 }
 // Persist only compact SEO findings for a single site, never raw page HTML.
-const checkpointKey='micirql-seo-checkpoint-v1';
+// Bump the checkpoint namespace when scoring rules change; stale scores must not be reused.
+const checkpointKey='micirql-seo-checkpoint-v2';
 function readCheckpoint(origin){
  try{
   const saved=JSON.parse(localStorage.getItem(checkpointKey)||'null');
