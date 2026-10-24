@@ -647,3 +647,13 @@ test('V2.7 SEO opportunities prioritize observed severity without projecting sea
  assert.ok(html.includes('not an estimate of traffic or ranking gains'));
  assert.ok(html.includes("opportunities.slice(0,10)"));
 });
+
+
+test('V2.7 opportunities include actionable text and bounded affected-page evidence',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("recommendation:issue.action||issue.recommendation||issue.suggestedFix"));
+ assert.ok(html.includes("toggle.textContent='How to fix and affected pages'"));
+ assert.ok(html.includes("action.textContent=issue.recommendation"));
+ assert.ok(html.includes("issue.affectedUrls.slice(0,10)"));
+ assert.ok(html.includes("row.textContent=address"));
+});
