@@ -309,3 +309,11 @@ test('authentication routes are classified as application and waive inappropriat
  assert.ok(html.includes("['noindex','missing_canonical'].includes(item.code)"));
  assert.ok(html.includes('report.score=Math.min(100,report.score+waived)'));
 });
+
+test('heading hierarchy issue center renders exact transitions safely',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("issue.code==='heading_hierarchy'&&issue.pageEvidence?.length"));
+ assert.ok(html.includes("item.element==='heading'&&item.from&&item.to"));
+ assert.ok(html.includes("description.textContent=item.from+' → '+item.to"));
+ assert.ok(html.includes("source.textContent='Page: '+page.url"));
+});
