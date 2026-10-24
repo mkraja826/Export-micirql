@@ -211,3 +211,26 @@ test('segmentation boundary at 12001px yields two contiguous clips for each view
  assert.equal(new Set(result.images.map(x=>x.name)).size,6);
  assert.ok(result.images.every(x=>/-part-00[12]-of-2/.test(x.name)));
 });
+
+test('capture enforces the 60-page maximum before opening Chrome tabs',async()=>{
+ let listener,created=0;
+ const chrome={runtime:{id:'micirql-test',onMessage:{addListener(fn){listener=fn}}},storage:{local:{async set(){}}},
+ tabs:{async create(){created++;throw Error('Simulated browser unavailable')}}};
+ runInNewContext(background,{chrome,URL,Promise,setTimeout,clearTimeout});
+ const pages=Array.from({length:61},(_,i)=>'https://example.com/page-'+i);
+ const response=await new Promise(resolve=>listener({type:'CAPTURE',url:'https://example.com/',pages,widths:[375,768,1440],format:'jpeg',returnImages:true},{id:'micirql-test'},resolve));
+ assert.equal(response.ok,false);
+ assert.match(response.error,/no more than 60 pages/i);
+ assert.equal(created,0);
+});
+test('60 unique pages pass batch validation before opening Chrome',async()=>{
+ let listener,created=0;
+ const chrome={runtime:{id:'micirql-test',onMessage:{addListener(fn){listener=fn}}},storage:{local:{async set(){}}},
+ tabs:{async create(){created++;throw Error('Expected mock browser boundary')}}};
+ runInNewContext(background,{chrome,URL,Promise,setTimeout,clearTimeout});
+ const pages=Array.from({length:60},(_,i)=>'https://example.com/page-'+i);
+ const response=await new Promise(resolve=>listener({type:'CAPTURE',url:'https://example.com/',pages,widths:[375,768,1440],format:'jpeg',returnImages:true},{id:'micirql-test'},resolve));
+ assert.equal(response.ok,false);
+ assert.match(response.error,/Expected mock browser boundary/);
+ assert.equal(created,1);
+});
