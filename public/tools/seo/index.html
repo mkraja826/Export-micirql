@@ -253,6 +253,19 @@ siteButton.addEventListener('click',async()=>{
    missing_og_description:'Set an appropriate social-sharing description.',
    missing_og_image:'Provide an appropriate social-sharing preview image.'
   };
+  const fixDetails={
+   missing_title:{why:'A title provides search engines and visitors with a concise description of the page.',steps:['Identify the unique topic and purpose of each affected page.','Add one descriptive title in the document head.','Reinspect the rendered page and confirm the title matches its content.'],example:'<title>Root Canal Treatment | Example Dental Clinic</title>',verification:'Inspect the final HTML head and confirm exactly one appropriate title.'},
+   missing_description:{why:'A description can help describe the page in search snippets, although search engines may rewrite it.',steps:['Write a concise description matching the actual content.','Add one meta description in the head.','Check it is distinct where pages cover different topics.'],example:'<meta name="description" content="Learn about root canal treatment, appointments and aftercare at Example Dental Clinic.">',verification:'Confirm the rendered head includes the intended meta description.'},
+   missing_canonical:{why:'A canonical signals the preferred URL among duplicate or similar pages.',steps:['Determine the preferred URL for this page.','Add a canonical link in the head if appropriate.','Check that the target resolves and agrees with redirects and internal links.'],example:'<link rel="canonical" href="https://example.com/services/">',verification:'Verify the final canonical URL and its destination in a live browser.'},
+   noindex:{why:'A noindex directive can exclude a page from search indexing.',steps:['First decide whether this page is meant to be public and searchable.','Inspect robots meta tags and any X-Robots-Tag response headers.','Remove the directive only when indexing is intended.'],example:'<meta name="robots" content="index,follow">',verification:'Verify rendered metadata and response headers; actual indexing is determined by the search engine.'},
+   unresolved_link_template:{why:'An unresolved href placeholder may send visitors to an unintended destination.',steps:['Locate the component producing the placeholder.','Replace the unresolved expression with a real valid destination.','Click the link in a browser after deployment.'],example:'<a href="/services/root-canal/">Root canal</a>',verification:'Confirm the rendered href is valid and the destination loads.'},
+   images_missing_alt:{why:'Informative images should have meaningful text alternatives; decorative images should have empty alt.',steps:['Classify each affected image as informative or decorative.','Add concise alt text conveying essential information, or alt="" for decoration.','Review the image and text together rather than auto-generating descriptions.'],example:'<img src="/clinic.jpg" alt="Reception area of Example Dental Clinic">',verification:'Inspect the rendered image and its alternative text.'},
+   duplicate_canonical:{why:'Multiple URLs pointing to one canonical can be intentional, especially for near-duplicate pages.',steps:['Compare affected pages and confirm whether they genuinely duplicate content.','Keep shared canonicals for intentional duplicates.','Choose distinct canonicals only for independently indexable pages.'],example:'<link rel="canonical" href="https://example.com/services/">',verification:'Review affected URLs, live response status and the intended indexation strategy.'}
+  };
+  for(const issue of issues){
+   const details=fixDetails[issue.code];
+   issue.fixGuide=details?{...details,verificationRequired:true}:null;
+  }
   for(const issue of issues)issue.recommendation=advice[issue.code]||'Review the finding against the page purpose before making changes.';
   // Triage guidance is deterministic; never present it as measured traffic impact.
   const fixFirstCodes=new Set(['noindex','missing_title','multiple_canonicals','canonical_invalid','unresolved_link_template','missing_description','duplicate_title','duplicate_description']);
@@ -348,7 +361,18 @@ siteButton.addEventListener('click',async()=>{
     }
     const list=document.createElement('ul');
     for(const affected of issue.affectedUrls){const item=document.createElement('li');item.textContent=affected;const evidence=issue.pageEvidence?.find(e=>e.url===affected);if(evidence){const observed=document.createElement('div');observed.className='hint small';observed.textContent='Observed HTML metadata: '+evidence.observed;item.append(observed)}if(evidence?.elements){const snippets=document.createElement('ul');for(const entry of evidence.elements){const li=document.createElement('li');li.className='hint small';li.textContent=entry.element+' '+(entry.attribute||'')+' '+(entry.value||entry.snippet||'');snippets.append(li)}item.append(snippets)}list.append(item)}
-    const fix=document.createElement('p');fix.className='small';fix.textContent='Suggested action: '+issue.recommendation+' · '+issue.fixScope+'.';details.append(fix);details.append(list);issueContainer.append(details);
+    const fix=document.createElement('p');fix.className='small';fix.textContent='Suggested action: '+issue.recommendation+' · '+issue.fixScope+'.';details.append(fix);
+    const confidence=document.createElement('p');confidence.className='hint small';confidence.textContent='Evidence: '+issue.verificationStatus+' · Priority: '+issue.triageTier+' (not measured search traffic impact)';details.append(confidence);
+    if(issue.fixGuide){
+     const guide=document.createElement('details');guide.className='notice';
+     const guideTitle=document.createElement('summary');guideTitle.textContent='How to fix and verify';guide.append(guideTitle);
+     const why=document.createElement('p');why.textContent=issue.fixGuide.why;guide.append(why);
+     const steps=document.createElement('ol');
+     for(const step of issue.fixGuide.steps){const li=document.createElement('li');li.textContent=step;steps.append(li)}guide.append(steps);
+     const code=document.createElement('pre');code.textContent=issue.fixGuide.example;guide.append(code);
+     const verify=document.createElement('p');verify.className='small';verify.textContent='Verification: '+issue.fixGuide.verification;guide.append(verify);details.append(guide);
+    }
+    details.append(list);issueContainer.append(details);
    }
    if(!visible.length){const empty=document.createElement('p');empty.className='hint';empty.textContent='No issues for this severity in the inspected pages.';issueContainer.append(empty)}
   }
