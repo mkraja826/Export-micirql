@@ -11,6 +11,7 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     environment: production
     steps:
       - uses: actions/checkout@v4
@@ -20,7 +21,9 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
       - name: Run complete unit and API integration tests
-        run: npm test
+        run: |
+          echo 'Starting bounded deployment test suite'
+          timeout --signal=TERM --kill-after=30s 8m npm test
       - name: Validate Worker
         run: |
           node --check src/worker.js
