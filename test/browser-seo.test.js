@@ -186,3 +186,11 @@ test('partial SEO audits retain successful page checkpoints for targeted retry',
  assert.match(page,/cached\.has\(pages\[i\]\)/);
  assert.match(page,/saveCheckpoint\(url\.origin,pages,reports\)/);
 });
+
+test('SEO checkpoint matches requested URLs even when inspection redirects',()=>{
+ const page=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(page,/report\.requestedUrl=pages\[i\]/);
+ assert.match(page,/r\.requestedUrl\|\|r\.url/);
+ assert.match(page,/const resumedCount=pages\.filter\(p=>cached\.has\(p\)\)\.length/);
+ assert.match(page,/Rerun this selection to retry failed pages using saved results/);
+});
