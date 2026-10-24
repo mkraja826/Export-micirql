@@ -200,3 +200,10 @@ test('coverage note does not misrepresent manually selected pages as first disco
  assert.match(page,/discovered pages were selected for this audit/);
  assert.doesNotMatch(page,/Only the first '\+pages\.length/);
 });
+
+test('SEO page retries include a bounded recovery pause',()=>{
+ const page=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(page,/if\(attempt<2\)\{siteStatus\.textContent=/);
+ assert.match(page,/setTimeout\(resolve,1500\)/);
+ assert.match(page,/attempt<=2/);
+});
