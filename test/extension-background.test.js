@@ -193,3 +193,21 @@ test('page discovery shares guarded same-origin loading recovery',async()=>{
  assert.equal(removed,1);
  assert.match(background,/await waitForUsableTab\(tab.id,page,25000\)/);
 });
+
+test('segmentation boundary at 12001px yields two contiguous clips for each viewport',async()=>{
+ let listener;const clips=[];
+ const chrome={runtime:{id:'micirql-test',onMessage:{addListener(fn){listener=fn}}},storage:{local:{async set(){}}},
+ tabs:{onUpdated:{addListener(){},removeListener(){}},async create(){return {id:88,status:'complete'}},async get(){return {id:88,status:'complete',url:'https://example.com/'}},async remove(){}},
+ debugger:{async attach(){},async detach(){},async sendCommand(_target,method,params={}){
+ if(method==='Page.getLayoutMetrics')return {cssContentSize:{height:12001}};
+ if(method==='Page.captureScreenshot'){clips.push(params.clip);return {data:'YWJj'};}
+ return {};
+ }}};
+ runInNewContext(background,{chrome,URL,Promise,setTimeout,clearTimeout});
+ const result=await new Promise(resolve=>listener({type:'CAPTURE',url:'https://example.com/',pages:['https://example.com/'],widths:[375,768,1440],format:'png',returnImages:true},{id:'micirql-test'},resolve));
+ assert.equal(result.ok,true,result.error);
+ assert.equal(result.count,6);
+ assert.deepEqual(clips.map(x=>[x.width,x.y,x.height]),[[375,0,12000],[375,12000,1],[768,0,12000],[768,12000,1],[1440,0,12000],[1440,12000,1]]);
+ assert.equal(new Set(result.images.map(x=>x.name)).size,6);
+ assert.ok(result.images.every(x=>/-part-00[12]-of-2/.test(x.name)));
+});
