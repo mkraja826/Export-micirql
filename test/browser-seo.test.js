@@ -68,3 +68,11 @@ test('site audit permits overriding page roles and recalculates group averages',
  assert.match(page,/pageRoleSource='user_override'/);
  assert.match(page,/roleSelect\.setAttribute\('aria-label'/);
 });
+
+test('site issue center groups findings by severity and affected URLs',()=>{
+ const page=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(page,/id='site-issue-filter'/);
+ assert.match(page,/siteReport\.issueCenter=issues/);
+ assert.match(page,/affectedUrls:\[\.\.\.new Set\(issue\.affectedUrls\)\]/);
+ assert.match(page,/severityFilter\.addEventListener\('change',renderIssues\)/);
+});
