@@ -560,3 +560,13 @@ test('SEO Studio V2.6 health snapshot preserves scoring scope and audit coverage
  assert.ok(html.includes('Search traffic and rankings are not measured.'));
  assert.ok(html.includes('Completion is the percentage of selected pages successfully inspected'));
 });
+
+
+test('SEO Studio V2.6 issue tracker presents counts from comparable pages only',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("tracker.id='site-history-tracker'"));
+ assert.ok(html.includes("['Newly observed',newly],['Recurring',recurring],['No longer observed',cleared]"));
+ assert.ok(html.includes("previousTracker.remove()"));
+ assert.ok(html.includes("trackerGrid.className='tracker-grid'"));
+ assert.ok(html.includes('Changes reflect issue/page occurrences only on pages audited in both runs.'));
+});
