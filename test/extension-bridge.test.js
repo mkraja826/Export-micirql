@@ -69,3 +69,13 @@ test('extension announces protocol 2 and all website capture capabilities',async
  assert.equal(ready.payload.protocol,2);
  assert.deepEqual(Array.from(ready.payload.capabilities),['discover','capture','bulk','progress']);
 });
+
+test('site bridge forwards discovery progress and cleans up its listener',async()=>{
+ const h=setup();
+ const pending=h.dispatch('MICIRQL_DISCOVER',{url:'https://example.com/'});
+ h.progress({done:1,found:1,errors:0});
+ await pending;
+ const update=h.sent.find(x=>x.payload.type==='MICIRQL_DISCOVER_PROGRESS');
+ assert.equal(update?.payload.progress.done,1);
+ assert.equal(h.hasListener(),false);
+});
