@@ -541,3 +541,14 @@ test('SEO Studio V2.5 compares exact audited URLs and distinguishes recurring pa
  assert.ok(html.includes("['Newly observed',newly],['No longer observed',cleared],['Recurring',recurring]"));
  assert.ok(html.includes('Older audit did not store exact URL coverage'));
 });
+
+
+test('SEO Studio V2.5 permits exporting and deleting browser-local audit history',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("exportHistory.textContent='Export saved history (JSON)'"));
+ assert.ok(html.includes("clearHistory.textContent='Delete saved history'"));
+ assert.ok(html.includes("deleteSelected.textContent='Delete selected previous audit'"));
+ assert.ok(html.includes("localStorage.removeItem(historyKey)"));
+ assert.ok(html.includes("saved.splice(found,1)"));
+ assert.ok(html.includes("historyControls.className='history-controls'"));
+});
