@@ -218,6 +218,21 @@ siteButton.addEventListener('click',async()=>{
   };
   const priority={high:0,medium:1,low:2,info:3};
   const issues=[...issueMap.values()].map(issue=>({...issue,verificationStatus:confirmationStatus(issue),affectedUrls:[...new Set(issue.affectedUrls)]})).sort((a,b)=>(priority[a.severity]??4)-(priority[b.severity]??4)||b.affectedUrls.length-a.affectedUrls.length);
+  // Repeated image/link elements often belong to shared navigation or templates.
+  // Group by finding code and evidence value, retaining distinct source pages.
+  for(const issue of issues){
+   if(!['images_missing_alt','links_missing_name','links_http','links_javascript'].includes(issue.code))continue;
+   const groups=new Map();
+   for(const sample of issue.pageEvidence||[]){
+    for(const element of sample.elements||[]){
+     const key=(element.element||'element')+'|'+(element.attribute||'')+'|'+(element.value||element.snippet||'');
+     if(!groups.has(key))groups.set(key,{element:element.element||'element',attribute:element.attribute||'',value:element.value||element.snippet||'',affectedUrls:new Set()});
+     groups.get(key).affectedUrls.add(sample.url);
+    }
+   }
+   issue.sharedEvidence=[...groups.values()].map(item=>({...item,affectedUrls:[...item.affectedUrls]})).sort((a,b)=>b.affectedUrls.length-a.affectedUrls.length).slice(0,20);
+   issue.sharedEvidenceCoverage='Sampled evidence only; source inspectors retain up to five element examples per page. Counts are not site-wide totals.';
+  }
   const advice={
    missing_title:'Write a unique, descriptive page title.',
    title_length:'Review the title for clarity and relevance rather than aiming for a fixed character count.',
@@ -286,6 +301,16 @@ siteButton.addEventListener('click',async()=>{
       checkButton.textContent='Checked listed destinations';
      });
      details.append(checkButton);
+    }
+    if(issue.sharedEvidence?.length){
+     const heading=document.createElement('p');heading.className='small';heading.textContent='Repeated element evidence (sampled; '+issue.sharedEvidence.length+' unique examples):';details.append(heading);
+     const examples=document.createElement('ul');
+     for(const element of issue.sharedEvidence.slice(0,10)){
+      const entry=document.createElement('li');entry.className='hint small';
+      entry.textContent=element.element+' '+element.attribute+'='+element.value+' — detected on '+element.affectedUrls.length+' inspected page(s)';examples.append(entry);
+     }
+     details.append(examples);
+     const caveat=document.createElement('p');caveat.className='hint small';caveat.textContent=issue.sharedEvidenceCoverage;details.append(caveat);
     }
     const list=document.createElement('ul');
     for(const affected of issue.affectedUrls){const item=document.createElement('li');item.textContent=affected;const evidence=issue.pageEvidence?.find(e=>e.url===affected);if(evidence){const observed=document.createElement('div');observed.className='hint small';observed.textContent='Observed HTML metadata: '+evidence.observed;item.append(observed)}if(evidence?.elements){const snippets=document.createElement('ul');for(const entry of evidence.elements){const li=document.createElement('li');li.className='hint small';li.textContent=entry.element+' '+(entry.attribute||'')+' '+(entry.value||entry.snippet||'');snippets.append(li)}item.append(snippets)}list.append(item)}
