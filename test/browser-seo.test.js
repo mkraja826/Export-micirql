@@ -510,3 +510,14 @@ test('SEO Studio V2.4 printed report includes score bands and full affected page
  assert.ok(html.includes('Audited page appendix'));
  assert.ok(html.includes('MiCirql SEO Studio</small>'));
 });
+
+
+test('SEO Studio V2.5 keeps bounded audit summaries and compares issue occurrences',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("micirql-seo-history-v1:"));
+ assert.ok(html.includes("auditHistory.slice(-10)"));
+ assert.ok(html.includes("affectedUrls.slice(0,100)"));
+ assert.ok(html.includes("eligibleScores.length?Math.round("));
+ assert.ok(html.includes("newCount+' new and '+resolvedCount+' resolved issue/page occurrences"));
+ assert.ok(html.includes("No page HTML is saved."));
+});
