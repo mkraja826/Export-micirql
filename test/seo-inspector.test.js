@@ -93,3 +93,13 @@ test('generic and Googlebot noindex result in one finding',()=>{
  const report=inspectSeoHtml(html,'https://example.com/');
  assert.equal(report.findings.filter(f=>f.code==='noindex').length,1);
 });
+
+test('scoring explains deductions by category without inventing category scores',()=>{
+ const html='<html><head><title>Short</title></head><body><h1>A</h1><h1>B</h1></body></html>';
+ const report=inspectSeoHtml(html,'https://example.com/');
+ assert.equal(report.scoring.startingScore,100);
+ assert.equal(Object.values(report.scoring.categoryDeductions).reduce((a,b)=>a+b,0),report.scoring.totalDeductions);
+ assert.equal(report.score,Math.max(0,100-report.scoring.totalDeductions));
+ assert.equal(report.scoring.coverage,'provided_html_only');
+ assert.equal(inspectSeoHtml(html,'https://example.com/',{partial:true}).scoring.coverage,'partial_html_snapshot');
+});
