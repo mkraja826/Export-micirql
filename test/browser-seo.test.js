@@ -367,7 +367,7 @@ test('SEO issues dashboard shows grouped severity and actionable evidence',()=>{
  assert.ok(html.includes("issuePulse.className='issue-pulse'"));
  assert.ok(html.includes("issueContainer.id='site-issues'"));
  assert.ok(html.includes("issueMeta.className='issue-meta'"));
- assert.ok(html.includes("issueNext.textContent='Suggested action: '+issue.recommendation"));
+ assert.ok(html.includes("issueNext.textContent='What to do: '+issue.recommendation"));
  assert.ok(html.includes("Counts represent grouped HTML findings"));
 });
 
