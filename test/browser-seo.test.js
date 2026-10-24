@@ -498,3 +498,15 @@ test('SEO Studio V2.4 offers a printable client summary without changing audit s
  assert.ok(html.includes('report.coverage?.discoveryTruncated'));
  assert.ok(html.includes('Average excludes incomplete and unscored pages.'));
 });
+
+
+test('SEO Studio V2.4 printed report includes score bands and full affected page appendix',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes('const scoreBands=['));
+ assert.ok(html.includes('valid.filter(page=>page.score>=80)'));
+ assert.ok(html.includes('const issueAppendix=issues.flatMap('));
+ assert.ok(html.includes('escapeHTML(page.url)'));
+ assert.ok(html.includes('Affected page appendix'));
+ assert.ok(html.includes('Audited page appendix'));
+ assert.ok(html.includes('MiCirql SEO Studio</small>'));
+});
