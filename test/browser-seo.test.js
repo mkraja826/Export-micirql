@@ -42,3 +42,12 @@ test('multi-page SEO report records cross-page duplicate metadata without alteri
  assert.match(page,/reports,siteFindings,scope/);
  assert.match(page,/report\.partial\|\|report\.auditStatus!=='complete'/);
 });
+
+test('site audit provides accessible expandable page-level findings',()=>{
+ const page=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(page,/document\.createElement\('details'\)/);
+ assert.match(page,/document\.createElement\('summary'\)/);
+ assert.match(page,/panel\.dataset\.severity/);
+ assert.match(page,/report\.findings\]\.sort/);
+ assert.match(page,/report\.scoreExplanation/);
+});
