@@ -533,6 +533,13 @@ siteExportText.addEventListener('click',()=>{
  lines.push('','Contextual findings (not deducted from score): '+contextual.reduce((count,page)=>count+page.contextualFindings.length,0));
  for(const page of contextual){lines.push(' - '+page.url+' ['+page.pageRole+']');for(const finding of page.contextualFindings)lines.push('   '+finding.code+': '+finding.reason)}
  for(const issue of siteReport.issueCenter)lines.push('',issue.severity.toUpperCase()+' · '+issue.code+' · '+issue.affectedUrls.length+' pages',issue.message,'Suggested action: '+issue.recommendation,...issue.affectedUrls.map(url=>' - '+url));
+ for(const issue of siteReport.issueCenter.filter(item=>item.code==='heading_hierarchy')){
+  lines.push('','Heading hierarchy evidence:');
+  for(const page of issue.pageEvidence||[]){
+   for(const heading of (page.elements||[]).filter(item=>item.element==='heading'&&item.from&&item.to))
+    lines.push(' - '+page.url+' · '+heading.from+' → '+heading.to+' · Previous: '+(heading.previousText||'(empty)')+' · Next: '+(heading.currentText||'(empty)'));
+  }
+ }
  lines.push('','HTTP link verification: '+((siteReport.linkVerification||[]).length?'results recorded':'not performed or no results saved'),'','Verified link destinations:',...(siteReport.linkVerification||[]).flatMap(x=>[x.destination+' — '+x.classification+(x.status===null?'':' HTTP '+x.status),...x.referringPages.map(url=>'   from '+url)]));
  lines.push('','Failed inspections:',...siteReport.failures.map(f=>f.url+' — '+f.error));
  downloadReport('txt',lines.join('\n'),'text/plain');
