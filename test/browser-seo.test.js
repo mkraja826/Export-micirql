@@ -94,3 +94,12 @@ test('site audit distinguishes selected-page coverage from entire-site completen
  assert.match(page,/Unvisited pages are not scored/);
  assert.match(page,/siteReport\.coverage\.successfulPercent/);
 });
+
+test('site audit retries failed page inspections at most twice and preserves failures',()=>{
+ const page=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(page,/attempt<=2/);
+ assert.match(page,/report\.attempts=attempt/);
+ assert.match(page,/retryPolicy:\{maxAttemptsPerPage:2,sequential:true\}/);
+ assert.match(page,/if\(lastError\)failures\.push/);
+ assert.match(page,/siteProgress\.value=i\+1/);
+});
