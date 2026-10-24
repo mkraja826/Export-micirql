@@ -39,6 +39,12 @@ window.addEventListener('message',async event=>{
   finally{if(listener)chrome.storage.onChanged.removeListener(listener)}
   reply('MICIRQL_CAPTURE_RESULT',id,{...(result||{ok:false,error:'No capture response'}),zip:!!zip});
  }
+ if(type==='MICIRQL_SEO_LINK_CHECK'){
+  let result;
+  try{result=await chrome.runtime.sendMessage({type:'CHECK_SEO_LINK',url:event.data.url})}
+  catch(error){result={ok:false,error:error.message||'Link check failed'}}
+  reply('MICIRQL_SEO_LINK_RESULT',id,result||{ok:false,error:'No status response'});
+ }
  if(type==='MICIRQL_SEO_READ'){
   let result;
   try{result=await chrome.runtime.sendMessage({type:'READ_SEO_HTML',url:event.data.url})}
