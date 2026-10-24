@@ -64,9 +64,22 @@ siteButton.addEventListener('click',async()=>{
   }
   siteReport={schemaVersion:1,tool:'seo-site',generatedAt:new Date().toISOString(),website:url.origin,pagesDiscovered:discovered.pages.length,pagesSelected:pages.length,pagesAnalyzed:reports.length,failures,reports,siteFindings,scope:'bounded_browser_html_audit'};
   siteExport.disabled=false;
-  const scored=reports.filter(p=>p.score!==null&&!p.partial&&p.pageRole==='public');
-  const average=scored.length?Math.round(scored.reduce((sum,p)=>sum+p.score,0)/scored.length):null;
-  siteStatus.textContent='Page roles are URL-based suggestions, not verified indexability decisions. '+reports.length+' analyzed, '+failures.length+' failed. '+(average===null?'No complete pages eligible for average.':'Average HTML score for '+scored.length+' suggested public pages: '+average+'/100.')+(discovered.pages.length>20?' Limited to first 20 discovered pages.':'');
+  const roleSummary=document.createElement('div');roleSummary.className='summary';roleSummary.id='site-role-summary';
+  function refreshRoleSummary(){
+   roleSummary.replaceChildren();
+   const groups={public:[],application:[],legal:[]};
+   for(const p of reports){if(p.score!==null&&!p.partial&&p.auditStatus==='complete'&&groups[p.pageRole])groups[p.pageRole].push(p.score)}
+   for(const [role,scores] of Object.entries(groups)){
+    const chip=document.createElement('span');
+    chip.textContent=role+': '+(scores.length?Math.round(scores.reduce((a,b)=>a+b,0)/scores.length)+'/100 ('+scores.length+' pages)':'not scored');
+    roleSummary.append(chip);
+   }
+   const publicScores=groups.public;
+   siteStatus.textContent=reports.length+' analyzed, '+failures.length+' failed. Public-page HTML average: '+(publicScores.length?Math.round(publicScores.reduce((a,b)=>a+b,0)/publicScores.length)+'/100 from '+publicScores.length+' pages':'not available')+'. Roles are editable suggestions, not indexability decisions.'+(discovered.pages.length>20?' Limited to first 20 discovered pages.':'');
+   if(siteReport)siteReport.roleSummary=Object.fromEntries(Object.entries(groups).map(([role,scores])=>[role,{pageCount:scores.length,average:scores.length?Math.round(scores.reduce((a,b)=>a+b,0)/scores.length):null}]));
+  }
+  siteResults.append(roleSummary);
+  refreshRoleSummary();
   for(const issue of siteFindings){const row=document.createElement('p');row.className='finding';row.dataset.severity=issue.severity;row.textContent=issue.code.replaceAll('_',' ').toUpperCase()+' · '+issue.message+' '+issue.affectedUrls.join(', ');siteResults.append(row)}
   // Native details remain keyboard accessible and show evidence without requiring AI.
   for(const report of reports){
@@ -77,6 +90,12 @@ siteButton.addEventListener('click',async()=>{
    const summary=document.createElement('summary');summary.style.cursor='pointer';summary.style.fontWeight='700';
    summary.textContent=(report.score===null?'Not scored':report.score+'/100')+' · '+report.pageRole+' (suggested) · '+new URL(report.url).pathname+' · '+report.findings.length+' findings'+(report.partial?' · Provisional':'');
    panel.append(summary);
+   const roleLabel=document.createElement('label');roleLabel.className='small';roleLabel.textContent='Page role: ';
+   const roleSelect=document.createElement('select');roleSelect.setAttribute('aria-label','Page role for '+report.url);
+   for(const role of ['public','application','legal']){const option=document.createElement('option');option.value=role;option.textContent=role;roleSelect.append(option)}
+   roleSelect.value=report.pageRole;
+   roleSelect.addEventListener('change',()=>{report.pageRole=roleSelect.value;report.pageRoleSource='user_override';summary.textContent=(report.score===null?'Not scored':report.score+'/100')+' · '+report.pageRole+' (selected) · '+new URL(report.url).pathname+' · '+report.findings.length+' findings'+(report.partial?' · Provisional':'');refreshRoleSummary()});
+   roleLabel.append(roleSelect);panel.append(roleLabel);
    const address=document.createElement('p');address.className='small hint';address.textContent=report.url;panel.append(address);
    const detail=document.createElement('p');detail.className='small';
    detail.textContent='High '+counts.high+' · Medium '+counts.medium+' · Low '+counts.low+' · Info '+counts.info+' · '+(report.scoreExplanation||'');panel.append(detail);
