@@ -321,6 +321,30 @@ siteButton.addEventListener('click',async()=>{
   issues.sort((a,b)=>triageOrder[a.triageTier]-triageOrder[b.triageTier]||(priority[a.severity]??4)-(priority[b.severity]??4)||b.affectedUrls.length-a.affectedUrls.length);
   siteReport.reportNotes=['Scores reflect bounded HTML checks, not Google rankings.','Page roles are suggestions or manual selections.','Only pages discovered and analyzed in this batch are included.'];
   siteReport.issueCenter=issues;
+  // V2.5: store bounded summary-only history, never HTML or full reports.
+  const historyKey='micirql-seo-history-v1:'+url.origin;
+  const summarySnapshot={date:siteReport.generatedAt,website:siteReport.website,analyzed:reports.length,selected:pages.length,failed:failures.length,averageScore:null,issues:issues.map(issue=>({code:issue.code,severity:issue.severity,affectedUrls:issue.affectedUrls.slice(0,100)}))};
+  const eligibleScores=reports.filter(page=>Number.isFinite(page.score)&&!page.partial&&page.auditStatus==='complete').map(page=>page.score);
+  summarySnapshot.averageScore=eligibleScores.length?Math.round(eligibleScores.reduce((total,score)=>total+score,0)/eligibleScores.length):null;
+  let auditHistory=[];
+  try{const saved=JSON.parse(localStorage.getItem(historyKey)||'[]');if(Array.isArray(saved))auditHistory=saved.filter(item=>item&&item.website===url.origin&&Array.isArray(item.issues)).slice(-9)}catch{}
+  const previousAudit=auditHistory.length?auditHistory[auditHistory.length-1]:null;
+  const historyPanel=document.createElement('section');historyPanel.id='site-audit-history';historyPanel.className='panel';
+  const historyTitle=document.createElement('h3');historyTitle.textContent='Audit history (this browser)';historyPanel.append(historyTitle);
+  const historyNote=document.createElement('p');historyNote.className='hint small';historyNote.textContent='Stores up to 10 compact audit summaries for this website in your browser only. No page HTML is saved. Clear browser storage to delete history.';historyPanel.append(historyNote);
+  if(previousAudit){
+   const diff=document.createElement('p');diff.className='notice';
+   const scoreDelta=summarySnapshot.averageScore===null||!Number.isFinite(previousAudit.averageScore)?'Not comparable':(summarySnapshot.averageScore-previousAudit.averageScore>0?'+':'')+(summarySnapshot.averageScore-previousAudit.averageScore)+' points';
+   const keys=snapshot=>new Set(snapshot.issues.flatMap(issue=>issue.affectedUrls.map(page=>issue.code+'|'+page)));
+   const now=keys(summarySnapshot),before=keys(previousAudit);
+   const newCount=[...now].filter(key=>!before.has(key)).length,resolvedCount=[...before].filter(key=>!now.has(key)).length;
+   diff.textContent='Compared with '+new Date(previousAudit.date).toLocaleString()+': average eligible HTML score change '+scoreDelta+'; '+newCount+' new and '+resolvedCount+' resolved issue/page occurrences. Compare coverage before interpreting changes.';
+   historyPanel.append(diff);
+  }else{
+   const empty=document.createElement('p');empty.className='hint';empty.textContent='First saved audit for this website; comparisons appear after the next run.';historyPanel.append(empty);
+  }
+  try{auditHistory.push(summarySnapshot);localStorage.setItem(historyKey,JSON.stringify(auditHistory.slice(-10)))}catch{const note=document.createElement('p');note.className='hint';note.textContent='Browser storage unavailable; this run was not saved.';historyPanel.append(note)}
+  siteResults.append(historyPanel);
   // Compact, transparent overview: issue groups are not individual defects.
   const overview=document.createElement('section');overview.id='site-audit-overview';overview.setAttribute('aria-label','SEO audit overview');
   const overviewHeading=document.createElement('h3');overviewHeading.textContent='Audit at a glance';overview.append(overviewHeading);
