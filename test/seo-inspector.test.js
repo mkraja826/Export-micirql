@@ -143,3 +143,15 @@ test('partial HTML captures do not receive link penalties',()=>{
  assert.ok(r.findings.some(x=>x.code==='links_unverified'));
  assert.ok(!r.findings.some(x=>['links_missing_name','links_http','links_javascript'].includes(x.code)));
 });
+
+test('reports malformed JSON-LD without claiming schema validity',()=>{
+ const html='<html><head><title>Structured data error example</title></head><body><h1>Example</h1><script type="application/ld+json">{"@type":"Organization",}</script></body></html>';
+ const r=inspectSeoHtml(html,'https://example.com/');
+ assert.ok(r.findings.some(x=>x.code==='invalid_json_ld'));
+});
+test('accepts typed JSON-LD graph and detects untyped JSON-LD',()=>{
+ const good='<html><body><h1>Example</h1><script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","name":"Example"}]}</script></body></html>';
+ const bad='<html><body><h1>Example</h1><script type="application/ld+json">{"@context":"https://schema.org","name":"Example"}</script></body></html>';
+ assert.ok(!inspectSeoHtml(good,'https://example.com/').findings.some(x=>x.code==='json_ld_missing_type'));
+ assert.ok(inspectSeoHtml(bad,'https://example.com/').findings.some(x=>x.code==='json_ld_missing_type'));
+});
