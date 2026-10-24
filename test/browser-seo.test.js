@@ -444,3 +444,13 @@ test('SEO Studio V2 keeps per-page evidence inside the searchable results table'
  assert.ok(html.includes("renderPageRows();\n  for(const failure"));
  assert.ok(!html.includes("siteResults.append(panel)"));
 });
+
+
+test('SEO Studio V2.3 navigates from each issue affected URL into page evidence',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("pageJump.className='issue-page-jump'"));
+ assert.ok(html.includes("pageJump.textContent='Inspect page: '+affected"));
+ assert.ok(html.includes("pageSearch.value=affected;pageRoleFilter.value='all';renderPageRows();"));
+ assert.ok(html.includes("pageDashboard.scrollIntoView({behavior:'smooth',block:'start'})"));
+ assert.ok(html.includes("pageJump.setAttribute('aria-label','Show audit evidence for '+affected)"));
+});
