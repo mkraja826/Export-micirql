@@ -153,3 +153,12 @@ test('large-site discovery uses a longer timeout than individual page inspection
  assert.match(page,/MICIRQL_DISCOVER_RESULT',url\.href,600000/);
  assert.match(page,/MICIRQL_SEO_RESULT',pages\[i\],90000/);
 });
+
+test('SEO rediscovery invalidates stale start URLs and prevents overlapping audits',()=>{
+ const page=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(page,/startUrl:url\.href/);
+ assert.match(page,/selectedDiscovery\.startUrl!==url\.href/);
+ assert.match(page,/discoverButton\.disabled=true;siteButton\.disabled=true/);
+ assert.match(page,/siteButton\.disabled=true;discoverButton\.disabled=true/);
+ assert.match(page,/siteButton\.disabled=false;discoverButton\.disabled=false/);
+});
