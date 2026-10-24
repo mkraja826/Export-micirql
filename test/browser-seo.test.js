@@ -350,3 +350,13 @@ test('TXT audit export includes exact heading transition evidence',()=>{
  assert.ok(html.includes("heading.previousText||'(empty)'"));
  assert.ok(html.includes("heading.currentText||'(empty)'"));
 });
+
+test('SEO Studio provides responsive overview and searchable audited-page results',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("pageDashboard.id='site-page-dashboard'"));
+ assert.ok(html.includes("pageSearch.addEventListener('input',renderPageRows)"));
+ assert.ok(html.includes("pageRoleFilter.addEventListener('change',renderPageRows)"));
+ assert.ok(html.includes("pageCount.textContent=visible+' of '+reports.length"));
+ assert.ok(html.includes("page.score===null?'Not scored':page.score+'/100'"));
+ assert.ok(html.includes('#site-page-dashboard .table-scroll{overflow-x:auto}'));
+});
