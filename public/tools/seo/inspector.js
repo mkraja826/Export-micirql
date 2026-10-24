@@ -23,9 +23,9 @@ export function inspectSeoHtml(html,url,options={}){
  const missingAltTags=imageTags.filter(t=>!/\salt\s*=/i.test(t));
  const imagesMissingAlt=missingAltTags.length;
  const structuredDataCount=[...html.matchAll(/<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>/gi)].length;
- const headingMatches=[...html.matchAll(/<h([1-6])\\b[^>]*>([\\s\\S]*?)<\\/h\\1\\s*>/gi)];
+ const headingMatches=[...html.matchAll(/<h([1-6])\b[^>]*>([\s\S]*?)<\/h\1\s*>/gi)];
  const headingLevels=headingMatches.map(m=>Number(m[1]));
- const headingLabel=m=>decode(m[2].replace(/<[^>]*>/g,' ').replace(/\\s+/g,' ')).slice(0,140);
+ const headingLabel=m=>decode(m[2].replace(/<[^>]*>/g,' ').replace(/\s+/g,' ')).slice(0,140);
  const headingEvidence=[];
  for(let i=1;i<headingMatches.length;i++)if(headingLevels[i]>headingLevels[i-1]+1)
   headingEvidence.push({element:'heading',from:'H'+headingLevels[i-1],to:'H'+headingLevels[i],previousText:headingLabel(headingMatches[i-1]),currentText:headingLabel(headingMatches[i])});
