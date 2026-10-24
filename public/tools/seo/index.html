@@ -351,12 +351,32 @@ siteButton.addEventListener('click',async()=>{
      const startButton=document.createElement('button');startButton.type='button';
      const stopButton=document.createElement('button');stopButton.type='button';stopButton.textContent='Pause verification';stopButton.disabled=true;
      const exportButton=document.createElement('button');exportButton.type='button';exportButton.textContent='Download link CSV';
+     const dashboard=document.createElement('section');dashboard.className='panel';dashboard.setAttribute('aria-label','Verified link results');
+     const dashboardTitle=document.createElement('h4');dashboardTitle.textContent='Link verification results';dashboard.append(dashboardTitle);
+     const search=document.createElement('input');search.type='search';search.placeholder='Search destination or referring page';search.setAttribute('aria-label','Search verified links');
+     const filter=document.createElement('select');filter.setAttribute('aria-label','Filter link status');
+     for(const value of ['all','broken','server_error','reachable','unverified']){const option=document.createElement('option');option.value=value;option.textContent=value==='all'?'All statuses':value.replace('_',' ');filter.append(option)}
+     const table=document.createElement('table');table.style.width='100%';
+     const head=document.createElement('thead');const headings=document.createElement('tr');for(const value of ['Destination','Status','HTTP','Referring pages']){const cell=document.createElement('th');cell.textContent=value;headings.append(cell)}head.append(headings);table.append(head);
+     const rows=document.createElement('tbody');table.append(rows);
+     const summary=document.createElement('p');summary.className='hint small';
+     const renderResults=()=>{rows.replaceChildren();const term=search.value.trim().toLowerCase();let shown=0;
+      for(const entry of completed.values()){
+       if(filter.value!=='all'&&entry.classification!==filter.value)continue;
+       if(term&&!([entry.destination,...(entry.referringPages||[])].join(' ').toLowerCase().includes(term)))continue;
+       if(shown++>=100)continue;
+       const tr=document.createElement('tr');for(const value of [entry.destination,entry.classification,entry.status??'—',(entry.referringPages||[]).join(', ')]){const td=document.createElement('td');td.textContent=String(value);td.style.overflowWrap='anywhere';td.style.padding='8px';td.style.borderBottom='1px solid #415575';tr.append(td)}rows.append(tr);
+      }
+      summary.textContent='Showing '+Math.min(shown,100)+' of '+completed.size+' checked destinations (first 100 matches). Use CSV for complete results.';
+     };
+     search.addEventListener('input',renderResults);filter.addEventListener('change',renderResults);
+     dashboard.append(search,filter,summary,table);details.append(dashboard);
      const save=()=>{try{localStorage.setItem(scopeKey,JSON.stringify({savedAt:Date.now(),rows:[...completed.values()]}))}catch{}};
      const refresh=()=>{
       const checked=completed.size, broken=[...completed.values()].filter(x=>x.classification==='broken').length;
       statusLine.textContent='Verified '+checked+'/'+queue.length+' destinations · '+broken+' confirmed 404/410 · '+(queue.length-checked)+' pending. Failed or blocked checks remain unverified.';
       startButton.textContent=running?'Checking links…':checked===queue.length?'Recheck destinations':'Start / resume verification';
-      startButton.disabled=running;
+      startButton.disabled=running;renderResults();
      };
      refresh();
      startButton.addEventListener('click',async()=>{
