@@ -171,7 +171,7 @@ siteButton.addEventListener('click',async()=>{
   for(const report of reports){
    for(const issue of report.findings){
     const key=issue.code+'|'+issue.severity;
-    if(!issueMap.has(key))issueMap.set(key,{code:issue.code,severity:issue.severity,message:issue.message,affectedUrls:[]});
+    if(!issueMap.has(key))issueMap.set(key,{code:issue.code,severity:issue.severity,category:issue.category||'other',message:issue.message,affectedUrls:[]});
     issueMap.get(key).affectedUrls.push(report.url);
    }
   }
@@ -217,11 +217,25 @@ siteButton.addEventListener('click',async()=>{
   const severityFilter=document.createElement('select');severityFilter.id='site-issue-filter';severityFilter.setAttribute('aria-label','Filter site issues by severity');
   for(const [value,label] of [['all','All severities'],['high','High'],['medium','Medium'],['low','Low'],['info','Info']]){const option=document.createElement('option');option.value=value;option.textContent=label;severityFilter.append(option)}
   filterLabel.append(severityFilter);siteResults.append(filterLabel);
+  const categoryCounts=new Map();
+  for(const issue of issues){
+   const category=issue.category||'other';
+   categoryCounts.set(category,(categoryCounts.get(category)||0)+1);
+  }
+  const categoryLabel=document.createElement('label');categoryLabel.className='small';categoryLabel.textContent='Issue category';
+  const categoryFilter=document.createElement('select');categoryFilter.id='site-category-filter';categoryFilter.setAttribute('aria-label','Filter site issues by category');
+  const allCategoryOption=document.createElement('option');allCategoryOption.value='all';allCategoryOption.textContent='All categories ('+issues.length+')';categoryFilter.append(allCategoryOption);
+  for(const [category,count] of [...categoryCounts.entries()].sort((a,b)=>a[0].localeCompare(b[0]))){
+   const option=document.createElement('option');option.value=category;option.textContent=category.replaceAll('_',' ')+' ('+count+')';categoryFilter.append(option);
+  }
+  categoryLabel.append(categoryFilter);siteResults.append(categoryLabel);
+  const issueCount=document.createElement('p');issueCount.className='hint small';issueCount.setAttribute('aria-live','polite');siteResults.append(issueCount);
   const issueContainer=document.createElement('div');siteResults.append(issueContainer);
   function renderIssues(){
    issueContainer.replaceChildren();
    const selected=severityFilter.value;
-   const visible=issues.filter(item=>selected==='all'||item.severity===selected);
+   const visible=issues.filter(item=>(selected==='all'||item.severity===selected)&&(categoryFilter.value==='all'||(item.category||'other')===categoryFilter.value));
+   issueCount.textContent=visible.length+' of '+issues.length+' issue groups shown · '+visible.reduce((sum,item)=>sum+item.affectedUrls.length,0)+' affected-page occurrences';
    for(const issue of visible){
     const details=document.createElement('details');details.className='finding';details.dataset.severity=issue.severity;
     const summary=document.createElement('summary');summary.style.cursor='pointer';summary.textContent=issue.verificationStatus+' · '+issue.severity.toUpperCase()+' · '+issue.code.replaceAll('_',' ')+' · '+issue.affectedUrls.length+' affected pages';details.append(summary);
@@ -232,7 +246,7 @@ siteButton.addEventListener('click',async()=>{
    }
    if(!visible.length){const empty=document.createElement('p');empty.className='hint';empty.textContent='No issues for this severity in the inspected pages.';issueContainer.append(empty)}
   }
-  severityFilter.addEventListener('change',renderIssues);renderIssues();
+  severityFilter.addEventListener('change',renderIssues);categoryFilter.addEventListener('change',renderIssues);renderIssues();
   // Native details remain keyboard accessible and show evidence without requiring AI.
   for(const report of reports){
    const panel=document.createElement('details');panel.className='finding';
