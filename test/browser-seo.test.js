@@ -317,3 +317,11 @@ test('heading hierarchy issue center renders exact transitions safely',()=>{
  assert.ok(html.includes("description.textContent=item.from+' → '+item.to"));
  assert.ok(html.includes("source.textContent='Page: '+page.url"));
 });
+
+test('text export explains page-role score adjustments and absent HTTP verification',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("Page-role scoring:"));
+ assert.ok(html.includes("Contextual findings (not deducted from score): "));
+ assert.ok(html.includes("HTTP link verification: "));
+ assert.ok(html.includes("not performed or no results saved"));
+});
