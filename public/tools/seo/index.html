@@ -125,7 +125,8 @@ siteButton.addEventListener('click',async()=>{
    if(lastError)failures.push({url:pages[i],error:lastError.message||'Inspection failed',attempts:2});
    siteProgress.value=i+1;
   }
-  try{localStorage.removeItem(checkpointKey)}catch{}
+  // Keep completed page findings if any page failed, so retrying this selection only rechecks failures.
+  if(!failures.length)try{localStorage.removeItem(checkpointKey)}catch{}
   const siteFindings=[];
   // Cross-page findings are separate from individual page scores: do not
   // retroactively alter per-page scores based on a capped discovery sample.
