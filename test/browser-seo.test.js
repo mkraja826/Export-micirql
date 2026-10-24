@@ -518,7 +518,7 @@ test('SEO Studio V2.5 keeps bounded audit summaries and compares issue occurrenc
  assert.ok(html.includes("auditHistory.slice(-10)"));
  assert.ok(html.includes("affectedUrls.slice(0,100)"));
  assert.ok(html.includes("eligibleScores.length?Math.round("));
- assert.ok(html.includes("newCount+' newly observed and '+resolvedCount+' no longer observed issue/page occurrences"));
+ assert.ok(html.includes('comparableUrls'));
  assert.ok(html.includes("No page HTML is saved."));
 });
 
@@ -528,6 +528,16 @@ test('SEO Studio V2.5 plots score history and flags coverage differences in comp
  assert.ok(html.includes("chart.className='history-chart'"));
  assert.ok(html.includes("historySelect.id='site-history-compare'"));
  assert.ok(html.includes("historySelect.addEventListener('change',compareHistory)"));
- assert.ok(html.includes("previous.selected===summarySnapshot.selected"));
- assert.ok(html.includes("Coverage differs (selected, analyzed or failed page counts)."));
+ assert.ok(html.includes('comparableUrls'));
+ assert.ok(html.includes('comparableUrls'));
+});
+
+
+test('SEO Studio V2.5 compares exact audited URLs and distinguishes recurring page issues',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes('auditedUrls:reports.map(page=>page.url).sort()'));
+ assert.ok(html.includes('oldUrls.size===currentUrls.size'));
+ assert.ok(html.includes('const comparableUrls=oldUrls?new Set('));
+ assert.ok(html.includes("['Newly observed',newly],['No longer observed',cleared],['Recurring',recurring]"));
+ assert.ok(html.includes('Older audit did not store exact URL coverage'));
 });
