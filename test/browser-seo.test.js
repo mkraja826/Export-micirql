@@ -110,7 +110,7 @@ test('SEO audit resumes previously completed pages from a bounded local checkpoi
  assert.match(page,/Date\.now\(\)-saved\.savedAt>86400000/);
  assert.match(page,/cached\.has\(pages\[i\]\)/);
  assert.match(page,/saveCheckpoint\(url\.origin,pages,reports\)/);
- assert.match(page,/localStorage\.removeItem\(checkpointKey\)/);
+ assert.match(page,/if\(!failures\.length\)try\{localStorage\.removeItem\(checkpointKey\)\}/);
 });
 
 test('SEO site audit offers bounded selectable batch sizes',()=>{
@@ -178,4 +178,11 @@ test('extension prevents overlapping discovery operations across SEO Studio tabs
  assert.match(background,/if\(discoveryBusy\)/);
  assert.match(background,/discoveryBusy=true/);
  assert.match(background,/finally\(\(\)=>\{discoveryBusy=false\}\)/);
+});
+
+test('partial SEO audits retain successful page checkpoints for targeted retry',()=>{
+ const page=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(page,/if\(!failures\.length\)try\{localStorage\.removeItem\(checkpointKey\)\}/);
+ assert.match(page,/cached\.has\(pages\[i\]\)/);
+ assert.match(page,/saveCheckpoint\(url\.origin,pages,reports\)/);
 });
