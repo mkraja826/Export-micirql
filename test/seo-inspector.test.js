@@ -227,3 +227,12 @@ test('percent encoded placeholder links are flagged without double decoding',()=
  assert.ok(issue.evidence.some(e=>e.value.includes('%24%7Bitem.link%7D')));
  assert.ok(!issue.evidence.some(e=>e.value.includes('%2524%257B')));
 });
+
+test('repeated trailing site branding is detected without flagging a single brand suffix',()=>{
+ const repeated=inspectSeoHtml('<head><title>Root Canal Treatment in Hyderabad | JV Dental | JV Dental</title></head><body><h1>Treatment</h1></body>','https://example.com/');
+ const issue=repeated.findings.find(f=>f.code==='duplicate_title_brand');
+ assert.equal(issue.severity,'low');
+ assert.match(issue.message,/JV Dental/);
+ const normal=inspectSeoHtml('<head><title>Root Canal Treatment in Hyderabad | JV Dental</title></head><body><h1>Treatment</h1></body>','https://example.com/');
+ assert.equal(normal.findings.some(f=>f.code==='duplicate_title_brand'),false);
+});
