@@ -6,6 +6,12 @@ const fromWorkspace=new URLSearchParams(location.search).get('url');if(fromWorks
 let lastReport=null,partialCapture=false;
 function downloadReport(extension,body,mime){const blob=new Blob([body],{type:mime});const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download='micirql-seo-report.'+extension;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(link.href),1000)}
 const jsonButton=document.getElementById('export-json'),textButton=document.getElementById('export-text');jsonButton.addEventListener('click',()=>{if(lastReport)downloadReport('json',JSON.stringify(lastReport,null,2),'application/json')});textButton.addEventListener('click',()=>{if(!lastReport)return;const lines=['MiCirql SEO Report','Website: '+lastReport.url,'Scope: '+lastReport.scope,'Score: '+(lastReport.score===null?'Not scored':lastReport.score+'/100'),'Audit status: '+lastReport.auditStatus,'Scoring note: '+(lastReport.scoreExplanation||''),'','Title: '+lastReport.title,'Description: '+lastReport.description,'Canonical: '+lastReport.canonical,'Language: '+lastReport.lang,'Robots: '+lastReport.robots,'H1 count: '+lastReport.h1Count,'','Findings:',...lastReport.findings.map(x=>x.severity.toUpperCase()+' '+x.code+': '+x.message)];downloadReport('txt',lines.join('\n'),'text/plain')});
+function suggestedPageRole(url){
+ const path=new URL(url).pathname.toLowerCase();
+ if(/(?:^|\\/)(?:privacy|privacy-policy|terms|terms-of-service|delete-account)(?:\\/|$)/.test(path))return 'legal';
+ if(/(?:^|\\/)(?:portal|dashboard|login|signin|signup|account|app)(?:\\/|$)/.test(path))return 'application';
+ return 'public';
+}
 const siteButton=document.getElementById('site-run'),siteExport=document.getElementById('site-export'),siteStatus=document.getElementById('site-status'),siteProgress=document.getElementById('site-progress'),siteResults=document.getElementById('site-results');let siteReport=null;
 function extensionRequest(type,resultType,url,timeout=60000){
  return new Promise((resolve,reject)=>{
@@ -36,7 +42,7 @@ siteButton.addEventListener('click',async()=>{
    try{
     const response=await extensionRequest('MICIRQL_SEO_READ','MICIRQL_SEO_RESULT',pages[i],90000);
     if(!response.ok)throw Error(response.error||'Inspection failed');
-    reports.push(inspectSeoHtml(response.html,response.url||pages[i],{partial:response.partial===true}));
+    const report=inspectSeoHtml(response.html,response.url||pages[i],{partial:response.partial===true});report.pageRole=suggestedPageRole(report.url);report.pageRoleSource='suggested_from_url';reports.push(report);
    }catch(error){failures.push({url:pages[i],error:error.message||'Inspection failed'})}
    siteProgress.value=i+1;
   }
@@ -58,9 +64,9 @@ siteButton.addEventListener('click',async()=>{
   }
   siteReport={schemaVersion:1,tool:'seo-site',generatedAt:new Date().toISOString(),website:url.origin,pagesDiscovered:discovered.pages.length,pagesSelected:pages.length,pagesAnalyzed:reports.length,failures,reports,siteFindings,scope:'bounded_browser_html_audit'};
   siteExport.disabled=false;
-  const scored=reports.filter(p=>p.score!==null&&!p.partial);
+  const scored=reports.filter(p=>p.score!==null&&!p.partial&&p.pageRole==='public');
   const average=scored.length?Math.round(scored.reduce((sum,p)=>sum+p.score,0)/scored.length):null;
-  siteStatus.textContent=reports.length+' analyzed, '+failures.length+' failed. '+(average===null?'No complete pages eligible for average.':'Average HTML score for '+scored.length+' complete pages: '+average+'/100.')+(discovered.pages.length>20?' Limited to first 20 discovered pages.':'');
+  siteStatus.textContent='Page roles are URL-based suggestions, not verified indexability decisions. '+reports.length+' analyzed, '+failures.length+' failed. '+(average===null?'No complete pages eligible for average.':'Average HTML score for '+scored.length+' suggested public pages: '+average+'/100.')+(discovered.pages.length>20?' Limited to first 20 discovered pages.':'');
   for(const issue of siteFindings){const row=document.createElement('p');row.className='finding';row.dataset.severity=issue.severity;row.textContent=issue.code.replaceAll('_',' ').toUpperCase()+' · '+issue.message+' '+issue.affectedUrls.join(', ');siteResults.append(row)}
   // Native details remain keyboard accessible and show evidence without requiring AI.
   for(const report of reports){
@@ -69,7 +75,7 @@ siteButton.addEventListener('click',async()=>{
    for(const item of report.findings)if(item.severity in counts)counts[item.severity]++;
    panel.dataset.severity=counts.high?'high':counts.medium?'medium':counts.low?'low':'info';
    const summary=document.createElement('summary');summary.style.cursor='pointer';summary.style.fontWeight='700';
-   summary.textContent=(report.score===null?'Not scored':report.score+'/100')+' · '+new URL(report.url).pathname+' · '+report.findings.length+' findings'+(report.partial?' · Provisional':'');
+   summary.textContent=(report.score===null?'Not scored':report.score+'/100')+' · '+report.pageRole+' (suggested) · '+new URL(report.url).pathname+' · '+report.findings.length+' findings'+(report.partial?' · Provisional':'');
    panel.append(summary);
    const address=document.createElement('p');address.className='small hint';address.textContent=report.url;panel.append(address);
    const detail=document.createElement('p');detail.className='small';
