@@ -165,7 +165,7 @@ siteButton.addEventListener('click',async()=>{
     affectedUrls:pageList,
     targetExamples:[...pending.keys()].slice(0,10)});
   }
-  siteReport={schemaVersion:1,tool:'seo-site',generatedAt:new Date().toISOString(),website:url.origin,pagesDiscovered:discovered.pages.length,pagesSelected:pages.length,requestedLimit:maxPages,pagesAnalyzed:reports.length,failures,reports,siteFindings,retryPolicy:{maxAttemptsPerPage:2,sequential:true},coverage:{selected:pages.length,analyzed:reports.length,failed:failures.length,discovered:discovered.pages.length,discoveryTruncated:discovered.truncated===true,selectionLimited:discovered.pages.length>pages.length,successfulPercent:Math.round(reports.length/pages.length*100)},scope:'bounded_browser_html_audit'};
+  siteReport={schemaVersion:1,tool:'seo-site',generatedAt:new Date().toISOString(),website:url.origin,pagesDiscovered:discovered.pages.length,pagesSelected:pages.length,requestedLimit:maxPages,pagesAnalyzed:reports.length,failures,reports,siteFindings,linkVerification:[],retryPolicy:{maxAttemptsPerPage:2,sequential:true},coverage:{selected:pages.length,analyzed:reports.length,failed:failures.length,discovered:discovered.pages.length,discoveryTruncated:discovered.truncated===true,selectionLimited:discovered.pages.length>pages.length,successfulPercent:Math.round(reports.length/pages.length*100)},scope:'bounded_browser_html_audit'};
   siteExport.disabled=false;siteExportText.disabled=false;
   const coverage=document.createElement('p');coverage.className='notice';coverage.textContent='Audit coverage: '+reports.length+'/'+pages.length+' selected pages analyzed ('+siteReport.coverage.successfulPercent+'%). '+(siteReport.coverage.selectionLimited?'Only '+pages.length+' of '+discovered.pages.length+' discovered pages were selected for this audit. ':'')+(siteReport.coverage.discoveryTruncated?'Discovery reached its page limit; more pages may exist. ':'')+'Unvisited pages are not scored.';siteResults.append(coverage);
   const roleSummary=document.createElement('div');roleSummary.className='summary';roleSummary.id='site-role-summary';
@@ -274,11 +274,14 @@ siteButton.addEventListener('click',async()=>{
      checkButton.addEventListener('click',async()=>{
       checkButton.disabled=true;const results=document.createElement('ul');details.append(results);
       for(const destination of issue.targetExamples.slice(0,10)){
+       const referringPages=[...new Set(pending.get(destination)||[])];
        const item=document.createElement('li');item.textContent=destination+' — checking…';results.append(item);
        try{
         const status=await extensionRequest('MICIRQL_SEO_LINK_CHECK','MICIRQL_SEO_LINK_RESULT',destination,20000);
-        item.textContent=destination+' — '+(status.ok===true?(status.classification||'unverified'):'unverified')+(status.ok===true&&Number.isInteger(status.status)?' (HTTP '+status.status+')':' (status unavailable)');
-       }catch{item.textContent=destination+' — unverified (extension or network check unavailable)'}
+        const verification={destination,referringPages,checkedAt:new Date().toISOString(),status:status.ok===true&&Number.isInteger(status.status)?status.status:null,classification:status.ok===true?(status.classification||'unverified'):'unverified',finalUrl:status.ok===true?status.finalUrl||null:null};
+        siteReport.linkVerification=siteReport.linkVerification.filter(x=>x.destination!==destination).concat(verification);
+        item.textContent=destination+' — '+verification.classification+(verification.status!==null?' (HTTP '+verification.status+')':' (status unavailable)')+' · linked from '+referringPages.length+' page(s)';
+       }catch{siteReport.linkVerification=siteReport.linkVerification.filter(x=>x.destination!==destination).concat({destination,referringPages,checkedAt:new Date().toISOString(),status:null,classification:'unverified'});item.textContent=destination+' — unverified (extension or network check unavailable)'}
       }
       checkButton.textContent='Checked listed destinations';
      });
@@ -325,6 +328,7 @@ siteExportText.addEventListener('click',()=>{
  if(!siteReport)return;
  const lines=['MiCirql Site SEO Audit','Website: '+siteReport.website,'Analyzed: '+siteReport.pagesAnalyzed+'/'+siteReport.pagesSelected,'Failed: '+siteReport.failures.length,'Coverage: '+siteReport.coverage.successfulPercent+'% of selected pages','Discovered pages: '+siteReport.coverage.discovered,'Discovery limited: '+(siteReport.coverage.discoveryTruncated?'yes':'no'),'Selection limited: '+(siteReport.coverage.selectionLimited?'yes':'no'),'','Limitations:',...siteReport.reportNotes,'','Prioritized issues:'];
  for(const issue of siteReport.issueCenter)lines.push('',issue.severity.toUpperCase()+' · '+issue.code+' · '+issue.affectedUrls.length+' pages',issue.message,'Suggested action: '+issue.recommendation,...issue.affectedUrls.map(url=>' - '+url));
+ lines.push('','Verified link destinations:',...(siteReport.linkVerification||[]).flatMap(x=>[x.destination+' — '+x.classification+(x.status===null?'':' HTTP '+x.status),...x.referringPages.map(url=>'   from '+url)]));
  lines.push('','Failed inspections:',...siteReport.failures.map(f=>f.url+' — '+f.error));
  downloadReport('txt',lines.join('\n'),'text/plain');
 });
