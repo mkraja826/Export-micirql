@@ -20,7 +20,8 @@ export function inspectSeoHtml(html,url,options={}){
  const ogTitle=findMeta('property','og:title'),ogDescription=findMeta('property','og:description'),ogImage=findMeta('property','og:image');
  const twitterCard=findMeta('name','twitter:card');
  const imageTags=[...html.matchAll(/<img\b[^>]*>/gi)].map(m=>m[0]);
- const imagesMissingAlt=imageTags.filter(t=>!/\salt\s*=/i.test(t)).length;
+ const missingAltTags=imageTags.filter(t=>!/\salt\s*=/i.test(t));
+ const imagesMissingAlt=missingAltTags.length;
  const structuredDataCount=[...html.matchAll(/<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>/gi)].length;
  const headingLevels=[...html.matchAll(/<h([1-6])(?:\s|>)/gi)].map(m=>Number(m[1]));
  let headingSkips=0;for(let i=1;i<headingLevels.length;i++)if(headingLevels[i]>headingLevels[i-1]+1)headingSkips++;
@@ -96,6 +97,7 @@ export function inspectSeoHtml(html,url,options={}){
   (groups[key]??=[]).push({element:'a',attribute:'href',value:safeSnippet(item.href)});
   return groups;
  },{});
+ const imageEvidence=missingAltTags.map((tag,index)=>({element:'img',index:index+1,attribute:'src',value:safeSnippet(attribute(tag,'src')||'(src missing)'),snippet:safeSnippet(tag)}));
  const jsonEvidence={invalid_json_ld:[],json_ld_missing_type:[]};
  for(const [index,script] of jsonLdScripts.entries()){
   const entry={element:'script[type="application/ld+json"]',index:index+1,snippet:safeSnippet(script[1])};
@@ -103,7 +105,7 @@ export function inspectSeoHtml(html,url,options={}){
   catch{jsonEvidence.invalid_json_ld.push(entry)}
  }
  for(const finding of findings){
-  const evidence=linkEvidence[finding.code]||jsonEvidence[finding.code];
+  const evidence=finding.code==='images_missing_alt'?imageEvidence:(linkEvidence[finding.code]||jsonEvidence[finding.code]);
   if(evidence?.length)finding.evidence=evidence.slice(0,5);
  }
 
