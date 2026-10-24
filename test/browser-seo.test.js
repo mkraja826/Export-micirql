@@ -214,3 +214,11 @@ test('select-all respects current search and page-type filters without dropping 
  assert.match(page,/\.\.\.selectedDiscovery\.selected,\.\.\.visible/);
  assert.match(page,/\.slice\(0,chosenLimit\(\)\)/);
 });
+
+test('SEO Studio inline module parses, so extension connection detection can initialize',async()=>{
+ const {Script}=await import('node:vm');
+ const page=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ const source=page.match(/<script type="module">([\s\S]*?)<\/script>/)?.[1];
+ assert.ok(source,'SEO Studio module should be present');
+ assert.doesNotThrow(()=>new Script(source.replace(/^import\s+[^\n]+\n/gm,'')));
+});
