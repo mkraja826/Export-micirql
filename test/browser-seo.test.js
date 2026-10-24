@@ -207,3 +207,10 @@ test('SEO page retries include a bounded recovery pause',()=>{
  assert.match(page,/setTimeout\(resolve,1500\)/);
  assert.match(page,/attempt<=2/);
 });
+
+test('select-all respects current search and page-type filters without dropping prior selections',()=>{
+ const page=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(page,/const visible=selectedDiscovery\.pages\.filter/);
+ assert.match(page,/\.\.\.selectedDiscovery\.selected,\.\.\.visible/);
+ assert.match(page,/\.slice\(0,chosenLimit\(\)\)/);
+});
