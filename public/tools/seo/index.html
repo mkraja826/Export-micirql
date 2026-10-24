@@ -348,6 +348,14 @@ siteButton.addEventListener('click',async()=>{
   const opportunityCount=document.createElement('p');opportunityCount.className='hint small';opportunitiesPanel.append(opportunityCount);
   const opportunityList=document.createElement('ol');opportunitiesPanel.append(opportunityList);
   const filteredOpportunities=()=>opportunities.filter(issue=>(severityFilter.value==='all'||issue.severity===severityFilter.value)&&issue.affectedPages>=Number(reachFilter.value));
+  const remediationExamples={
+   missing_title:{steps:['Add one descriptive title element inside head.','Make its wording specific to the page.','Re-audit the page.'],example:'<title>Service Name | Business Name</title>'},
+   missing_description:{steps:['Write a concise and accurate page summary.','Add a unique description in the document head.','Re-audit the affected page.'],example:'<meta name="description" content="Brief, accurate summary of this page.">'},
+   missing_canonical:{steps:['Choose the intended indexable page URL.','Add a matching canonical link in head.','Confirm the target loads and re-audit.'],example:'<link rel="canonical" href="https://example.com/page/">'},
+   images_missing_alt:{steps:['Identify meaningful content images.','Add concise descriptions of relevant images; use empty alt for decorative images.','Re-audit.'],example:'<img src="/team.jpg" alt="Our team at the office">'},
+   missing_h1:{steps:['Identify the main topic of the page.','Provide a visible, descriptive primary heading.','Re-audit.'],example:'<h1>Our Services</h1>'}
+  };
+  const remediationFor=code=>remediationExamples[code]||null;
   const renderOpportunities=()=>{
    opportunityList.replaceChildren();
    const selected=filteredOpportunities();opportunityCount.textContent=selected.length+' of '+opportunities.length+' opportunities match';
@@ -355,6 +363,9 @@ siteButton.addEventListener('click',async()=>{
    for(const issue of selected.slice(0,25)){const item=document.createElement('li');const name=document.createElement('strong');name.textContent=issue.title;item.append(name);const context=document.createElement('span');context.textContent=' · '+issue.severity+' · '+issue.affectedPages+' affected URL(s) · '+issue.verificationStatus;item.append(context);
     const detail=document.createElement('details');const toggle=document.createElement('summary');toggle.textContent='How to fix and affected pages';detail.append(toggle);
     const action=document.createElement('p');action.textContent=issue.recommendation;detail.append(action);
+    const guide=remediationFor(issue.code);
+    if(guide){const guideTitle=document.createElement('h5');guideTitle.textContent='Developer checklist';detail.append(guideTitle);const checklist=document.createElement('ol');for(const step of guide.steps){const li=document.createElement('li');li.textContent=step;checklist.append(li)}detail.append(checklist);const code=document.createElement('pre');code.textContent=guide.example;code.setAttribute('aria-label','Illustrative HTML example');detail.append(code)}
+
     const evidence=document.createElement('p');evidence.className='hint small';evidence.textContent='Evidence: '+issue.verificationStatus+'. Review the matching HTML finding and confirm the correction with another audit.';detail.append(evidence);
     const pages=document.createElement('ul');for(const address of issue.affectedUrls.slice(0,10)){
      const row=document.createElement('li');const jump=document.createElement('button');jump.type='button';jump.className='history-page-jump';jump.textContent='Inspect '+address;
