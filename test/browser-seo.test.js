@@ -690,3 +690,10 @@ test('V2.7 developer remediation examples use safe text nodes and scoped checkli
  assert.ok(html.includes('code.textContent=guide.example'));
  assert.ok(html.includes("code.setAttribute('aria-label','Illustrative HTML example')"));
 });
+
+
+test('V2.7 remediation library covers duplicates, headings, schema and links without executing sample HTML',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ for(const code of ['duplicate_title','duplicate_description','duplicate_canonical','heading_hierarchy','no_structured_data','json_ld_missing_type','links_missing_name','links_http','links_javascript'])assert.ok(html.includes(code+':{steps:'),code);
+ assert.ok(html.includes('code.textContent=guide.example'));
+});
