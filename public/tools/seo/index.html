@@ -14,6 +14,7 @@
 
 /* SEO Studio V2 foundation: audit-first visual hierarchy */
 .wrap{max-width:1200px}.studio-hero{padding:34px 4px 26px}.studio-hero h1{margin:6px 0 10px;letter-spacing:-.055em}.studio-hero>p:not(.eyebrow){max-width:690px;font-size:16px}.eyebrow{color:#91b8ff;font-weight:750;font-size:11px;letter-spacing:.16em}.studio-jump{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}.studio-jump a{padding:10px 14px;border-radius:999px;border:1px solid #446181;color:#e0ecff;text-decoration:none;font-weight:650;font-size:13px}.studio-jump a:hover,.studio-jump a:focus-visible{background:#29466b}.audit-workspace{margin-top:4px;background:linear-gradient(160deg,#182d49,#0f1c31)}.audit-workspace>h2{font-size:clamp(23px,3vw,31px);letter-spacing:-.035em}.advanced-inspector{margin-top:16px;padding:15px 20px}.advanced-inspector>summary{cursor:pointer;font-weight:700;font-size:15px}.advanced-inspector[open]>summary{margin-bottom:15px}.advanced-inspector textarea{max-height:320px}.advanced-inspector label{font-size:13px}.advanced-inspector .hint{margin-top:9px}@media(max-width:600px){.studio-hero{padding:23px 0 15px}.studio-jump{gap:7px}.studio-jump a{padding:9px 10px}.advanced-inspector{padding:14px}}
+#site-audit-history .history-chart{display:flex;align-items:end;gap:9px;height:145px;margin:20px 0 12px;border-bottom:1px solid #526784;overflow-x:auto}#site-audit-history .history-column{height:100%;min-width:36px;display:flex;align-items:center;justify-content:flex-end;flex-direction:column;font-size:12px;color:#b9cbea}#site-audit-history .history-bar{width:24px;min-height:2px;background:#89b9ef;border-radius:5px 5px 0 0}#site-audit-history select{max-width:100%;padding:9px;background:#15233a;border:1px solid #526784;color:#fff;border-radius:8px}
 #site-fix-first{background:#172a40;border:1px solid #486182;border-radius:14px;padding:16px;margin:18px 0}#site-fix-first .priority-list{padding-left:22px}#site-fix-first li{padding:9px 0;border-bottom:1px solid #354961}#site-fix-first li:last-child{border-bottom:0}#site-fix-first p{margin:6px 0}#site-fix-first button{padding:7px 12px;font-size:13px}#site-technical-overview{margin:18px 0;padding:14px;border:1px solid #344d6b;border-radius:12px}#site-technical-overview>summary{font-weight:700;cursor:pointer}
 #site-issues .issue-technical{margin:10px 0;font-size:13px;color:#b8cae7}#site-issues .issue-technical summary{font-weight:600;cursor:pointer}#site-issues .issue-next{font-weight:600;color:#e5f0ff}
 #site-issues .issue-page-jump{display:inline-block;background:none;color:#a8c4ff;border:0;padding:4px 0;text-decoration:underline;text-align:left;overflow-wrap:anywhere;font-size:13px;cursor:pointer}#site-issues .issue-page-jump:focus-visible{outline:3px solid #b8caff;outline-offset:3px}
@@ -332,17 +333,25 @@ siteButton.addEventListener('click',async()=>{
   const historyPanel=document.createElement('section');historyPanel.id='site-audit-history';historyPanel.className='panel';
   const historyTitle=document.createElement('h3');historyTitle.textContent='Audit history (this browser)';historyPanel.append(historyTitle);
   const historyNote=document.createElement('p');historyNote.className='hint small';historyNote.textContent='Stores up to 10 compact audit summaries for this website in your browser only. No page HTML is saved. Clear browser storage to delete history.';historyPanel.append(historyNote);
-  if(previousAudit){
-   const diff=document.createElement('p');diff.className='notice';
-   const scoreDelta=summarySnapshot.averageScore===null||!Number.isFinite(previousAudit.averageScore)?'Not comparable':(summarySnapshot.averageScore-previousAudit.averageScore>0?'+':'')+(summarySnapshot.averageScore-previousAudit.averageScore)+' points';
-   const keys=snapshot=>new Set(snapshot.issues.flatMap(issue=>issue.affectedUrls.map(page=>issue.code+'|'+page)));
-   const now=keys(summarySnapshot),before=keys(previousAudit);
-   const newCount=[...now].filter(key=>!before.has(key)).length,resolvedCount=[...before].filter(key=>!now.has(key)).length;
-   diff.textContent='Compared with '+new Date(previousAudit.date).toLocaleString()+': average eligible HTML score change '+scoreDelta+'; '+newCount+' new and '+resolvedCount+' resolved issue/page occurrences. Compare coverage before interpreting changes.';
-   historyPanel.append(diff);
-  }else{
-   const empty=document.createElement('p');empty.className='hint';empty.textContent='First saved audit for this website; comparisons appear after the next run.';historyPanel.append(empty);
-  }
+  const historySeries=[...auditHistory,summarySnapshot];
+  const chart=document.createElement('div');chart.className='history-chart';chart.setAttribute('role','img');chart.setAttribute('aria-label','Eligible HTML score history across '+historySeries.length+' audit runs');
+  for(const run of historySeries){const column=document.createElement('div');column.className='history-column';const bar=document.createElement('div');bar.className='history-bar';const score=Number.isFinite(run.averageScore)?Math.max(0,Math.min(100,run.averageScore)):0;bar.style.height=score+'%';bar.title=new Date(run.date).toLocaleDateString()+': '+(Number.isFinite(run.averageScore)?run.averageScore+'/100':'Not scored');column.append(bar);const value=document.createElement('span');value.textContent=Number.isFinite(run.averageScore)?String(run.averageScore):'—';column.append(value);chart.append(column)}
+  historyPanel.append(chart);
+  if(auditHistory.length){
+   const historyLabel=document.createElement('label');historyLabel.textContent='Compare current audit with';historyLabel.htmlFor='site-history-compare';historyPanel.append(historyLabel);
+   const historySelect=document.createElement('select');historySelect.id='site-history-compare';
+   auditHistory.forEach((entry,index)=>{const option=document.createElement('option');option.value=String(index);option.textContent=new Date(entry.date).toLocaleString()+' · '+entry.analyzed+' pages';historySelect.append(option)});historySelect.value=String(auditHistory.length-1);historyPanel.append(historySelect);
+   const diff=document.createElement('p');diff.className='notice';historyPanel.append(diff);
+   const compareHistory=()=>{
+    const previous=auditHistory[Number(historySelect.value)];if(!previous)return;
+    const compatible=previous.analyzed===summarySnapshot.analyzed&&previous.selected===summarySnapshot.selected&&previous.failed===summarySnapshot.failed;
+    const scoreDelta=summarySnapshot.averageScore===null||!Number.isFinite(previous.averageScore)?'Not comparable':(summarySnapshot.averageScore-previous.averageScore>0?'+':'')+(summarySnapshot.averageScore-previous.averageScore)+' points';
+    const keys=snapshot=>new Set(snapshot.issues.flatMap(issue=>issue.affectedUrls.map(page=>issue.code+'|'+page)));
+    const now=keys(summarySnapshot),before=keys(previous);
+    const newCount=[...now].filter(key=>!before.has(key)).length,resolvedCount=[...before].filter(key=>!now.has(key)).length;
+    diff.textContent='Compared with '+new Date(previous.date).toLocaleString()+': score change '+scoreDelta+'; '+newCount+' newly observed and '+resolvedCount+' no longer observed issue/page occurrences. '+(compatible?'Page counts match; individual page selections may still differ.':'Coverage differs (selected, analyzed or failed page counts). Treat changes as indicative, not confirmed SEO improvements.');
+   };historySelect.addEventListener('change',compareHistory);compareHistory();
+  }else{const empty=document.createElement('p');empty.className='hint';empty.textContent='First saved audit for this website; comparisons appear after the next run.';historyPanel.append(empty)}
   try{auditHistory.push(summarySnapshot);localStorage.setItem(historyKey,JSON.stringify(auditHistory.slice(-10)))}catch{const note=document.createElement('p');note.className='hint';note.textContent='Browser storage unavailable; this run was not saved.';historyPanel.append(note)}
   siteResults.append(historyPanel);
   // Compact, transparent overview: issue groups are not individual defects.
