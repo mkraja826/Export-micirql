@@ -40,11 +40,28 @@ siteButton.addEventListener('click',async()=>{
    }catch(error){failures.push({url:pages[i],error:error.message||'Inspection failed'})}
    siteProgress.value=i+1;
   }
-  siteReport={schemaVersion:1,tool:'seo-site',generatedAt:new Date().toISOString(),website:url.origin,pagesDiscovered:discovered.pages.length,pagesSelected:pages.length,pagesAnalyzed:reports.length,failures,reports,scope:'bounded_browser_html_audit'};
+  const siteFindings=[];
+  // Cross-page findings are separate from individual page scores: do not
+  // retroactively alter per-page scores based on a capped discovery sample.
+  for(const [field,code,label] of [['title','duplicate_title','title'],['description','duplicate_description','meta description'],['canonical','duplicate_canonical','canonical URL']]){
+   const groups=new Map();
+   for(const report of reports){
+    if(report.partial||report.auditStatus!=='complete'||!report[field]?.trim())continue;
+    const key=field==='canonical'?report[field].trim():report[field].trim().replace(/\\s+/g,' ').toLocaleLowerCase();
+    if(!groups.has(key))groups.set(key,[]);
+    groups.get(key).push(report.url);
+   }
+   for(const urls of groups.values()){
+    if(urls.length<2)continue;
+    siteFindings.push({code,severity:field==='canonical'?'medium':'medium',message:'Same '+label+' found on '+urls.length+' audited pages.',affectedUrls:urls});
+   }
+  }
+  siteReport={schemaVersion:1,tool:'seo-site',generatedAt:new Date().toISOString(),website:url.origin,pagesDiscovered:discovered.pages.length,pagesSelected:pages.length,pagesAnalyzed:reports.length,failures,reports,siteFindings,scope:'bounded_browser_html_audit'};
   siteExport.disabled=false;
   const scored=reports.filter(p=>p.score!==null&&!p.partial);
   const average=scored.length?Math.round(scored.reduce((sum,p)=>sum+p.score,0)/scored.length):null;
   siteStatus.textContent=reports.length+' analyzed, '+failures.length+' failed. '+(average===null?'No complete pages eligible for average.':'Average HTML score for '+scored.length+' complete pages: '+average+'/100.')+(discovered.pages.length>20?' Limited to first 20 discovered pages.':'');
+  for(const issue of siteFindings){const row=document.createElement('p');row.className='finding';row.dataset.severity=issue.severity;row.textContent=issue.code.replaceAll('_',' ').toUpperCase()+' · '+issue.message+' '+issue.affectedUrls.join(', ');siteResults.append(row)}
   for(const report of reports){
    const row=document.createElement('p');row.className='finding';row.textContent=(report.score===null?'Not scored':report.score+'/100')+' · '+report.url+' · '+report.findings.length+' findings'+(report.partial?' · Partial':'');siteResults.append(row);
   }
