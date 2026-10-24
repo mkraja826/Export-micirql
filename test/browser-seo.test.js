@@ -28,7 +28,7 @@ test('SEO Studio offers a bounded browser-first multi-page audit',()=>{
  assert.match(page,/id="site-export"/);
  assert.match(page,/MICIRQL_DISCOVER_RESULT/);
  assert.match(page,/MICIRQL_SEO_RESULT/);
- assert.match(page,/\.slice\(0,20\)/);
+ assert.match(page,/\.slice\(0,40\)/);
  assert.match(page,/failures\.push/);
  assert.match(page,/siteExport\.disabled=false/);
 });
