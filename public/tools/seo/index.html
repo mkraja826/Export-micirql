@@ -62,7 +62,7 @@ document.getElementById('site-all').addEventListener('click',()=>{if(selectedDis
 document.getElementById('site-none').addEventListener('click',()=>{if(selectedDiscovery){selectedDiscovery.selected.clear();renderSelection()}});
 async function discoverForAudit(url){
  siteStatus.textContent='Discovering same-origin pages…';
- const found=await extensionRequest('MICIRQL_DISCOVER','MICIRQL_DISCOVER_RESULT',url.href,90000);
+ const found=await extensionRequest('MICIRQL_DISCOVER','MICIRQL_DISCOVER_RESULT',url.href,600000);
  if(!found.ok)throw Error(found.error||'Discovery failed');
  const pages=[...new Set((found.pages||[]).filter(p=>{try{return new URL(p).origin===url.origin}catch{return false}}))].slice(0,60);
  if(!pages.length)throw Error('No accessible pages found');
