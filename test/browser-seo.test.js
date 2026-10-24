@@ -106,7 +106,7 @@ test('site audit retries failed page inspections at most twice and preserves fai
 
 test('SEO audit resumes previously completed pages from a bounded local checkpoint',()=>{
  const page=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
- assert.match(page,/micirql-seo-checkpoint-v1/);
+ assert.match(page,/micirql-seo-checkpoint-v2/);
  assert.match(page,/Date\.now\(\)-saved\.savedAt>86400000/);
  assert.match(page,/cached\.has\(pages\[i\]\)/);
  assert.match(page,/saveCheckpoint\(url\.origin,pages,reports\)/);
