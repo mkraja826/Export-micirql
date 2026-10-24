@@ -229,3 +229,11 @@ test('cross-page canonical grouping resolves relative URLs and ignores trailing 
  assert.match(html,/c\.hash=''/);
  assert.match(html,/c\.pathname=c\.pathname\.replace/);
 });
+
+test('SEO issue dashboard supports mobile-friendly finding and URL search',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/site-issue-search/);
+ assert.match(html,/issueSearch\.addEventListener\('input',renderIssues\)/);
+ assert.match(html,/item\.affectedUrls/);
+ assert.match(html,/#site-results summary\{overflow-wrap:anywhere\}/);
+});
