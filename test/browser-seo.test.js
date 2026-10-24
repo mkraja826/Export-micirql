@@ -20,3 +20,15 @@ test('browser SEO inspector produces the same findings as server',()=>{
 test('browser SEO inspector enforces the size limit',()=>{
  assert.throws(()=>browserInspector('x'.repeat(1000001),'https://example.com/'),/under 1 MB/);
 });
+
+test('SEO Studio offers a bounded browser-first multi-page audit',()=>{
+ const page=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(page,/id="site-run"/);
+ assert.match(page,/id="site-progress"/);
+ assert.match(page,/id="site-export"/);
+ assert.match(page,/MICIRQL_DISCOVER_RESULT/);
+ assert.match(page,/MICIRQL_SEO_RESULT/);
+ assert.match(page,/\.slice\(0,20\)/);
+ assert.match(page,/failures\.push/);
+ assert.match(page,/siteExport\.disabled=false/);
+});
