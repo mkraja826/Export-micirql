@@ -339,6 +339,18 @@ siteButton.addEventListener('click',async()=>{
   let auditHistory=[];
   try{const saved=JSON.parse(localStorage.getItem(historyKey)||'[]');if(Array.isArray(saved))auditHistory=saved.filter(item=>item&&item.website===url.origin&&Array.isArray(item.issues)).slice(-9)}catch{}
   const previousAudit=auditHistory.length?auditHistory[auditHistory.length-1]:null;
+  // Verification is only meaningful after the user marks a fix and a later audit completes.
+  const issueOccurrences=new Set(issues.flatMap(issue=>issue.affectedUrls.map(page=>issue.code+'|'+page)));
+  const completedUrls=new Set(reports.filter(page=>page.auditStatus==='complete'&&!page.partial).map(page=>page.url));
+  const verificationRows=Object.entries(fixTracker).filter(([,item])=>item&&item.status==='fixed').map(([key,item])=>{
+   const split=key.indexOf('|'),page=key.slice(split+1);
+   const markedAt=Date.parse(item.markedAt||'');
+   const auditedAt=Date.parse(siteReport.generatedAt||'');
+   const laterAudit=Number.isFinite(markedAt)&&Number.isFinite(auditedAt)&&auditedAt>markedAt;
+   const state=!laterAudit||!completedUrls.has(page)?'Awaiting verification':issueOccurrences.has(key)?'Still detected':'Verified absent';
+   return {key,page,state};
+  });
+  const verificationTotals={verified:verificationRows.filter(item=>item.state==='Verified absent').length,unresolved:verificationRows.filter(item=>item.state==='Still detected').length,pending:verificationRows.filter(item=>item.state==='Awaiting verification').length};
   const historyPanel=document.createElement('section');historyPanel.id='site-audit-history';historyPanel.className='panel';
   const historyTitle=document.createElement('h3');historyTitle.textContent='Audit history (this browser)';historyPanel.append(historyTitle);
   const historyNote=document.createElement('p');historyNote.className='hint small';historyNote.textContent='Stores up to 10 compact audit summaries for this website in your browser only. No page HTML is saved. Clear browser storage to delete history.';historyPanel.append(historyNote);
@@ -384,7 +396,7 @@ siteButton.addEventListener('click',async()=>{
       state.value=fixTracker[key]?.status||'untracked';
       const note=document.createElement('input');note.type='text';note.maxLength=240;note.placeholder='Private fix note (optional)';note.setAttribute('aria-label','Fix note for '+affectedUrl);note.value=fixTracker[key]?.note||'';
       const feedback=document.createElement('span');feedback.className='hint small';feedback.setAttribute('role','status');
-      const persist=()=>{const status=state.value,memo=note.value.trim();if(status==='untracked'&&!memo)delete fixTracker[key];else fixTracker[key]={status,note:memo};feedback.textContent=saveFixTracker()?'Saved in this browser':'Could not save in browser storage'};
+      const persist=()=>{const status=state.value,memo=note.value.trim();if(status==='untracked'&&!memo)delete fixTracker[key];else fixTracker[key]={status,note:memo,markedAt:status==='fixed'?(fixTracker[key]?.status==='fixed'?fixTracker[key].markedAt||new Date().toISOString():new Date().toISOString()):null};feedback.textContent=saveFixTracker()?'Saved in this browser':'Could not save in browser storage'};
       state.addEventListener('change',persist);note.addEventListener('change',persist);
       trackerControls.append(state,note,feedback);entry.append(trackerControls);
      }entries.append(entry)}list.append(entries);if(values.length>50){const more=document.createElement('p');more.textContent='Showing first 50 of '+values.length+' occurrences.';list.append(more)}}
