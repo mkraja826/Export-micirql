@@ -17,3 +17,9 @@ test('issue export emits one row per affected URL and safely quotes recommendati
  assert.match(csv,/"https:\/\/example.com\/about"/);
  assert.equal(csv.split('\r\n').length,4);
 });
+
+test('spreadsheet formula prefixes are neutralized even after whitespace',()=>{
+ const csv=csvRows([['=1+1',' +SUM(1,2)','@cmd','-1','normal']]);
+ for(const value of ["'=1+1","' +SUM(1,2)","'@cmd","'-1"])assert.ok(csv.includes('"'+value+'"'));
+ assert.ok(csv.includes('"normal"'));
+});
