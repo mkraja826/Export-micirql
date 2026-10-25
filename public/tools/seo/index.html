@@ -72,7 +72,7 @@ const checkpointKey='micirql-seo-checkpoint-v2';
 function readCheckpoint(origin){
  try{
   const saved=JSON.parse(localStorage.getItem(checkpointKey)||'null');
-  if(!saved||saved.website!==origin||Date.now()-saved.savedAt>86400000||!Array.isArray(saved.reports)||saved.reports.length>60)return null;
+  if(!saved||saved.website!==origin||Date.now()-saved.savedAt>86400000||!Array.isArray(saved.reports)||saved.reports.length>60||!Array.isArray(saved.pages)||saved.pages.length>60||saved.pages.some(p=>{try{return new URL(p).origin!==origin}catch{return true}}))return null;
   return saved;
  }catch{return null}
 }
@@ -143,7 +143,7 @@ siteButton.addEventListener('click',async()=>{
   const checkpoint=isDemo?null:readCheckpoint(url.origin);
   const reusable=checkpoint&&JSON.stringify(checkpoint.pages)===JSON.stringify(pages)?checkpoint.reports:[];
   const reports=[],failures=[];
-  const cached=new Map(reusable.filter(r=>r&&pages.includes(r.requestedUrl||r.url)&&r.auditStatus==='complete').map(r=>[r.requestedUrl||r.url,r]));
+  const cached=new Map(reusable.filter(r=>r&&pages.includes(r.requestedUrl||r.url)&&r.auditStatus==='complete'&&!r.partial&&Number.isFinite(r.score)).map(r=>[r.requestedUrl||r.url,r]));
   const resumedCount=pages.filter(p=>cached.has(p)).length;
   if(resumedCount)siteStatus.textContent='Restoring '+resumedCount+' completed pages; inspecting '+(pages.length-resumedCount)+' remaining…';
   for(let i=0;i<pages.length;i++){
