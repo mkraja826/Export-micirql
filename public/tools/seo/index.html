@@ -30,7 +30,7 @@ import {inspectSeoHtml} from './inspector.js';
 import {seoPagesCsv,seoIssuesCsv} from './csv-export.js';
 const fromWorkspace=new URLSearchParams(location.search).get('url');if(fromWorkspace){try{const parsed=new URL(fromWorkspace);if(['https:','http:'].includes(parsed.protocol)&&!parsed.username&&!parsed.password)document.getElementById('url').value=parsed.href}catch{}}
 let lastReport=null,partialCapture=false;
-function downloadReport(extension,body,mime){const blob=new Blob([body],{type:mime});const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download='micirql-seo-report.'+extension;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(link.href),1000)}
+function downloadReport(extension,body,mime,basename='micirql-seo-report'){const blob=new Blob([body],{type:mime});const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download=basename+'.'+extension;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(link.href),1000)}
 const jsonButton=document.getElementById('export-json'),textButton=document.getElementById('export-text');jsonButton.addEventListener('click',()=>{if(lastReport)downloadReport('json',JSON.stringify(lastReport,null,2),'application/json')});textButton.addEventListener('click',()=>{if(!lastReport)return;const lines=['MiCirql SEO Report','Website: '+lastReport.url,'Scope: '+lastReport.scope,'Score: '+(lastReport.score===null?'Not scored':lastReport.score+'/100'),'Audit status: '+lastReport.auditStatus,'Scoring note: '+(lastReport.scoreExplanation||''),'','Title: '+lastReport.title,'Description: '+lastReport.description,'Canonical: '+lastReport.canonical,'Language: '+lastReport.lang,'Robots: '+lastReport.robots,'H1 count: '+lastReport.h1Count,'','Findings:',...lastReport.findings.map(x=>x.severity.toUpperCase()+' '+x.code+': '+x.message)];downloadReport('txt',lines.join('\n'),'text/plain')});
 function suggestedPageRole(url){
  const path=new URL(url).pathname.toLowerCase();
@@ -856,8 +856,8 @@ function printClientSeoReport(report){
 }
 sitePrintButton.addEventListener('click',()=>{if(siteReport)printClientSeoReport(siteReport)});
 siteExport.addEventListener('click',()=>{if(siteReport)downloadReport('json',JSON.stringify(siteReport,null,2),'application/json')});
-document.getElementById('site-export-pages-csv').addEventListener('click',()=>{if(siteReport)downloadReport('csv',seoPagesCsv(siteReport),'text/csv;charset=utf-8')});
-document.getElementById('site-export-issues-csv').addEventListener('click',()=>{if(siteReport)downloadReport('csv',seoIssuesCsv(siteReport),'text/csv;charset=utf-8')});
+document.getElementById('site-export-pages-csv').addEventListener('click',()=>{if(siteReport)downloadReport('csv',seoPagesCsv(siteReport),'text/csv;charset=utf-8','micirql-seo-pages')});
+document.getElementById('site-export-issues-csv').addEventListener('click',()=>{if(siteReport)downloadReport('csv',seoIssuesCsv(siteReport),'text/csv;charset=utf-8','micirql-seo-issues')});
 siteExportText.addEventListener('click',()=>{
  if(!siteReport)return;
  const lines=['MiCirql Site SEO Audit','Website: '+siteReport.website,'Analyzed: '+siteReport.pagesAnalyzed+'/'+siteReport.pagesSelected,'Failed: '+siteReport.failures.length,'Coverage: '+siteReport.coverage.successfulPercent+'% of selected pages','Discovered pages: '+siteReport.coverage.discovered,'Discovery limited: '+(siteReport.coverage.discoveryTruncated?'yes':'no'),'Selection limited: '+(siteReport.coverage.selectionLimited?'yes':'no'),'','Limitations:',...siteReport.reportNotes,'','Prioritized issues:'];
