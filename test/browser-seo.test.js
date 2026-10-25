@@ -775,3 +775,11 @@ test('SEO page results expose incomplete HTML reasons and provisional scoring',(
  assert.match(html,/page\.incompleteReasons\.join\('; '\)/);
  assert.match(html,/page\.partial\?' \(provisional\)'/);
 });
+
+test('live SEO audit loop retries incomplete HTML before persisting provisional results',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/for\(let attempt=1;attempt<=2;attempt\+\+\)/);
+ assert.match(html,/if\(\(report\.partial\|\|report\.auditStatus==='partial'\)\&\&attempt<2\)/);
+ assert.match(html,/Retrying incomplete HTML on page /);
+ assert.match(html,/reports\.push\(report\);if\(!isDemo\)saveCheckpoint/);
+});
