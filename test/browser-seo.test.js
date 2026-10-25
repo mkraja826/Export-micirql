@@ -110,7 +110,7 @@ test('SEO audit resumes previously completed pages from a bounded local checkpoi
  assert.match(page,/Date\.now\(\)-saved\.savedAt>86400000/);
  assert.match(page,/cached\.has\(pages\[i\]\)/);
  assert.match(page,/saveCheckpoint\(url\.origin,pages,reports\)/);
- assert.match(page,/if\(!failures\.length\)try\{localStorage\.removeItem\(checkpointKey\)\}/);
+ assert.match(page,/if\(!isDemo&&!failures\.length\)try\{localStorage\.removeItem\(checkpointKey\)\}/);
 });
 
 test('SEO site audit offers bounded selectable batch sizes',()=>{
@@ -159,8 +159,8 @@ test('SEO rediscovery invalidates stale start URLs and prevents overlapping audi
  assert.match(page,/startUrl:url\.href/);
  assert.match(page,/selectedDiscovery\.startUrl!==url\.href/);
  assert.match(page,/discoverButton\.disabled=true;siteButton\.disabled=true/);
- assert.match(page,/siteButton\.disabled=true;discoverButton\.disabled=true/);
- assert.match(page,/siteButton\.disabled=false;discoverButton\.disabled=false/);
+ assert.match(page,/siteButton\.disabled=true;demoButton\.disabled=true;discoverButton\.disabled=true/);
+ assert.match(page,/siteButton\.disabled=false;demoButton\.disabled=false;discoverButton\.disabled=false/);
 });
 
 test('SEO discovery timeout refreshes on real extension progress with hard safety limit',()=>{
@@ -182,7 +182,7 @@ test('extension prevents overlapping discovery operations across SEO Studio tabs
 
 test('partial SEO audits retain successful page checkpoints for targeted retry',()=>{
  const page=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
- assert.match(page,/if\(!failures\.length\)try\{localStorage\.removeItem\(checkpointKey\)\}/);
+ assert.match(page,/if\(!isDemo&&!failures\.length\)try\{localStorage\.removeItem\(checkpointKey\)\}/);
  assert.match(page,/cached\.has\(pages\[i\]\)/);
  assert.match(page,/saveCheckpoint\(url\.origin,pages,reports\)/);
 });
@@ -338,7 +338,7 @@ test('SEO checkpoint invalidates old scoring versions without losing retry featu
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  assert.ok(html.includes("const checkpointKey='micirql-seo-checkpoint-v2'"));
  assert.ok(!html.includes("const checkpointKey='micirql-seo-checkpoint-v1'"));
- assert.ok(html.includes('const checkpoint=readCheckpoint(url.origin)'));
+ assert.ok(html.includes('const checkpoint=isDemo?null:readCheckpoint(url.origin)'));
  assert.ok(html.includes('saveCheckpoint(url.origin,pages,reports)'));
 });
 
