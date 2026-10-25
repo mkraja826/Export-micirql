@@ -767,3 +767,11 @@ test('printable SEO report prioritizes failed and partial duplicate inspection r
  assert.match(html,/item\.partial\|\|item\.auditStatus==='partial'/);
  assert.match(html,/const inspectedUniqueCount=inspectedPages\.size/);
 });
+
+test('SEO page results expose incomplete HTML reasons and provisional scoring',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/page\.incompleteReasons\?\.length/);
+ assert.match(html,/Incomplete HTML: /);
+ assert.match(html,/page\.incompleteReasons\.join\('; '\)/);
+ assert.match(html,/page\.partial\?' \(provisional\)'/);
+});
