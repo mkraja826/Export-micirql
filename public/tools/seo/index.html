@@ -177,7 +177,7 @@ siteButton.addEventListener('click',async()=>{
      if(attempt<2){siteStatus.textContent='Retrying page '+(i+1)+' of '+pages.length+' after a short recovery pause (attempt 2 of 2)…';await new Promise(resolve=>setTimeout(resolve,1500));}
     }
    }
-   if(lastError)failures.push({url:pages[i],error:lastError.message||'Inspection failed',attempts:2});
+   if(lastError){const message=lastError.message||'Inspection failed';const category=/timed?\s*out|timeout|stopped responding/i.test(message)?'timeout':/extension|chrome|not connected|not installed/i.test(message)?'extension':/incomplete|partial|truncat/i.test(message)?'incomplete_html':'capture_error';failures.push({url:pages[i],error:message,category,attempts:2});}
    siteProgress.value=i+1;
   }
   // Keep completed page findings if any page failed, so retrying this selection only rechecks failures.
