@@ -1,3 +1,4 @@
+import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {csvRows,seoPagesCsv,seoIssuesCsv} from '../public/tools/seo/csv-export.js';
@@ -22,4 +23,12 @@ test('spreadsheet formula prefixes are neutralized even after whitespace',()=>{
  const csv=csvRows([['=1+1',' +SUM(1,2)','@cmd','-1','normal']]);
  for(const value of ["'=1+1","' +SUM(1,2)","'@cmd","'-1"])assert.ok(csv.includes('"'+value+'"'));
  assert.ok(csv.includes('"normal"'));
+});
+
+test('SEO Studio dashboard wires both CSV exports to the current site report',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ for(const id of ['site-export-pages-csv','site-export-issues-csv'])assert.match(html,new RegExp('id="'+id+'"'));
+ assert.match(html,/import \{seoPagesCsv,seoIssuesCsv\} from '\.\/csv-export\.js'/);
+ assert.match(html,/seoPagesCsv\(siteReport\)/);
+ assert.match(html,/seoIssuesCsv\(siteReport\)/);
 });
