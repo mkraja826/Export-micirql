@@ -29,10 +29,11 @@ export async function inspectBatch({pages,checkpoint,origin,inspect,onProgress=(
   let lastError;
   for(let attempt=1;attempt<=maxAttempts;attempt++){
    try{const report=await inspect(url,attempt);if(!report)throw Error('Empty inspection');
-    if((report.partial||report.auditStatus==='partial')&&attempt<maxAttempts){lastError=Error('Incomplete HTML capture');continue;}
+    if((report.partial||report.auditStatus==='partial')&&attempt<maxAttempts){partialReport={...report,requestedUrl:url,attempts:attempt};lastError=Error('Incomplete HTML capture');continue;}
     reports.push({...report,requestedUrl:url,attempts:attempt});lastError=null;break;
    }catch(error){lastError=error}
   }
+  if(lastError&&partialReport){reports.push({...partialReport,attempts:maxAttempts});lastError=null;}
   if(lastError)failures.push({url,error:lastError.message||String(lastError),attempts:maxAttempts});
   onProgress({done:i+1,total:pages.length,resumed:false,url});
  }
