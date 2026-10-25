@@ -845,7 +845,13 @@ function printClientSeoReport(report){
  const escapeHTML=value=>String(value??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
  const valid=report.reports.filter(page=>Number.isFinite(page.score)&&!page.partial&&page.auditStatus==='complete');
  const average=valid.length?Math.round(valid.reduce((sum,page)=>sum+page.score,0)/valid.length):null;
- const inspectedPages=new Map((report.reports||[]).filter(page=>page.url).map(page=>[page.url,page]));
+ const inspectedPages=new Map();
+ for(const page of report.reports||[]){
+  if(!page.url)continue;
+  const previous=inspectedPages.get(page.url);
+  const rank=item=>item.auditStatus==='failed'?3:(item.partial||item.auditStatus==='partial')?2:item.auditStatus==='complete'?1:0;
+  if(!previous||rank(page)>rank(previous))inspectedPages.set(page.url,page);
+ }
  const failedUrls=new Set((report.failures||[]).map(entry=>entry.url).filter(Boolean));
  const completedCount=[...inspectedPages.values()].filter(page=>page.auditStatus==='complete'&&!page.partial&&!failedUrls.has(page.url)).length;
  const partialCount=[...inspectedPages.values()].filter(page=>(page.partial||page.auditStatus==='partial')&&page.auditStatus!=='failed'&&!failedUrls.has(page.url)).length;
