@@ -20,6 +20,8 @@ export function auditCoverage(pages,reports,failures){
 }
 export async function inspectBatch({pages,checkpoint,origin,inspect,onProgress=()=>{},maxAttempts=2}){
  if(pages.length<1||pages.length>60||new Set(pages).size!==pages.length)throw Error('Invalid batch selection');
+ if(!Number.isInteger(maxAttempts)||maxAttempts<1||maxAttempts>2)throw Error('Retry limit must be 1 or 2');
+ for(const page of pages){try{const parsed=new URL(page);if(!['https:','http:'].includes(parsed.protocol)||parsed.origin!==origin||parsed.username||parsed.password)throw Error()}catch{throw Error('Batch contains an invalid or cross-origin URL')}}
  const cached=reusablePages(checkpoint,origin,pages),reports=[],failures=[];
  for(let i=0;i<pages.length;i++){
   const url=pages[i];
