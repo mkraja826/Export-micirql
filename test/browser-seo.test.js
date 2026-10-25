@@ -841,3 +841,21 @@ test('printable and text SEO reports include per-page confidence and retry evide
  assert.match(html,/page\.recoveryError\?' \| retry error: '/);
  assert.match(html,/page\.attempts\|\|1/);
 });
+
+test('selective reinspection is offered only for incomplete or failed live audits',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/id="site-retry-incomplete" disabled/);
+ assert.match(html,/retryIncompleteButton\.addEventListener\('click'/);
+ assert.match(html,/if\(!siteReport\|\|siteReport\.demo\|\|!extensionReady\)return/);
+ assert.match(html,/page\.partial\|\|page\.auditStatus!=='complete'/);
+ assert.match(html,/retryIncompleteButton\.disabled=isDemo\|\|!reports\.some/);
+ assert.match(html,/retryIncompleteButton\.disabled=true;siteButton\.disabled=true/);
+});
+test('selective reinspection retains checkpoint recovery and existing retry policy',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/siteButton\.click\(\)/);
+ assert.match(html,/const checkpoint=isDemo\?null:readCheckpoint\(url\.origin\)/);
+ assert.match(html,/const cached=reusablePages\(\{pages,reports:reusable\},url\.origin,pages\)/);
+ assert.match(html,/if\(cached\.has\(pages\[i\]\)\)/);
+ assert.match(html,/for\(let attempt=1;attempt<=2;attempt\+\+\)/);
+});
