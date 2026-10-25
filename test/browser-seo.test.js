@@ -727,3 +727,12 @@ test('MiCirql Tools offers a first-party extension download with explicit Chrome
  assert.ok(workflow.includes('Package downloadable Chrome extension'));
  assert.ok(workflow.includes('unzip -t public/extension/micirql-tools-extension.zip'));
 });
+
+test('SEO discovery accepts the dedicated audit URL or Advanced Inspector URL without undefined demo state',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes('id="site-url"'));
+ assert.ok(html.includes("document.getElementById('site-url').value.trim()||document.getElementById('url').value.trim()"));
+ const discover=html.slice(html.indexOf("discoverButton.addEventListener('click'"),html.indexOf("const demoButton="));
+ assert.ok(!discover.includes('isDemo'),'Discovery cannot access demo-only scope');
+ assert.ok(html.includes("new URL(isDemo?demoPages[0].url:document.getElementById('site-url').value.trim()"));
+});
