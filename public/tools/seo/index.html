@@ -338,7 +338,7 @@ siteButton.addEventListener('click',async()=>{
    issue.triageReason=issue.triageTier==='Investigate first'?'High-severity HTML signal requiring prompt review.':issue.triageTier==='Review next'?'Review based on page purpose and affected-page evidence.':'Lower-severity or informational HTML finding.';
   }
   const triageOrder={'Investigate first':0,'Review next':1,'Lower priority':2};
-  issues.sort((a,b)=>triageOrder[a.triageTier]-triageOrder[b.triageTier]||(priority[a.severity]??4)-(priority[b.severity]??4)||b.affectedUrls.length-a.affectedUrls.length);
+  issues.sort((a,b)=>triageOrder[a.triageTier]-triageOrder[b.triageTier]||(priority[a.severity]??4)-(priority[b.severity]??4)||(b.affectedUrls||[]).length-(a.affectedUrls||[]).length);
   siteReport.reportNotes=['Scores reflect bounded HTML checks, not Google rankings.','Page roles are suggestions or manual selections.','Only pages discovered and analyzed in this batch are included.'];
   siteReport.issueCenter=issues;
   // V2.7 opportunity ranking uses observed severity and affected URL breadth, not estimated traffic.
