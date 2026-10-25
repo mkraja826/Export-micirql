@@ -100,7 +100,7 @@ test('site audit retries failed page inspections at most twice and preserves fai
  assert.match(page,/attempt<=2/);
  assert.match(page,/report\.attempts=attempt/);
  assert.match(page,/retryPolicy:\{maxAttemptsPerPage:2,sequential:true\}/);
- assert.match(page,/if\(lastError\)failures\.push/);
+ assert.match(page,/if\(lastError\)\{const message=/);
  assert.match(page,/siteProgress\.value=i\+1/);
 });
 
