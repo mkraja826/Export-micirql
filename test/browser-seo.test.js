@@ -757,3 +757,13 @@ test('partial audits retain recovery checkpoints and cached redirects stay same-
  assert.match(html,/reports\.every\(r=>r\.auditStatus==='complete'&&!r\.partial&&Number\.isFinite\(r\.score\)\)/);
  assert.match(html,/reusablePages\(\{pages,reports:reusable\},url\.origin,pages\)/);
 });
+
+
+test('printable SEO report prioritizes failed and partial duplicate inspection records',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/const inspectedPages=new Map\(\)/);
+ assert.match(html,/if\(!previous\|\|rank\(page\)>rank\(previous\)\)inspectedPages\.set\(page\.url,page\)/);
+ assert.match(html,/item\.auditStatus==='failed'\?3:/);
+ assert.match(html,/item\.partial\|\|item\.auditStatus==='partial'/);
+ assert.match(html,/const inspectedUniqueCount=inspectedPages\.size/);
+});
