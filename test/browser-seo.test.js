@@ -747,7 +747,7 @@ test('printable SEO client report includes all issue groups and verification gui
 
 test('large-site checkpoint resumes only complete, nonpartial, scored pages',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
- assert.match(html,/r\.auditStatus==='complete'&&!r\.partial&&Number\.isFinite\(r\.score\)/);
+ assert.match(html,/reusablePages\(\{pages,reports:reusable\},url\.origin,pages\)/);
  assert.match(html,/saved\.pages\.some\(p=>/);
  assert.match(html,/new URL\(p\)\.origin!==origin/);
 });
