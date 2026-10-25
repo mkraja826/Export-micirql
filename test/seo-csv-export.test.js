@@ -32,3 +32,10 @@ test('SEO Studio dashboard wires both CSV exports to the current site report',()
  assert.match(html,/seoPagesCsv\(siteReport\)/);
  assert.match(html,/seoIssuesCsv\(siteReport\)/);
 });
+
+test('page and issue CSV downloads have distinct filenames',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/micirql-seo-pages/);
+ assert.match(html,/micirql-seo-issues/);
+ assert.match(html,/function downloadReport\(extension,body,mime,basename=/);
+});
