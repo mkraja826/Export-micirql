@@ -29,6 +29,7 @@ export async function inspectBatch({pages,checkpoint,origin,inspect,onProgress=(
   let lastError;
   for(let attempt=1;attempt<=maxAttempts;attempt++){
    try{const report=await inspect(url,attempt);if(!report)throw Error('Empty inspection');
+    if((report.partial||report.auditStatus==='partial')&&attempt<maxAttempts){lastError=Error('Incomplete HTML capture');continue;}
     reports.push({...report,requestedUrl:url,attempts:attempt});lastError=null;break;
    }catch(error){lastError=error}
   }
