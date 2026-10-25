@@ -50,3 +50,33 @@ test('partial pages are counted as analyzed but not complete',()=>{
  const result=auditCoverage([origin+'/a',origin+'/b'],[complete(origin+'/a'),{...complete(origin+'/b'),partial:true}],[]);
  assert.deepEqual({analyzed:result.analyzed,complete:result.complete,partial:result.partial},{analyzed:2,complete:1,partial:1});
 });
+
+test('partial HTML capture retries and accepts a recovered complete page',async()=>{
+ const url=origin+'/recover';let calls=0;
+ const result=await inspectBatch({origin,pages:[url],inspect:async()=>{
+  calls++;return calls===1?{...complete(url),partial:true,auditStatus:'partial'}:complete(url);
+ }});
+ assert.equal(calls,2);
+ assert.equal(result.reports[0].auditStatus,'complete');
+ assert.equal(result.reports[0].attempts,2);
+ assert.equal(result.coverage.complete,1);
+});
+test('persistently incomplete HTML remains provisional after bounded retries',async()=>{
+ const url=origin+'/still-partial';let calls=0;
+ const result=await inspectBatch({origin,pages:[url],inspect:async()=>{
+  calls++;return {...complete(url),partial:true,auditStatus:'partial'};
+ }});
+ assert.equal(calls,2);
+ assert.equal(result.reports[0].auditStatus,'partial');
+ assert.equal(result.reports[0].attempts,2);
+ assert.equal(result.coverage.partial,1);
+ assert.equal(result.failures.length,0);
+});
+test('single attempt does not retry partial HTML',async()=>{
+ const url=origin+'/one-attempt';let calls=0;
+ const result=await inspectBatch({origin,pages:[url],maxAttempts:1,inspect:async()=>{
+  calls++;return {...complete(url),partial:true,auditStatus:'partial'};
+ }});
+ assert.equal(calls,1);
+ assert.equal(result.reports[0].attempts,1);
+});
