@@ -859,3 +859,12 @@ test('selective reinspection retains checkpoint recovery and existing retry poli
  assert.match(html,/if\(cached\.has\(pages\[i\]\)\)/);
  assert.match(html,/for\(let attempt=1;attempt<=2;attempt\+\+\)/);
 });
+
+test('reinspection preserves prior provisional evidence when both new attempts fail',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/const previousRetryReport=retryIncompleteRequested\?siteReport:null/);
+ assert.match(html,/if\(lastError&&previousRetryReport\?\.website===url\.origin\)/);
+ assert.match(html,/page\.partial\|\|page\.auditStatus==='partial'/);
+ assert.match(html,/reports\.push\(\{\.\.\.preserved,recoveryError:lastError\.message\|\|'Reinspection failed',reinspectionAttempts:2\}\)/);
+ assert.match(html,/saveCheckpoint\(url\.origin,pages,reports\);lastError=null/);
+});
