@@ -88,7 +88,7 @@ test('site report offers readable export with affected URLs and recommendations'
 
 test('site audit distinguishes selected-page coverage from entire-site completeness',()=>{
  const page=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
- assert.match(page,/successfulPercent:Math\.round\(reports\.length\/pages\.length\*100\)/);
+ assert.match(page,/successfulPercent:measuredCoverage\.successfulPercent/);
  assert.match(page,/discoveryTruncated:discovered\.truncated===true/);
  assert.match(page,/selectionLimited:discovered\.pages\.length>pages\.length/);
  assert.match(page,/Unvisited pages are not scored/);
