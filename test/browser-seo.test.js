@@ -791,3 +791,15 @@ test('SEO results describe recovered and persistently partial retry outcomes',()
  assert.match(html,/Inspected after /);
  assert.match(html,/page\.attempts\+' attempts'/);
 });
+
+test('site coverage reports retry diagnostics and includes them in structured export',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/const retryDiagnostics=\{retried:reports\.filter/);
+ assert.match(html,/recovered:reports\.filter/);
+ assert.match(html,/stillPartial:reports\.filter/);
+ assert.match(html,/retryPolicy:\{maxAttemptsPerPage:2,sequential:true\},retryDiagnostics,coverage:/);
+ assert.match(html,/Retry diagnostics: /);
+ assert.match(html,/retryDiagnostics\.retried/);
+ assert.match(html,/retryDiagnostics\.recovered/);
+ assert.match(html,/retryDiagnostics\.stillPartial/);
+});
