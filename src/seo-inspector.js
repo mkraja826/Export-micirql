@@ -36,6 +36,11 @@ export function inspectSeoHtml(html,url,options={}){
  const tail=html.trimEnd();
  // Detect clearly interrupted captures without assuming optional HTML closing tags are mandatory.
  const incompleteHtml=/<(?:[a-z][\w:-]*)(?:\s[^<>]*)?$/i.test(tail)||(tail.lastIndexOf('<!--')>tail.lastIndexOf('-->'))||(/<script\b/i.test(tail)&&tail.search(/<script\b/i)>-1&&tail.toLowerCase().lastIndexOf('<script')>tail.toLowerCase().lastIndexOf('</script'));
+ const incompleteReasons=[];
+ if(/<(?:[a-z][\w:-]*)(?:\s[^<>]*)?$/i.test(tail))incompleteReasons.push('HTML ends inside an opening tag');
+ if(tail.lastIndexOf('<!--')>tail.lastIndexOf('-->'))incompleteReasons.push('Unclosed HTML comment');
+ if(/<script\b/i.test(tail)&&tail.toLowerCase().lastIndexOf('<script')>tail.toLowerCase().lastIndexOf('</script'))incompleteReasons.push('Unclosed script element');
+ if(options.partial===true)incompleteReasons.push('Capture reported incomplete HTML');
  const isPartial=options.partial===true||incompleteHtml;
  if(errorPage){
   return {url,title,description,robots,canonical,lang,viewport,h1Count,findings:[{code:'error_page',severity:'high',message:'The captured page appears to be an HTTP or Cloudflare error page. Audit the actual website instead.',points:0,category:'availability'}],scope:'static_html_only',auditStatus:'invalid_error_page',score:null,maxScore:100,scoreLabel:'Not scored',partial:isPartial,scoreExplanation:'Error pages cannot receive a meaningful SEO score.'};
@@ -164,5 +169,5 @@ export function inspectSeoHtml(html,url,options={}){
  const categoryDeductions={};
  for(const finding of findings){const key=finding.category||'technical';categoryDeductions[key]=(categoryDeductions[key]||0)+(finding.points||0)}
  const scoring={method:'weighted_html_finding_deductions',startingScore:100,totalDeductions:deductions,categoryDeductions,appliedScore:score,scoreFloor:0,coverage:isPartial?'partial_html_snapshot':'provided_html_only'};
- return {url,title,description,robots,canonical,lang,viewport,h1Count,ogTitle,ogDescription,ogImage,twitterCard,imageCount:imageTags.length,imagesMissingAlt,structuredDataCount,headingSkips,linkTypes,internalLinkTargets:[...new Set(internalLinkTargets)].slice(0,500),findings,scoring,scope:'static_html_only',auditStatus:isPartial?'partial':'complete',partial:isPartial,score,maxScore:100,scoreLabel:isPartial?'Provisional score':'SEO HTML score',scoreExplanation:'Heuristic static HTML score based on weighted findings. Not Google ranking, performance, accessibility, or a full-site SEO score.'};
+ return {url,title,description,robots,canonical,lang,viewport,h1Count,ogTitle,ogDescription,ogImage,twitterCard,imageCount:imageTags.length,imagesMissingAlt,structuredDataCount,headingSkips,linkTypes,internalLinkTargets:[...new Set(internalLinkTargets)].slice(0,500),findings,scoring,scope:'static_html_only',auditStatus:isPartial?'partial':'complete',partial:isPartial,incompleteReasons,score,maxScore:100,scoreLabel:isPartial?'Provisional score':'SEO HTML score',scoreExplanation:'Heuristic static HTML score based on weighted findings. Not Google ranking, performance, accessibility, or a full-site SEO score.'};
 }
