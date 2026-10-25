@@ -19,5 +19,7 @@ jobs:
           node --check src/worker.js
       - name: Test MCP protocol and authorization
         run: node --test tests/mcp.test.mjs
+      - name: Run complete regression suite (including 60-page SEO stress tests)
+        run: timeout --signal=TERM --kill-after=30s 8m npm test
       - name: Validate Cloudflare deployment configuration
         run: npx wrangler deploy --dry-run --outdir dist-worker
