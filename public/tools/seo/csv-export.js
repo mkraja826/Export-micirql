@@ -2,7 +2,7 @@
 const quote = value => {
   const raw = String(value ?? '');
   // Prevent Excel/Sheets from evaluating untrusted page titles and URLs as formulas.
-  const safe = /^[\\s\\u0000-\\u001f]*[=+@-]/.test(raw) ? "'" + raw : raw;
+  const safe = /^[\s\u0000-\u001f]*[=+@-]/.test(raw) ? "'" + raw : raw;
   return '"' + safe.replaceAll('"', '""') + '"';
 };
 export function csvRows(rows) {
