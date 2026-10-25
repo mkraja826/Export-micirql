@@ -350,7 +350,7 @@ siteButton.addEventListener('click',async()=>{
   siteReport.opportunities=opportunities;
   const opportunitiesPanel=document.createElement('section');opportunitiesPanel.id='site-seo-opportunities';opportunitiesPanel.setAttribute('aria-label','Ranked SEO opportunities');
   const opportunityTitle=document.createElement('h3');opportunityTitle.textContent='SEO opportunities';opportunitiesPanel.append(opportunityTitle);
-  const opportunityNote=document.createElement('p');opportunityNote.className='hint small';opportunityNote.textContent='Ranked by finding severity, then number of affected audited URLs. Percentages use selected pages as the denominator (including incomplete inspections); they do not represent the entire website or estimated traffic gains.';opportunitiesPanel.append(opportunityNote);
+  const opportunityNote=document.createElement('p');opportunityNote.className='hint small';opportunityNote.textContent='Ranked by finding severity, then number of affected audited URLs. Percentages use selected pages as the denominator (including incomplete inspections); they do not represent the entire website and are not an estimate of traffic or ranking gains.';opportunitiesPanel.append(opportunityNote);
   const opportunityControls=document.createElement('div');opportunityControls.className='page-tools';
   const opportunitySeverityFilter=document.createElement('select');opportunitySeverityFilter.setAttribute('aria-label','Filter SEO opportunities by severity');
   for(const value of ['all','high','medium','low']){const option=document.createElement('option');option.value=value;option.textContent=value==='all'?'All severities':value[0].toUpperCase()+value.slice(1);opportunitySeverityFilter.append(option)}
