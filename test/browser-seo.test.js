@@ -797,7 +797,7 @@ test('site coverage reports retry diagnostics and includes them in structured ex
  assert.match(html,/const retryDiagnostics=\{retried:reports\.filter/);
  assert.match(html,/recovered:reports\.filter/);
  assert.match(html,/stillPartial:reports\.filter/);
- assert.match(html,/retryPolicy:\{maxAttemptsPerPage:2,sequential:true\},retryDiagnostics,failureDiagnostics,coverage:/);
+ assert.match(html,/retryPolicy:\{maxAttemptsPerPage:2,sequential:true\},scoreSummary,retryDiagnostics,failureDiagnostics,coverage:/);
  assert.match(html,/Retry diagnostics: /);
  assert.match(html,/retryDiagnostics\.retried/);
  assert.match(html,/retryDiagnostics\.recovered/);
