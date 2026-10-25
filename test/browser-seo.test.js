@@ -667,7 +667,7 @@ test('V2.7 opportunity filtering and CSV action-plan export are bounded and spre
  assert.ok(html.includes("selected.slice(0,25)"));
  assert.ok(html.includes("exportOpportunities.addEventListener('click'"));
  assert.ok(html.includes("downloadReport('csv',rows.map(row=>row.map(csvCell).join(','))"));
- assert.ok(html.includes("replace(/^[=+"));
+ assert.ok(html.includes("replace(/^[\\s\\u0000-\\u001f]*[=+@-]/"));
 });
 
 
