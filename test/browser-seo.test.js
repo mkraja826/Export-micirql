@@ -797,9 +797,21 @@ test('site coverage reports retry diagnostics and includes them in structured ex
  assert.match(html,/const retryDiagnostics=\{retried:reports\.filter/);
  assert.match(html,/recovered:reports\.filter/);
  assert.match(html,/stillPartial:reports\.filter/);
- assert.match(html,/retryPolicy:\{maxAttemptsPerPage:2,sequential:true\},retryDiagnostics,coverage:/);
+ assert.match(html,/retryPolicy:\{maxAttemptsPerPage:2,sequential:true\},retryDiagnostics,failureDiagnostics,coverage:/);
  assert.match(html,/Retry diagnostics: /);
  assert.match(html,/retryDiagnostics\.retried/);
  assert.match(html,/retryDiagnostics\.recovered/);
  assert.match(html,/retryDiagnostics\.stillPartial/);
+});
+
+test('capture failures have typed categories and a visible site-level breakdown',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/category,attempts:2/);
+ assert.match(html,/const failureDiagnostics=\{timeout:failures\.filter/);
+ assert.match(html,/extension:failures\.filter/);
+ assert.match(html,/incompleteHtml:failures\.filter/);
+ assert.match(html,/Capture failures: /);
+ assert.match(html,/failureDiagnostics\.timeout/);
+ assert.match(html,/failureDiagnostics\.extension/);
+ assert.match(html,/failureDiagnostics\.incompleteHtml/);
 });
