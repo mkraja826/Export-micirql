@@ -284,3 +284,21 @@ test('incomplete HTML detection permits valid fragments and closed scripts',()=>
   assert.equal(report.auditStatus,'complete');
  }
 });
+
+test('partial HTML reports actionable truncation diagnostics',()=>{
+ const base='<html><head><title>Example</title></head><body>';
+ const cases=[
+  [base+'<div class="cut','HTML ends inside an opening tag'],
+  [base+'<!-- unfinished','Unclosed HTML comment'],
+  [base+'<script>window.test=true;','Unclosed script element']
+ ];
+ for(const [html,reason] of cases){
+  const report=inspectSeoHtml(html,'https://example.com/');
+  assert.equal(report.auditStatus,'partial');
+  assert.ok(report.incompleteReasons.includes(reason));
+ }
+ const flagged=inspectSeoHtml('<main><h1>Example</h1></main>','https://example.com/',{partial:true});
+ assert.ok(flagged.incompleteReasons.includes('Capture reported incomplete HTML'));
+ const complete=inspectSeoHtml('<main><h1>Example</h1></main>','https://example.com/');
+ assert.deepEqual(complete.incompleteReasons,[]);
+});
