@@ -9,11 +9,14 @@ export function csvRows(rows) {
   return '\uFEFF' + rows.map(row => row.map(value => quote(value)).join(',')).join('\r\n') + '\r\n';
 }
 export function seoPagesCsv(report) {
-  const rows = [['Requested URL','Final URL','Page role','Score','Audit status','Partial','Finding count','High','Medium','Low','Info']];
+  const rows = [['Requested URL','Final URL','Page role','Score','Score confidence','Audit status','Partial','Capture source','HTML bytes','Attempts','Recovery error','Incomplete reasons','Finding count','High','Medium','Low','Info']];
   for (const page of report?.reports ?? []) {
     const findings = page.findings ?? [];
     rows.push([page.requestedUrl || page.url, page.url, page.pageRole || '', page.score ?? '',
-      page.auditStatus || '', page.partial === true ? 'yes' : 'no', findings.length,
+      page.scoreConfidence || (page.partial || page.auditStatus === 'partial' ? 'provisional' : page.auditStatus === 'complete' && Number.isFinite(page.score) ? 'verified' : 'unverified'),
+      page.auditStatus || '', page.partial === true ? 'yes' : 'no',
+      page.captureEvidence?.source || '', page.captureEvidence?.htmlBytes ?? '',
+      page.attempts ?? 1, page.recoveryError || '', (page.incompleteReasons || []).join('; '), findings.length,
       ...['high','medium','low','info'].map(level => findings.filter(f => f.severity === level).length)]);
   }
   return csvRows(rows);
