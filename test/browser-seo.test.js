@@ -868,3 +868,12 @@ test('reinspection preserves prior provisional evidence when both new attempts f
  assert.match(html,/reports\.push\(\{\.\.\.preserved,recoveryError:lastError\.message\|\|'Reinspection failed',reinspectionAttempts:2\}\)/);
  assert.match(html,/saveCheckpoint\(url\.origin,pages,reports\);lastError=null/);
 });
+
+test('site report recalculates score summary from eligible completed public pages',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/const eligiblePublicScores=reports\.filter\(page=>page\.pageRole==='public'&&page\.auditStatus==='complete'&&!page\.partial&&Number\.isFinite\(page\.score\)\)/);
+ assert.match(html,/averagePublicHtmlScore:eligiblePublicScores\.length\?Math\.round\(eligiblePublicScores\.reduce\(\(sum,page\)=>sum\+page\.score,0\)\/eligiblePublicScores\.length\):null/);
+ assert.match(html,/provisionalPages:reports\.filter\(page=>page\.partial\|\|page\.auditStatus==='partial'\)\.length/);
+ assert.match(html,/const measuredCoverage=auditCoverage\(pages,reports,failures\)/);
+ assert.match(html,/retryPolicy:\{maxAttemptsPerPage:2,sequential:true\},scoreSummary,retryDiagnostics,failureDiagnostics,coverage:/);
+});
