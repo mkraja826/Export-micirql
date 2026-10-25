@@ -25,7 +25,7 @@
 #site-issues .issue-technical{margin:10px 0;font-size:13px;color:#b8cae7}#site-issues .issue-technical summary{font-weight:600;cursor:pointer}#site-issues .issue-next{font-weight:600;color:#e5f0ff}
 #site-issues .issue-page-jump{display:inline-block;background:none;color:#a8c4ff;border:0;padding:4px 0;text-decoration:underline;text-align:left;overflow-wrap:anywhere;font-size:13px;cursor:pointer}#site-issues .issue-page-jump:focus-visible{outline:3px solid #b8caff;outline-offset:3px}
 #site-page-dashboard td:last-child{min-width:170px}#site-page-dashboard td details.finding{background:#172940;border:1px solid #395373;border-radius:9px;padding:7px 10px;margin:0}#site-page-dashboard td details.finding[open]{min-width:260px}#site-page-dashboard td details.finding summary{cursor:pointer;white-space:nowrap;font-size:13px}#site-page-dashboard td details.finding p{white-space:normal;overflow-wrap:anywhere}#site-page-dashboard td details.finding select{max-width:220px}
-</style></head><body><div class="wrap"><nav class="toolnav" aria-label="Tool navigation"><a href="/tools/">← All tools</a><a href="/tools/screenshots/">Screenshots</a><a href="/tools/seo/" aria-current="page">SEO Studio</a></nav><main><header class="studio-hero"><p class="eyebrow">MICIRQL / WEBSITE INTELLIGENCE</p><h1>SEO Studio</h1><p>Audit your website, understand its HTML SEO health and prioritize improvements. Free, private, and powered by your Chrome extension.</p><nav class="studio-jump" aria-label="SEO Studio sections"><a href="#site-heading">Website audit</a><a href="#site-results">Audit results</a><a href="#advanced-inspector">Advanced inspector</a></nav></header><div id="extension-status" class="status" data-connected="checking" role="status" aria-live="polite">Checking Chrome extension…</div><details id="advanced-inspector" class="panel advanced-inspector"><summary>Advanced tools · Inspect a single page's HTML</summary><p class="hint small">Paste HTML or capture an individual page when you need to investigate a specific finding.</p><form id="audit"><label for="url">Page URL (for report reference)</label><input id="url" type="url" required placeholder="https://example.com/" maxlength="2048"><label for="html">HTML source</label><textarea id="html" required maxlength="1000000" placeholder="Paste the HTML source here"></textarea><p class="small hint">Maximum 1 MB of HTML. Analysis is local; avoid inspecting sensitive or private pages.</p><div class="actions"><button id="run" type="submit">Analyze HTML</button><button id="local" type="button">Capture HTML with Chrome extension</button></div></form></details><section class="panel audit-workspace" aria-labelledby="site-heading"><h2 id="site-heading">Multi-page SEO audit</h2><p class="hint small">Discover and inspect up to 60 same-origin pages locally with the Chrome extension. The batch continues if individual pages fail. Results are page-level HTML checks, not a complete technical crawl.</p><label for="site-limit">Pages to audit per run</label><select id="site-limit" style="width:100%;background:#15233a;border:1px solid #415575;color:#fff;padding:13px;border-radius:10px"><option value="10">10 pages — quick audit</option><option value="20">20 pages — standard audit</option><option value="40">40 pages — extended audit</option><option value="60" selected>60 pages — maximum audit</option></select><div class="actions"><button type="button" id="site-discover">Discover and select pages</button><button type="button" id="site-run">Audit selected pages</button><button type="button" id="site-export" disabled>Download site report (JSON)</button><button type="button" id="site-export-text" disabled>Download readable report (TXT)</button><button type="button" id="site-export-pdf" disabled>Print client report / Save PDF</button></div><div id="site-selection" hidden><p class="small hint">Choose pages to include, up to the selected batch size.</p><div class="actions"><button type="button" id="site-all">Select all available</button><button type="button" id="site-none">Clear selection</button></div><label for="site-page-search">Filter discovered URLs</label><input id="site-page-search" type="search" placeholder="Search page URL or path"><label for="site-page-role">Page type</label><select id="site-page-role" style="width:100%;background:#15233a;color:#fff;padding:12px"><option value="all">All types</option><option value="public">Public</option><option value="application">Application</option><option value="legal">Legal</option></select><p id="site-selected-count" class="small hint" role="status"></p><div id="site-page-list" style="max-height:290px;overflow:auto"></div></div><p id="site-status" role="status" aria-live="polite"></p><progress id="site-progress" max="60" value="0" style="width:100%;accent-color:#9eb7ff" hidden></progress><div id="site-results"></div></section><section id="output" class="panel" hidden aria-live="polite"></section><div class="report-actions"><button type="button" id="export-json" disabled>Download JSON report</button><button type="button" id="export-text" disabled>Download text report</button></div></main><footer>MiCirql Tools · Private, in-browser static HTML inspection</footer></div><script type="module">
+</style></head><body><div class="wrap"><nav class="toolnav" aria-label="Tool navigation"><a href="/tools/">← All tools</a><a href="/tools/screenshots/">Screenshots</a><a href="/tools/seo/" aria-current="page">SEO Studio</a></nav><main><header class="studio-hero"><p class="eyebrow">MICIRQL / WEBSITE INTELLIGENCE</p><h1>SEO Studio</h1><p>Audit your website, understand its HTML SEO health and prioritize improvements. Free, private, and powered by your Chrome extension.</p><nav class="studio-jump" aria-label="SEO Studio sections"><a href="#site-heading">Website audit</a><a href="#site-results">Audit results</a><a href="#advanced-inspector">Advanced inspector</a></nav></header><div id="extension-status" class="status" data-connected="checking" role="status" aria-live="polite">Checking Chrome extension…</div><details id="advanced-inspector" class="panel advanced-inspector"><summary>Advanced tools · Inspect a single page's HTML</summary><p class="hint small">Paste HTML or capture an individual page when you need to investigate a specific finding.</p><form id="audit"><label for="url">Page URL (for report reference)</label><input id="url" type="url" required placeholder="https://example.com/" maxlength="2048"><label for="html">HTML source</label><textarea id="html" required maxlength="1000000" placeholder="Paste the HTML source here"></textarea><p class="small hint">Maximum 1 MB of HTML. Analysis is local; avoid inspecting sensitive or private pages.</p><div class="actions"><button id="run" type="submit">Analyze HTML</button><button id="local" type="button">Capture HTML with Chrome extension</button></div></form></details><section class="panel audit-workspace" aria-labelledby="site-heading"><h2 id="site-heading">Multi-page SEO audit</h2><p class="hint small">Discover and inspect up to 60 same-origin pages locally with the Chrome extension. The batch continues if individual pages fail. Results are page-level HTML checks, not a complete technical crawl.</p><label for="site-limit">Pages to audit per run</label><select id="site-limit" style="width:100%;background:#15233a;border:1px solid #415575;color:#fff;padding:13px;border-radius:10px"><option value="10">10 pages — quick audit</option><option value="20">20 pages — standard audit</option><option value="40">40 pages — extended audit</option><option value="60" selected>60 pages — maximum audit</option></select><div class="actions"><button type="button" id="site-discover">Discover and select pages</button><button type="button" id="site-run">Audit selected pages</button><button type="button" id="site-demo">Try sample audit (no extension)</button><button type="button" id="site-export" disabled>Download site report (JSON)</button><button type="button" id="site-export-text" disabled>Download readable report (TXT)</button><button type="button" id="site-export-pdf" disabled>Print client report / Save PDF</button></div><div id="site-selection" hidden><p class="small hint">Choose pages to include, up to the selected batch size.</p><div class="actions"><button type="button" id="site-all">Select all available</button><button type="button" id="site-none">Clear selection</button></div><label for="site-page-search">Filter discovered URLs</label><input id="site-page-search" type="search" placeholder="Search page URL or path"><label for="site-page-role">Page type</label><select id="site-page-role" style="width:100%;background:#15233a;color:#fff;padding:12px"><option value="all">All types</option><option value="public">Public</option><option value="application">Application</option><option value="legal">Legal</option></select><p id="site-selected-count" class="small hint" role="status"></p><div id="site-page-list" style="max-height:290px;overflow:auto"></div></div><p id="site-status" role="status" aria-live="polite"></p><progress id="site-progress" max="60" value="0" style="width:100%;accent-color:#9eb7ff" hidden></progress><div id="site-results"></div></section><section id="output" class="panel" hidden aria-live="polite"></section><div class="report-actions"><button type="button" id="export-json" disabled>Download JSON report</button><button type="button" id="export-text" disabled>Download text report</button></div></main><footer>MiCirql Tools · Private, in-browser static HTML inspection</footer></div><script type="module">
 import {inspectSeoHtml} from './inspector.js';
 const fromWorkspace=new URLSearchParams(location.search).get('url');if(fromWorkspace){try{const parsed=new URL(fromWorkspace);if(['https:','http:'].includes(parsed.protocol)&&!parsed.username&&!parsed.password)document.getElementById('url').value=parsed.href}catch{}}
 let lastReport=null,partialCapture=false;
@@ -113,23 +113,33 @@ async function discoverForAudit(url){
 }
 discoverButton.addEventListener('click',async()=>{
  if(!extensionReady){siteStatus.textContent='Connect the Chrome extension first.';return}
- let url;try{url=new URL(document.getElementById('url').value);if(!['http:','https:'].includes(url.protocol)||url.username||url.password)throw Error()}catch{siteStatus.textContent='Enter a valid HTTP(S) URL.';return}
+ let url;try{url=new URL(isDemo?demoPages[0].url:document.getElementById('url').value);if(!['http:','https:'].includes(url.protocol)||url.username||url.password)throw Error()}catch{siteStatus.textContent='Enter a valid HTTP(S) URL.';return}
  discoverButton.disabled=true;siteButton.disabled=true;
  try{await discoverForAudit(url);siteStatus.textContent='Select the pages you want, then start the audit.'}catch(e){siteStatus.textContent=e.message}
  finally{discoverButton.disabled=false;siteButton.disabled=false}
 });
+const demoButton=document.getElementById('site-demo');
+const demoPages=[
+ {url:'https://demo.micirql.invalid/',html:'<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Demo Home</title></head><body><h1>Welcome</h1><img src="/hero.jpg"><a href="/services/">Services</a></body></html>'},
+ {url:'https://demo.micirql.invalid/services/',html:'<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Demo Home</title></head><body><h1>Services</h1><img src="/service.jpg"><a href="/contact/">Contact</a></body></html>'},
+ {url:'https://demo.micirql.invalid/contact/',html:'<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Contact</title><meta name="description" content="Example contact details"></head><body><h1>Contact us</h1><a href="/">Home</a></body></html>'}
+];
+const demoByUrl=new Map(demoPages.map(page=>[page.url,page.html]));
+let pendingDemo=false;
+demoButton.addEventListener('click',()=>{pendingDemo=true;siteButton.click()});
 siteButton.addEventListener('click',async()=>{
- if(!extensionReady){siteStatus.textContent='Connect or reload the Chrome extension first.';return}
+ const isDemo=pendingDemo;pendingDemo=false;
+ if(!isDemo&&!extensionReady){siteStatus.textContent='Connect or reload the Chrome extension first.';return}
  let url;try{url=new URL(document.getElementById('url').value);if(!['http:','https:'].includes(url.protocol)||url.username||url.password)throw Error()}catch{siteStatus.textContent='Enter a valid HTTP(S) website URL.';return}
- siteButton.disabled=true;discoverButton.disabled=true;siteExport.disabled=true;siteExportText.disabled=true;siteReport=null;siteResults.replaceChildren();siteProgress.hidden=false;siteProgress.value=0;
+ siteButton.disabled=true;demoButton.disabled=true;discoverButton.disabled=true;siteExport.disabled=true;siteExportText.disabled=true;siteReport=null;siteResults.replaceChildren();siteProgress.hidden=false;siteProgress.value=0;
  try{
   const maxPages=chosenLimit();
-  if(!selectedDiscovery||selectedDiscovery.startUrl!==url.href)await discoverForAudit(url);
-  const discovered=selectedDiscovery.discovered;
-  const pages=selectedDiscovery.pages.filter(p=>selectedDiscovery.selected.has(p)).slice(0,maxPages);
+  if(!isDemo&&(!selectedDiscovery||selectedDiscovery.startUrl!==url.href))await discoverForAudit(url);
+  const discovered=isDemo?{pages:demoPages.map(page=>page.url),truncated:false}:selectedDiscovery.discovered;
+  const pages=isDemo?demoPages.map(page=>page.url):selectedDiscovery.pages.filter(p=>selectedDiscovery.selected.has(p)).slice(0,maxPages);
   if(!pages.length)throw Error('No accessible pages found');
   siteProgress.max=pages.length;
-  const checkpoint=readCheckpoint(url.origin);
+  const checkpoint=isDemo?null:readCheckpoint(url.origin);
   const reusable=checkpoint&&JSON.stringify(checkpoint.pages)===JSON.stringify(pages)?checkpoint.reports:[];
   const reports=[],failures=[];
   const cached=new Map(reusable.filter(r=>r&&pages.includes(r.requestedUrl||r.url)&&r.auditStatus==='complete').map(r=>[r.requestedUrl||r.url,r]));
@@ -141,7 +151,7 @@ siteButton.addEventListener('click',async()=>{
    let lastError=null;
    for(let attempt=1;attempt<=2;attempt++){
     try{
-     const response=await extensionRequest('MICIRQL_SEO_READ','MICIRQL_SEO_RESULT',pages[i],90000);
+     const response=isDemo?{ok:true,html:demoByUrl.get(pages[i]),url:pages[i],partial:false}:await extensionRequest('MICIRQL_SEO_READ','MICIRQL_SEO_RESULT',pages[i],90000);
      if(!response.ok)throw Error(response.error||'Inspection failed');
      const report=inspectSeoHtml(response.html,response.url||pages[i],{partial:response.partial===true});
      report.requestedUrl=pages[i];report.pageRole=suggestedPageRole(report.url);report.pageRoleSource='suggested_from_url';report.attempts=attempt;
@@ -158,7 +168,7 @@ siteButton.addEventListener('click',async()=>{
        report.score=Math.min(100,report.score+waived);
       }
      }
-     reports.push(report);saveCheckpoint(url.origin,pages,reports);lastError=null;break;
+     reports.push(report);if(!isDemo)saveCheckpoint(url.origin,pages,reports);lastError=null;break;
     }catch(error){
      lastError=error;
      if(attempt<2){siteStatus.textContent='Retrying page '+(i+1)+' of '+pages.length+' after a short recovery pause (attempt 2 of 2)…';await new Promise(resolve=>setTimeout(resolve,1500));}
@@ -168,7 +178,7 @@ siteButton.addEventListener('click',async()=>{
    siteProgress.value=i+1;
   }
   // Keep completed page findings if any page failed, so retrying this selection only rechecks failures.
-  if(!failures.length)try{localStorage.removeItem(checkpointKey)}catch{}
+  if(!isDemo&&!failures.length)try{localStorage.removeItem(checkpointKey)}catch{}
   siteStatus.textContent=failures.length?'Audit finished: '+reports.length+' completed, '+failures.length+' failed. Rerun this selection to retry failed pages using saved results.':'Audit finished: '+reports.length+' pages completed.';
   const siteFindings=[];
   // Cross-page findings are separate from individual page scores: do not
@@ -206,7 +216,7 @@ siteButton.addEventListener('click',async()=>{
     affectedUrls:pageList,
     targetExamples:[...pending.keys()].slice(0,10)});
   }
-  siteReport={schemaVersion:1,tool:'seo-site',generatedAt:new Date().toISOString(),website:url.origin,pagesDiscovered:discovered.pages.length,pagesSelected:pages.length,requestedLimit:maxPages,pagesAnalyzed:reports.length,failures,reports,siteFindings,linkVerification:[],retryPolicy:{maxAttemptsPerPage:2,sequential:true},coverage:{selected:pages.length,analyzed:reports.length,failed:failures.length,discovered:discovered.pages.length,discoveryTruncated:discovered.truncated===true,selectionLimited:discovered.pages.length>pages.length,successfulPercent:Math.round(reports.length/pages.length*100)},scope:'bounded_browser_html_audit'};
+  siteReport={schemaVersion:1,demo:isDemo,tool:'seo-site',generatedAt:new Date().toISOString(),website:url.origin,pagesDiscovered:discovered.pages.length,pagesSelected:pages.length,requestedLimit:maxPages,pagesAnalyzed:reports.length,failures,reports,siteFindings,linkVerification:[],retryPolicy:{maxAttemptsPerPage:2,sequential:true},coverage:{selected:pages.length,analyzed:reports.length,failed:failures.length,discovered:discovered.pages.length,discoveryTruncated:discovered.truncated===true,selectionLimited:discovered.pages.length>pages.length,successfulPercent:Math.round(reports.length/pages.length*100)},scope:'bounded_browser_html_audit'};
   siteExport.disabled=false;siteExportText.disabled=false;sitePrintButton.disabled=false;
   const coverage=document.createElement('p');coverage.className='notice';coverage.textContent='Audit coverage: '+reports.length+'/'+pages.length+' selected pages analyzed ('+siteReport.coverage.successfulPercent+'%). '+(siteReport.coverage.selectionLimited?'Only '+pages.length+' of '+discovered.pages.length+' discovered pages were selected for this audit. ':'')+(siteReport.coverage.discoveryTruncated?'Discovery reached its page limit; more pages may exist. ':'')+'Unvisited pages are not scored.';siteResults.append(coverage);
   const roleSummary=document.createElement('div');roleSummary.className='summary';roleSummary.id='site-role-summary';
@@ -822,7 +832,7 @@ siteButton.addEventListener('click',async()=>{
   renderPageRows();
   for(const failure of failures){const row=document.createElement('p');row.className='finding';row.dataset.severity='high';row.textContent='FAILED after '+failure.attempts+' attempts · '+failure.url+' · '+failure.error;siteResults.append(row)}
  }catch(error){siteStatus.textContent=error.message||'Site audit failed'}
- finally{siteButton.disabled=false;discoverButton.disabled=false}
+ finally{siteButton.disabled=false;demoButton.disabled=false;discoverButton.disabled=false}
 });
 const sitePrintButton=document.getElementById('site-export-pdf');
 function printClientSeoReport(report){
