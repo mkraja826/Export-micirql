@@ -891,3 +891,11 @@ test('interrupted extension reinspection skips rediscovery and reuses prior scop
  assert.match(html,/previousRetryReport\?\.website===url\.origin\?\{pages:previousRetryReport\.selectedPageUrls\|\|\[\],truncated:previousRetryReport\.coverage\?\.discoveryTruncated===true\}/);
  assert.match(html,/const cached=reusablePages\(\{pages,reports:reusable\},url\.origin,pages\)/);
 });
+
+test('selective reinspection preserves original discovery totals and selection-limit evidence',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/originalCount:previousRetryReport\.pagesDiscovered/);
+ assert.match(html,/pagesDiscovered:discovered\.originalCount\?\?discovered\.pages\.length/);
+ assert.match(html,/discovered:discovered\.originalCount\?\?discovered\.pages\.length/);
+ assert.match(html,/selectionLimited:\(discovered\.originalCount\?\?discovered\.pages\.length\)>pages\.length/);
+});
