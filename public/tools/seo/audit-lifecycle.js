@@ -1,0 +1,37 @@
+// Pure audit lifecycle helpers, reusable by browser UI and deterministic stress tests.
+export function reusablePages(checkpoint, origin, pages) {
+ if(!checkpoint || JSON.stringify(checkpoint.pages)!==JSON.stringify(pages))return new Map();
+ const allowed=new Set(pages), cached=new Map();
+ for(const report of checkpoint.reports||[]){
+  if(!report||report.auditStatus!=='complete'||report.partial||!Number.isFinite(report.score))continue;
+  const requested=report.requestedUrl||report.url;
+  if(!allowed.has(requested))continue;
+  try{if(new URL(report.url).origin!==origin)continue}catch{continue}
+  cached.set(requested,report);
+ }
+ return cached;
+}
+export function auditCoverage(pages,reports,failures){
+ const selected=pages.length,analyzed=reports.length,failed=failures.length;
+ if(selected<1||selected>60)throw Error('Audit selection must contain 1–60 pages');
+ if(analyzed+failed!==selected)throw Error('Audit results do not account for every selected page');
+ const complete=reports.filter(r=>r.auditStatus==='complete'&&!r.partial&&Number.isFinite(r.score)).length;
+ return {selected,analyzed,failed,complete,partial:analyzed-complete,successfulPercent:Math.round(analyzed/selected*100)};
+}
+export async function inspectBatch({pages,checkpoint,origin,inspect,onProgress=()=>{},maxAttempts=2}){
+ if(pages.length<1||pages.length>60||new Set(pages).size!==pages.length)throw Error('Invalid batch selection');
+ const cached=reusablePages(checkpoint,origin,pages),reports=[],failures=[];
+ for(let i=0;i<pages.length;i++){
+  const url=pages[i];
+  if(cached.has(url)){reports.push(cached.get(url));onProgress({done:i+1,total:pages.length,resumed:true,url});continue}
+  let lastError;
+  for(let attempt=1;attempt<=maxAttempts;attempt++){
+   try{const report=await inspect(url,attempt);if(!report)throw Error('Empty inspection');
+    reports.push({...report,requestedUrl:url,attempts:attempt});lastError=null;break;
+   }catch(error){lastError=error}
+  }
+  if(lastError)failures.push({url,error:lastError.message||String(lastError),attempts:maxAttempts});
+  onProgress({done:i+1,total:pages.length,resumed:false,url});
+ }
+ return {reports,failures,coverage:auditCoverage(pages,reports,failures)};
+}
