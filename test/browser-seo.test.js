@@ -736,3 +736,11 @@ test('SEO discovery accepts the dedicated audit URL or Advanced Inspector URL wi
  assert.ok(!discover.includes('isDemo'),'Discovery cannot access demo-only scope');
  assert.ok(html.includes("new URL(isDemo?demoPages[0].url:document.getElementById('site-url').value.trim()"));
 });
+
+test('printable SEO client report includes all issue groups and verification guidance',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/const rows=issues\.map\(/);
+ assert.match(html,/Fix and verification guide/);
+ assert.match(html,/const guidance=issues\.map\(/);
+ assert.doesNotMatch(html,/issues\.slice\(0,20\)/);
+});
