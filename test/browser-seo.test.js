@@ -824,3 +824,11 @@ test('live SEO audit retains partial evidence when second capture fails',()=>{
  assert.match(html,/partialReport\.recoveryError=lastError\.message/);
  assert.match(html,/reports\.push\(partialReport\)/);
 });
+
+test('SEO scores explicitly classify verified, provisional and unverified confidence',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/page\.scoreConfidence=page\.partial\|\|page\.auditStatus==='partial'\?'provisional'/);
+ assert.match(html,/page\.auditStatus==='complete'&&Number\.isFinite\(page\.score\)\?'verified':'unverified'/);
+ assert.match(html,/confidenceNote\.textContent='Confidence: '/);
+ assert.match(html,/page\.scoreConfidence\|\|/);
+});
