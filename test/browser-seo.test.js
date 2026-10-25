@@ -751,3 +751,9 @@ test('large-site checkpoint resumes only complete, nonpartial, scored pages',()=
  assert.match(html,/saved\.pages\.some\(p=>/);
  assert.match(html,/new URL\(p\)\.origin!==origin/);
 });
+
+test('partial audits retain recovery checkpoints and cached redirects stay same-origin',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/reports\.every\(r=>r\.auditStatus==='complete'&&!r\.partial&&Number\.isFinite\(r\.score\)\)/);
+ assert.match(html,/new URL\(r\.url\)\.origin===url\.origin/);
+});
