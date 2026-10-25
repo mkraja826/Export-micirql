@@ -703,3 +703,15 @@ test('SEO remediation examples never terminate the inline script early',()=>{
  assert.equal((html.match(/<\/script>/g)||[]).length,1,'Inline module must have a single real closing script tag');
  assert.ok(html.includes(String.raw`Example Business"}<\/script>`),'JSON-LD example closing tag must be escaped in source');
 });
+
+test('SEO Studio demo audit is local, visibly labeled, and excluded from saved history',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes('id="site-demo"'));
+ assert.ok(html.includes('const demoPages=['));
+ assert.ok(html.includes('const isDemo=pendingDemo;pendingDemo=false'));
+ assert.ok(html.includes('const response=isDemo?{ok:true,html:demoByUrl.get(pages[i])'));
+ assert.ok(html.includes('if(!isDemo)saveCheckpoint(url.origin,pages,reports)'));
+ assert.ok(html.includes('if(!isDemo){auditHistory.push(summarySnapshot)'));
+ assert.ok(html.includes('DEMO ONLY'));
+ assert.ok(html.includes('demo:isDemo'));
+});
