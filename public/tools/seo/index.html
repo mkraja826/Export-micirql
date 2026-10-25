@@ -148,8 +148,8 @@ siteButton.addEventListener('click',async()=>{
  retryIncompleteButton.disabled=true;siteButton.disabled=true;demoButton.disabled=true;discoverButton.disabled=true;siteExport.disabled=true;siteExportText.disabled=true;siteReport=null;siteResults.replaceChildren();siteProgress.hidden=false;siteProgress.value=0;
  try{
   const maxPages=chosenLimit();
-  if(!isDemo&&(!selectedDiscovery||selectedDiscovery.startUrl!==url.href))await discoverForAudit(url);
-  const discovered=isDemo?{pages:demoPages.map(page=>page.url),truncated:false}:selectedDiscovery.discovered;
+  if(!isDemo&&!previousRetryReport&&(!selectedDiscovery||selectedDiscovery.startUrl!==url.href))await discoverForAudit(url);
+  const discovered=isDemo?{pages:demoPages.map(page=>page.url),truncated:false}:previousRetryReport?.website===url.origin?{pages:previousRetryReport.selectedPageUrls||[],truncated:previousRetryReport.coverage?.discoveryTruncated===true}:selectedDiscovery.discovered;
   const pages=previousRetryReport?.website===url.origin&&Array.isArray(previousRetryReport.selectedPageUrls)?previousRetryReport.selectedPageUrls.slice():isDemo?demoPages.map(page=>page.url):selectedDiscovery.pages.filter(p=>selectedDiscovery.selected.has(p)).slice(0,maxPages);
   if(!pages.length)throw Error('No accessible pages found');
   siteProgress.max=pages.length;
