@@ -845,10 +845,12 @@ function printClientSeoReport(report){
  const escapeHTML=value=>String(value??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
  const valid=report.reports.filter(page=>Number.isFinite(page.score)&&!page.partial&&page.auditStatus==='complete');
  const average=valid.length?Math.round(valid.reduce((sum,page)=>sum+page.score,0)/valid.length):null;
- const partialCount=(report.reports||[]).filter(page=>(page.partial||page.auditStatus==='partial')&&page.auditStatus!=='failed').length;
- const failedCount=new Set((report.failures||[]).map(entry=>entry.url).filter(Boolean)).size;
- const completedCount=(report.reports||[]).filter(page=>page.auditStatus==='complete'&&!page.partial).length;
- const inspectedUniqueCount=new Set((report.reports||[]).map(page=>page.url).filter(Boolean)).size;
+ const inspectedPages=new Map((report.reports||[]).filter(page=>page.url).map(page=>[page.url,page]));
+ const failedUrls=new Set((report.failures||[]).map(entry=>entry.url).filter(Boolean));
+ const completedCount=[...inspectedPages.values()].filter(page=>page.auditStatus==='complete'&&!page.partial&&!failedUrls.has(page.url)).length;
+ const partialCount=[...inspectedPages.values()].filter(page=>(page.partial||page.auditStatus==='partial')&&page.auditStatus!=='failed'&&!failedUrls.has(page.url)).length;
+ const failedCount=new Set([...failedUrls,...[...inspectedPages.values()].filter(page=>page.auditStatus==='failed').map(page=>page.url)]).size;
+ const inspectedUniqueCount=inspectedPages.size;
  const priority={high:0,medium:1,low:2,info:3};
  const issues=[...(report.issueCenter||[])].sort((a,b)=>(priority[a.severity]??4)-(priority[b.severity]??4)||b.affectedUrls.length-a.affectedUrls.length);
  const rows=issues.map((issue,index)=>'<tr><td>'+String(index+1)+'</td><td>'+escapeHTML(issue.severity)+'</td><td>'+escapeHTML(issue.code.replaceAll('_',' '))+'</td><td>'+escapeHTML(issue.recommendation)+'</td><td>'+escapeHTML((issue.affectedUrls||[]).length)+' / '+escapeHTML(report.pagesSelected)+' selected</td></tr>').join('');
