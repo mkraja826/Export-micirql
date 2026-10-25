@@ -156,7 +156,7 @@ siteButton.addEventListener('click',async()=>{
      const response=isDemo?{ok:true,html:demoByUrl.get(pages[i]),url:pages[i],partial:false}:await extensionRequest('MICIRQL_SEO_READ','MICIRQL_SEO_RESULT',pages[i],90000);
      if(!response.ok)throw Error(response.error||'Inspection failed');
      const report=inspectSeoHtml(response.html,response.url||pages[i],{partial:response.partial===true});
-     report.requestedUrl=pages[i];report.pageRole=suggestedPageRole(report.url);report.pageRoleSource='suggested_from_url';report.attempts=attempt;
+     report.requestedUrl=pages[i];report.captureEvidence={source:isDemo?'demo_html':'browser_extension_html',partialResponse:response.partial===true,htmlBytes:new TextEncoder().encode(String(response.html||'')).length};report.pageRole=suggestedPageRole(report.url);report.pageRoleSource='suggested_from_url';report.attempts=attempt;
      // Account and authentication routes are intentionally not search-indexed.
      // Preserve evidence, but do not penalize noindex/missing canonical for these routes.
      const authPath=new URL(report.url).pathname.toLowerCase();
