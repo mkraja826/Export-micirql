@@ -179,7 +179,7 @@ siteButton.addEventListener('click',async()=>{
   }
   // Keep completed page findings if any page failed, so retrying this selection only rechecks failures.
   if(!isDemo&&!failures.length)try{localStorage.removeItem(checkpointKey)}catch{}
-  siteStatus.textContent=failures.length?'Audit finished: '+reports.length+' completed, '+failures.length+' failed. Rerun this selection to retry failed pages using saved results.':'Audit finished: '+reports.length+' pages completed.';
+  siteStatus.textContent=isDemo?'DEMO ONLY — 3 bundled sample pages; no real website scanned.':failures.length?'Audit finished: '+reports.length+' completed, '+failures.length+' failed. Rerun this selection to retry failed pages using saved results.':'Audit finished: '+reports.length+' pages completed.';
   const siteFindings=[];
   // Cross-page findings are separate from individual page scores: do not
   // retroactively alter per-page scores based on a capped discovery sample.
@@ -484,7 +484,7 @@ siteButton.addEventListener('click',async()=>{
     historyPanel.append(list);
    };historySelect.addEventListener('change',compareHistory);compareHistory();
   }else{const empty=document.createElement('p');empty.className='hint';empty.textContent='First saved audit for this website; comparisons appear after the next run.';historyPanel.append(empty)}
-  try{auditHistory.push(summarySnapshot);localStorage.setItem(historyKey,JSON.stringify(auditHistory.slice(-10)))}catch{const note=document.createElement('p');note.className='hint';note.textContent='Browser storage unavailable; this run was not saved.';historyPanel.append(note)}
+  try{if(!isDemo){auditHistory.push(summarySnapshot);localStorage.setItem(historyKey,JSON.stringify(auditHistory.slice(-10)))}}catch{const note=document.createElement('p');note.className='hint';note.textContent='Browser storage unavailable; this run was not saved.';historyPanel.append(note)}
   // Client summary is generated from this audit and local fix tracking, not search-console data.
   const progressPanel=document.createElement('section');progressPanel.id='site-progress-report';progressPanel.setAttribute('aria-label','SEO progress report');
   const progressTitle=document.createElement('h3');progressTitle.textContent='SEO progress report';progressPanel.append(progressTitle);
