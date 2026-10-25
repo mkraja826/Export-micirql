@@ -815,3 +815,12 @@ test('capture failures have typed categories and a visible site-level breakdown'
  assert.match(html,/failureDiagnostics\.extension/);
  assert.match(html,/failureDiagnostics\.incompleteHtml/);
 });
+
+test('live SEO audit retains partial evidence when second capture fails',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/let lastError=null;let partialReport=null/);
+ assert.match(html,/partialReport=report;siteStatus/);
+ assert.match(html,/if\(lastError&&partialReport\)/);
+ assert.match(html,/partialReport\.recoveryError=lastError\.message/);
+ assert.match(html,/reports\.push\(partialReport\)/);
+});
