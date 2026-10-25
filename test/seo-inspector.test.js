@@ -258,3 +258,29 @@ test('JV Dental fixtures: repeated branding, long doctor metadata and heading sk
  assert.equal(issue.evidence[0].from,'H1');
  assert.equal(issue.evidence[0].to,'H3');
 });
+
+test('incomplete HTML detection marks interrupted captures provisional',()=>{
+ const base='<html lang="en"><head><title>Example</title></head><body><h1>Example</h1>';
+ const samples=[
+  base+'<div class="unfinished',
+  base+'<!-- unfinished comment',
+  base+'<script>window.example = true;'
+ ];
+ for(const html of samples){
+  const report=inspectSeoHtml(html,'https://example.com/');
+  assert.equal(report.auditStatus,'partial');
+  assert.equal(report.partial,true);
+  assert.equal(report.scoreLabel,'Provisional score');
+ }
+});
+test('incomplete HTML detection permits valid fragments and closed scripts',()=>{
+ const samples=[
+  '<main><h1>Example</h1><p>Valid fragment</p></main>',
+  '<html><head><title>Example</title></head><body><script>window.example = true;</script><h1>Example</h1></body></html>',
+  '<html><body><p>Optional closing tags are not mandatory'
+ ];
+ for(const html of samples){
+  const report=inspectSeoHtml(html,'https://example.com/');
+  assert.equal(report.auditStatus,'complete');
+ }
+});
