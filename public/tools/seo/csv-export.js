@@ -1,5 +1,10 @@
 // Deterministic CSV serialization for SEO Studio's browser-local audit reports.
-const quote = value => '"' + String(value ?? '').replaceAll('"', '""') + '"';
+const quote = value => {
+  const raw = String(value ?? '');
+  // Prevent Excel/Sheets from evaluating untrusted page titles and URLs as formulas.
+  const safe = /^[\\s\\u0000-\\u001f]*[=+@-]/.test(raw) ? "'" + raw : raw;
+  return '"' + safe.replaceAll('"', '""') + '"';
+};
 export function csvRows(rows) {
   return '\uFEFF' + rows.map(row => row.map(value => quote(value)).join(',')).join('\r\n') + '\r\n';
 }
