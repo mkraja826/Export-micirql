@@ -38,3 +38,10 @@ test('coverage rejects missing results and out-of-bounds selection',()=>{
  assert.throws(()=>auditCoverage(pages,[],[]),/account/);
  assert.throws(()=>auditCoverage([...pages,'https://example.com/extra'],[],[]),/1–60/);
 });
+
+test('stress runner rejects cross-origin URLs, duplicate pages and excessive retry counts',async()=>{
+ const inspect=async url=>complete(url);
+ await assert.rejects(inspectBatch({origin,pages:[origin+'/ok','https://other.example/bad'],inspect}),/cross-origin/);
+ await assert.rejects(inspectBatch({origin,pages:[origin+'/same',origin+'/same'],inspect}),/Invalid batch/);
+ await assert.rejects(inspectBatch({origin,pages:[origin+'/ok'],inspect,maxAttempts:5}),/Retry limit/);
+});
