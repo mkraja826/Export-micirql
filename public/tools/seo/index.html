@@ -120,11 +120,13 @@ discoverButton.addEventListener('click',async()=>{
  try{await discoverForAudit(url);siteStatus.textContent='Select the pages you want, then start the audit.'}catch(e){siteStatus.textContent=e.message}
  finally{discoverButton.disabled=false;siteButton.disabled=false}
 });
+let retryIncompleteRequested=false;
 const retryIncompleteButton=document.getElementById('site-retry-incomplete');
 retryIncompleteButton.addEventListener('click',()=>{
  if(!siteReport||siteReport.demo||!extensionReady)return;
  const pending=(siteReport.reports||[]).filter(page=>page.partial||page.auditStatus!=='complete').length+(siteReport.failures||[]).length;
  if(!pending){siteStatus.textContent='No incomplete or failed pages need reinspection.';return}
+ retryIncompleteRequested=true;
  retryIncompleteButton.disabled=true;
  siteStatus.textContent='Reinspecting '+pending+' incomplete or failed pages while retaining completed inspections…';
  siteButton.click();
@@ -140,6 +142,7 @@ let pendingDemo=false;
 demoButton.addEventListener('click',()=>{pendingDemo=true;siteButton.click()});
 siteButton.addEventListener('click',async()=>{
  const isDemo=pendingDemo;pendingDemo=false;
+ const previousRetryReport=retryIncompleteRequested?siteReport:null;retryIncompleteRequested=false;
  if(!isDemo&&!extensionReady){siteStatus.textContent='Connect or reload the Chrome extension first.';return}
  let url;try{url=new URL(isDemo?demoPages[0].url:document.getElementById('site-url').value.trim()||document.getElementById('url').value.trim());if(!['http:','https:'].includes(url.protocol)||url.username||url.password)throw Error()}catch{siteStatus.textContent='Enter a valid HTTP(S) website URL in the Website URL to audit field.';return}
  retryIncompleteButton.disabled=true;siteButton.disabled=true;demoButton.disabled=true;discoverButton.disabled=true;siteExport.disabled=true;siteExportText.disabled=true;siteReport=null;siteResults.replaceChildren();siteProgress.hidden=false;siteProgress.value=0;
@@ -187,6 +190,7 @@ siteButton.addEventListener('click',async()=>{
     }
    }
    if(lastError&&partialReport){partialReport.attempts=2;partialReport.recoveryError=lastError.message||'Retry failed';reports.push(partialReport);if(!isDemo)saveCheckpoint(url.origin,pages,reports);lastError=null;}
+   if(lastError&&previousRetryReport?.website===url.origin){const preserved=(previousRetryReport.reports||[]).find(page=>(page.requestedUrl||page.url)===pages[i]&&(page.partial||page.auditStatus==='partial'));if(preserved){reports.push({...preserved,recoveryError:lastError.message||'Reinspection failed',reinspectionAttempts:2});saveCheckpoint(url.origin,pages,reports);lastError=null;}}
    if(lastError){const message=lastError.message||'Inspection failed';const category=/timed?\s*out|timeout|stopped responding/i.test(message)?'timeout':/extension|chrome|not connected|not installed/i.test(message)?'extension':/incomplete|partial|truncat/i.test(message)?'incomplete_html':'capture_error';failures.push({url:pages[i],error:message,category,attempts:2});}
    siteProgress.value=i+1;
   }
