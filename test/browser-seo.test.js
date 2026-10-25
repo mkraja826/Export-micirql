@@ -715,3 +715,15 @@ test('SEO Studio demo audit is local, visibly labeled, and excluded from saved h
  assert.ok(html.includes('DEMO ONLY'));
  assert.ok(html.includes('demo:isDemo'));
 });
+
+test('MiCirql Tools offers a first-party extension download with explicit Chrome installation steps',()=>{
+ const seo=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ const home=readFileSync(new URL('../public/tools/index.html',import.meta.url),'utf8');
+ const workflow=readFileSync(new URL('../.github/workflows/deploy.yml',import.meta.url),'utf8');
+ for(const page of [seo,home])assert.ok(page.includes('/extension/micirql-tools-extension.zip'));
+ assert.ok(seo.includes('chrome://extensions'));
+ assert.ok(seo.includes('Load unpacked'));
+ assert.ok(seo.includes('Chrome extension connected'));
+ assert.ok(workflow.includes('Package downloadable Chrome extension'));
+ assert.ok(workflow.includes('unzip -t public/extension/micirql-tools-extension.zip'));
+});
