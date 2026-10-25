@@ -80,3 +80,17 @@ test('single attempt does not retry partial HTML',async()=>{
  assert.equal(calls,1);
  assert.equal(result.reports[0].attempts,1);
 });
+
+test('partial HTML evidence survives an exception on the second attempt',async()=>{
+ const url=origin+'/partial-then-error';let calls=0;
+ const result=await inspectBatch({origin,pages:[url],inspect:async()=>{
+  calls++;if(calls===2)throw Error('extension timed out');
+  return {...complete(url),partial:true,auditStatus:'partial'};
+ }});
+ assert.equal(calls,2);
+ assert.equal(result.reports.length,1);
+ assert.equal(result.reports[0].auditStatus,'partial');
+ assert.equal(result.reports[0].attempts,2);
+ assert.equal(result.failures.length,0);
+ assert.equal(result.coverage.partial,1);
+});
