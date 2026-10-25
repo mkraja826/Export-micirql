@@ -884,3 +884,10 @@ test('reinspection pins original page selection and prioritizes previous complet
  assert.match(html,/previousRetryReport\?\.website===url\.origin&&JSON\.stringify\(previousRetryReport\.selectedPageUrls\)===JSON\.stringify\(pages\)\?previousRetryReport\.reports/);
  assert.match(html,/pagesSelected:pages\.length,selectedPageUrls:pages\.slice\(\),requestedLimit:maxPages/);
 });
+
+test('interrupted extension reinspection skips rediscovery and reuses prior scope',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/if\(!isDemo&&!previousRetryReport&&\(!selectedDiscovery\|\|selectedDiscovery\.startUrl!==url\.href\)\)await discoverForAudit\(url\)/);
+ assert.match(html,/previousRetryReport\?\.website===url\.origin\?\{pages:previousRetryReport\.selectedPageUrls\|\|\[\],truncated:previousRetryReport\.coverage\?\.discoveryTruncated===true\}/);
+ assert.match(html,/const cached=reusablePages\(\{pages,reports:reusable\},url\.origin,pages\)/);
+});
