@@ -45,3 +45,8 @@ test('stress runner rejects cross-origin URLs, duplicate pages and excessive ret
  await assert.rejects(inspectBatch({origin,pages:[origin+'/same',origin+'/same'],inspect}),/Invalid batch/);
  await assert.rejects(inspectBatch({origin,pages:[origin+'/ok'],inspect,maxAttempts:5}),/Retry limit/);
 });
+
+test('partial pages are counted as analyzed but not complete',()=>{
+ const result=auditCoverage([origin+'/a',origin+'/b'],[complete(origin+'/a'),{...complete(origin+'/b'),partial:true}],[]);
+ assert.deepEqual({analyzed:result.analyzed,complete:result.complete,partial:result.partial},{analyzed:2,complete:1,partial:1});
+});
