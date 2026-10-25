@@ -377,6 +377,9 @@ siteButton.addEventListener('click',async()=>{
    links_http:{steps:['Check that HTTPS works for the linked destination.','Update eligible internal and external links to HTTPS.','Verify redirects and avoid mixed-content resources.'],example:'<a href="https://example.com/contact/">Contact</a>'},
    links_javascript:{steps:['Replace javascript: links with real destinations or buttons for actions.','Provide keyboard-accessible behavior when using buttons.','Re-audit link semantics.'],example:'<button type="button">Open details</button>'}
   };
+  // Suggested owners are workflow roles, not verified assignments to individuals.
+  const suggestedOwner=code=>/^(missing_title|duplicate_title|missing_description|duplicate_description|missing_h1|multiple_h1|thin_content|image_alt)/.test(code)?'Content / SEO':/^(canonical|missing_canonical|duplicate_canonical|noindex|robots|sitemap|redirect|http|links_|unresolved_link)/.test(code)?'Web developer / Technical SEO':'SEO reviewer / Web developer';
+  const verificationSteps=code=>remediationExamples[code]?.steps?.at(-1)||'Review the affected URLs in the live website, then rerun the bounded SEO audit.';
   const remediationFor=code=>remediationExamples[code]||null;
   const renderOpportunities=()=>{
    opportunityList.replaceChildren();
@@ -401,7 +404,7 @@ siteButton.addEventListener('click',async()=>{
   opportunitySeverityFilter.addEventListener('change',renderOpportunities);reachFilter.addEventListener('change',renderOpportunities);renderOpportunities();
   exportOpportunities.addEventListener('click',()=>{
    const csvCell=value=>'"'+String(value??'').replace(/^[=+\-@\t\r]/,'\u0027$&').replace(/"/g,'""')+'"';
-   const rows=[['Priority','Finding','Severity','Affected pages','Share of selected pages (%)','Evidence status','Suggested action','Sample URLs'],...filteredOpportunities().map((issue,index)=>[index+1,issue.title,issue.severity,issue.affectedPages,issue.affectedSharePercent??'',issue.verificationStatus,issue.recommendation,issue.affectedUrls.join(' | ')])];
+   const rows=[['Priority','Finding','Severity','Affected pages','Share of selected pages (%)','Evidence status','Suggested owner (unassigned)','Suggested action','Verification step','Sample URLs'],...filteredOpportunities().map((issue,index)=>[index+1,issue.title,issue.severity,issue.affectedPages,issue.affectedSharePercent??'',issue.verificationStatus,suggestedOwner(issue.code),issue.recommendation,verificationSteps(issue.code),issue.affectedUrls.join(' | ')])];
    downloadReport('csv',rows.map(row=>row.map(csvCell).join(',')).join('\r\n'),'text/csv;charset=utf-8');
   });
   siteResults.append(opportunitiesPanel);
