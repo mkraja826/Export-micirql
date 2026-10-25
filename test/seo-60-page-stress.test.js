@@ -1,0 +1,40 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {inspectBatch,reusablePages,auditCoverage} from '../public/tools/seo/audit-lifecycle.js';
+const origin='https://example.com';
+const pages=Array.from({length:60},(_,i)=>origin+'/page-'+i);
+const complete=url=>({url,score:82,auditStatus:'complete',partial:false,findings:[]});
+test('60-page stress fixture retries transient errors and accounts for all pages',async()=>{
+ const calls=new Map(),progress=[];
+ const result=await inspectBatch({origin,pages,inspect:async url=>{
+  calls.set(url,(calls.get(url)||0)+1);
+  if(url.endsWith('page-5')&&calls.get(url)===1)throw Error('temporary failure');
+  if(url.endsWith('page-9'))throw Error('persistent failure');
+  return complete(url);
+ },onProgress:p=>progress.push(p)});
+ assert.equal(result.reports.length,59);
+ assert.equal(result.failures.length,1);
+ assert.equal(result.coverage.successfulPercent,98);
+ assert.equal(result.coverage.complete,59);
+ assert.equal(calls.get(origin+'/page-5'),2);
+ assert.equal(calls.get(origin+'/page-9'),2);
+ assert.equal(progress.length,60);
+ assert.deepEqual(progress.map(p=>p.done),Array.from({length:60},(_,i)=>i+1));
+});
+test('interrupted 60-page run resumes 40 complete pages and rechecks partial results',async()=>{
+ const checkpoint={pages,reports:[...pages.slice(0,40).map(complete),{...complete(pages[40]),partial:true}]};
+ const calls=[];
+ const result=await inspectBatch({origin,pages,checkpoint,inspect:async url=>{calls.push(url);return complete(url)}});
+ assert.equal(calls.length,20);
+ assert.equal(result.reports.length,60);
+ assert.equal(result.coverage.complete,60);
+ assert.equal(result.coverage.successfulPercent,100);
+});
+test('cross-origin and unscored cached pages are never reused',()=>{
+ const checkpoint={pages,reports:[complete(pages[0]),{...complete(pages[1]),url:'https://elsewhere.com/'},{...complete(pages[2]),score:null}]};
+ assert.deepEqual([...reusablePages(checkpoint,origin,pages).keys()],[pages[0]]);
+});
+test('coverage rejects missing results and out-of-bounds selection',()=>{
+ assert.throws(()=>auditCoverage(pages,[],[]),/account/);
+ assert.throws(()=>auditCoverage([...pages,'https://example.com/extra'],[],[]),/1–60/);
+});
