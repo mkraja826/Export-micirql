@@ -143,7 +143,7 @@ siteButton.addEventListener('click',async()=>{
   const checkpoint=isDemo?null:readCheckpoint(url.origin);
   const reusable=checkpoint&&JSON.stringify(checkpoint.pages)===JSON.stringify(pages)?checkpoint.reports:[];
   const reports=[],failures=[];
-  const cached=new Map(reusable.filter(r=>r&&pages.includes(r.requestedUrl||r.url)&&r.auditStatus==='complete'&&!r.partial&&Number.isFinite(r.score)).map(r=>[r.requestedUrl||r.url,r]));
+  const cached=new Map(reusable.filter(r=>r&&pages.includes(r.requestedUrl||r.url)&&r.auditStatus==='complete'&&!r.partial&&Number.isFinite(r.score)&&(()=>{try{return new URL(r.url).origin===url.origin}catch{return false}})()).map(r=>[r.requestedUrl||r.url,r]));
   const resumedCount=pages.filter(p=>cached.has(p)).length;
   if(resumedCount)siteStatus.textContent='Restoring '+resumedCount+' completed pages; inspecting '+(pages.length-resumedCount)+' remaining…';
   for(let i=0;i<pages.length;i++){
@@ -179,7 +179,7 @@ siteButton.addEventListener('click',async()=>{
    siteProgress.value=i+1;
   }
   // Keep completed page findings if any page failed, so retrying this selection only rechecks failures.
-  if(!isDemo&&!failures.length)try{localStorage.removeItem(checkpointKey)}catch{}
+  if(!isDemo&&!failures.length&&reports.every(r=>r.auditStatus==='complete'&&!r.partial&&Number.isFinite(r.score)))try{localStorage.removeItem(checkpointKey)}catch{}
   siteStatus.textContent=isDemo?'DEMO ONLY — 3 bundled sample pages; no real website scanned.':failures.length?'Audit finished: '+reports.length+' completed, '+failures.length+' failed. Rerun this selection to retry failed pages using saved results.':'Audit finished: '+reports.length+' pages completed.';
   const siteFindings=[];
   // Cross-page findings are separate from individual page scores: do not
