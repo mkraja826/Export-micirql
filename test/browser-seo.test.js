@@ -832,3 +832,12 @@ test('SEO scores explicitly classify verified, provisional and unverified confid
  assert.match(html,/confidenceNote\.textContent='Confidence: '/);
  assert.match(html,/page\.scoreConfidence\|\|/);
 });
+
+test('printable and text SEO reports include per-page confidence and retry evidence',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/<th>Score<\/th><th>Confidence<\/th><th>Findings<\/th>/);
+ assert.match(html,/escapeHTML\(page\.scoreConfidence\|\|/);
+ assert.match(html,/Page score confidence:/);
+ assert.match(html,/page\.recoveryError\?' \| retry error: '/);
+ assert.match(html,/page\.attempts\|\|1/);
+});
