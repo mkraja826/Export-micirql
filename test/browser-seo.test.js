@@ -783,3 +783,11 @@ test('live SEO audit loop retries incomplete HTML before persisting provisional 
  assert.match(html,/Retrying incomplete HTML on page /);
  assert.match(html,/reports\.push\(report\);if\(!isDemo\)saveCheckpoint/);
 });
+
+test('SEO results describe recovered and persistently partial retry outcomes',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/if\(page\.attempts>1\)/);
+ assert.match(html,/Still incomplete after /);
+ assert.match(html,/Inspected after /);
+ assert.match(html,/page\.attempts\+' attempts'/);
+});
