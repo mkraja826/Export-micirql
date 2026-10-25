@@ -33,7 +33,10 @@ export function inspectSeoHtml(html,url,options={}){
  const findings=[];
  const add=(code,severity,message,points=0,category='technical')=>findings.push({code,severity,message,points,category});
  const errorPage=/\b(?:cloudflare|connection timed out)\b/i.test(title)&&/\b(?:5(?:0[0-9]|2[0-9])|4(?:0[34]|2[9]))\b/.test(title)||/<title[^>]*>[^<]*(?:403 forbidden|404 not found|502 bad gateway|503 service unavailable|504 gateway timeout|522 connection timed out)[^<]*<\/title>/i.test(head)||/cf-error-code|cf-error-details|cloudflare-error-500s/i.test(html.slice(0,120000));
- const isPartial=options.partial===true;
+ const tail=html.trimEnd();
+ // Detect clearly interrupted captures without assuming optional HTML closing tags are mandatory.
+ const incompleteHtml=/<(?:[a-z][\w:-]*)(?:\s[^<>]*)?$/i.test(tail)||/<!--[\s\S]*$/i.test(tail)&&!tail.includes('-->')||/<script\b[^>]*>[\s\S]*$/i.test(tail)&&!/<\/script\s*>\s*(?:<\/body\s*>)?\s*(?:<\/html\s*>)?\s*$/i.test(tail);
+ const isPartial=options.partial===true||incompleteHtml;
  if(errorPage){
   return {url,title,description,robots,canonical,lang,viewport,h1Count,findings:[{code:'error_page',severity:'high',message:'The captured page appears to be an HTTP or Cloudflare error page. Audit the actual website instead.',points:0,category:'availability'}],scope:'static_html_only',auditStatus:'invalid_error_page',score:null,maxScore:100,scoreLabel:'Not scored',partial:isPartial,scoreExplanation:'Error pages cannot receive a meaningful SEO score.'};
  }
