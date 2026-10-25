@@ -468,7 +468,7 @@ test('SEO Studio V2.3 shows three severity-first actions and collapses category 
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  assert.ok(html.includes("priorityPanel.id='site-fix-first'"));
  assert.ok(html.includes("const priorityOrder={high:0,medium:1,low:2,info:3}"));
- assert.ok(html.includes("b.affectedUrls.length-a.affectedUrls.length).slice(0,3)"));
+ assert.ok(html.includes("(b.affectedUrls||[]).length-(a.affectedUrls||[]).length).slice(0,3)"));
  assert.ok(html.includes("issueSearch.value=issue.code;renderIssues()"));
  assert.ok(html.includes("document.createElement('details');technicalOverview.id='site-technical-overview'"));
  assert.ok(html.includes("if(!related.length)continue"));
