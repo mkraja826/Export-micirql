@@ -877,3 +877,10 @@ test('site report recalculates score summary from eligible completed public page
  assert.match(html,/const measuredCoverage=auditCoverage\(pages,reports,failures\)/);
  assert.match(html,/retryPolicy:\{maxAttemptsPerPage:2,sequential:true\},scoreSummary,retryDiagnostics,failureDiagnostics,coverage:/);
 });
+
+test('reinspection pins original page selection and prioritizes previous completed evidence',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/previousRetryReport\?\.website===url\.origin&&Array\.isArray\(previousRetryReport\.selectedPageUrls\)\?previousRetryReport\.selectedPageUrls\.slice\(\)/);
+ assert.match(html,/previousRetryReport\?\.website===url\.origin&&JSON\.stringify\(previousRetryReport\.selectedPageUrls\)===JSON\.stringify\(pages\)\?previousRetryReport\.reports/);
+ assert.match(html,/pagesSelected:pages\.length,selectedPageUrls:pages\.slice\(\),requestedLimit:maxPages/);
+});
