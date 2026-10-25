@@ -344,13 +344,13 @@ siteButton.addEventListener('click',async()=>{
   // V2.7 opportunity ranking uses observed severity and affected URL breadth, not estimated traffic.
   const opportunities=issues.filter(issue=>issue.severity!=='info').map(issue=>({
    code:issue.code,title:issue.title||issue.code.replaceAll('_',' '),severity:issue.severity,
-   affectedPages:issue.affectedUrls.length,affectedSharePercent:measuredCoverage.complete?Math.round(issue.affectedUrls.length/measuredCoverage.complete*100):null,verificationStatus:issue.verificationStatus,
+   affectedPages:issue.affectedUrls.length,affectedSharePercent:pages.length?Math.round(issue.affectedUrls.length/pages.length*100):null,verificationStatus:issue.verificationStatus,
    triageTier:issue.triageTier,affectedUrls:issue.affectedUrls.slice(0,20),recommendation:issue.action||issue.recommendation||issue.suggestedFix||'Review the finding in the Issue Center, inspect the affected HTML, and correct the underlying cause.'
   })).sort((a,b)=>(priority[a.severity]??4)-(priority[b.severity]??4)||b.affectedPages-a.affectedPages);
   siteReport.opportunities=opportunities;
   const opportunitiesPanel=document.createElement('section');opportunitiesPanel.id='site-seo-opportunities';opportunitiesPanel.setAttribute('aria-label','Ranked SEO opportunities');
   const opportunityTitle=document.createElement('h3');opportunityTitle.textContent='SEO opportunities';opportunitiesPanel.append(opportunityTitle);
-  const opportunityNote=document.createElement('p');opportunityNote.className='hint small';opportunityNote.textContent='Ranked by finding severity, then number of affected audited URLs. Percentages use fully completed pages in this selection only; they do not represent the entire website or estimated traffic gains.';opportunitiesPanel.append(opportunityNote);
+  const opportunityNote=document.createElement('p');opportunityNote.className='hint small';opportunityNote.textContent='Ranked by finding severity, then number of affected audited URLs. Percentages use selected pages as the denominator (including incomplete inspections); they do not represent the entire website or estimated traffic gains.';opportunitiesPanel.append(opportunityNote);
   const opportunityControls=document.createElement('div');opportunityControls.className='page-tools';
   const opportunitySeverityFilter=document.createElement('select');opportunitySeverityFilter.setAttribute('aria-label','Filter SEO opportunities by severity');
   for(const value of ['all','high','medium','low']){const option=document.createElement('option');option.value=value;option.textContent=value==='all'?'All severities':value[0].toUpperCase()+value.slice(1);opportunitySeverityFilter.append(option)}
@@ -382,7 +382,7 @@ siteButton.addEventListener('click',async()=>{
    opportunityList.replaceChildren();
    const selected=filteredOpportunities();opportunityCount.textContent=selected.length+' of '+opportunities.length+' opportunities match';
    if(!selected.length){const empty=document.createElement('li');empty.textContent='No opportunities match these filters.';opportunityList.append(empty);return}
-   for(const issue of selected.slice(0,25)){const item=document.createElement('li');const name=document.createElement('strong');name.textContent=issue.title;item.append(name);const context=document.createElement('span');context.textContent=' · '+issue.severity+' · '+issue.affectedPages+' affected URL(s)'+(issue.affectedSharePercent===null?'':' · '+issue.affectedSharePercent+'% of completed pages')+' · '+issue.verificationStatus;item.append(context);
+   for(const issue of selected.slice(0,25)){const item=document.createElement('li');const name=document.createElement('strong');name.textContent=issue.title;item.append(name);const context=document.createElement('span');context.textContent=' · '+issue.severity+' · '+issue.affectedPages+' affected URL(s)'+(issue.affectedSharePercent===null?'':' · '+issue.affectedSharePercent+'% of selected pages')+' · '+issue.verificationStatus;item.append(context);
     const detail=document.createElement('details');const toggle=document.createElement('summary');toggle.textContent='How to fix and affected pages';detail.append(toggle);
     const action=document.createElement('p');action.textContent=issue.recommendation;detail.append(action);
     const guide=remediationFor(issue.code);
