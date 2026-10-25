@@ -10,7 +10,7 @@ test('CSV escapes commas, quotes, newlines and spreadsheet formula-like text as 
 });
 test('page export preserves zero scores and distinguishes partial audits',()=>{
  const csv=seoPagesCsv({reports:[{url:'https://example.com/',score:0,partial:true,findings:[{severity:'high'}]}]});
- assert.match(csv,/"0","","yes","1","1","0","0","0"/);
+ assert.match(csv,/"0","provisional","","yes","","","1","","","1","1","0","0","0"/);
 });
 test('issue export emits one row per affected URL and safely quotes recommendations',()=>{
  const csv=seoIssuesCsv({issueCenter:[{severity:'high',code:'missing_title',recommendation:'Use "unique" titles',affectedUrls:['https://example.com/','https://example.com/about'],fixGuide:{verificationRequired:true}}]});
@@ -38,4 +38,18 @@ test('page and issue CSV downloads have distinct filenames',()=>{
  assert.match(html,/micirql-seo-pages/);
  assert.match(html,/micirql-seo-issues/);
  assert.match(html,/function downloadReport\(extension,body,mime,basename=/);
+});
+
+test('pages CSV includes confidence and capture recovery metadata without evaluating untrusted text',()=>{
+ const csv=seoPagesCsv({reports:[
+  {url:'https://example.com/ok',score:85,auditStatus:'complete',scoreConfidence:'verified',captureEvidence:{source:'extension',htmlBytes:1024},attempts:2,findings:[]},
+  {url:'https://example.com/partial',score:40,auditStatus:'partial',partial:true,scoreConfidence:'provisional',attempts:2,recoveryError:'=RETRY()',incompleteReasons:['truncated','missing body'],findings:[]},
+  {url:'https://example.com/unknown',score:null,auditStatus:'failed',findings:[]}
+ ]});
+ for(const header of ['Score confidence','Capture source','HTML bytes','Attempts','Recovery error','Incomplete reasons'])assert.ok(csv.includes('"'+header+'"'));
+ assert.match(csv,/"85","verified","complete","no","extension","1024","2"/);
+ assert.match(csv,/"40","provisional","partial","yes"/);
+ assert.match(csv,/"'=RETRY\(\)"/);
+ assert.match(csv,/"truncated; missing body"/);
+ assert.match(csv,/"","unverified","failed"/);
 });
