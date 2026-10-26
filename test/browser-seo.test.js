@@ -1098,6 +1098,14 @@ test('beginner issue evidence identifies recorded HTML elements without exposing
  assert.ok(html.includes("snippets.className='developer-only'"));
 });
 
+test('filtered action plans warn that hidden findings may have different priorities',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("if(visible.length&&visible.length<issues.length){const filterHint=document.createElement('p')"));
+ assert.ok(html.includes("You are viewing '+visible.length+' of '+issues.length+' issue groups."));
+ assert.ok(html.includes("Clear the filters to see the complete action plan; hidden findings may have a different priority."));
+ assert.ok(html.includes("issueContainer.append(filterHint)"));
+});
+
 test('SEO issue counter exposes filtered scope to assistive technology',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  assert.ok(html.includes("const filtersActive=selected!=='all'||categoryFilter.value!=='all'||Boolean(query)"));
