@@ -456,7 +456,7 @@ test('SEO Studio V2.3 navigates from each issue affected URL into page evidence'
 test('SEO Studio V2.3 uses readable issue titles, prioritizes fixes and folds technical details',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  assert.ok(html.includes("missing_title:'Page title is missing'"));
- assert.ok(html.includes("summary.textContent=issueTitle(issue.code)"));
+ assert.ok(html.includes("summary.textContent=(issue.triageTier==='Investigate first'?'Fix first'"));
  assert.ok(html.includes("'What to do: '+issue.recommendation"));
  assert.ok(html.includes("'Why this was flagged: '+issue.message"));
  assert.ok(html.includes("technicalSummary.textContent='Technical details'"));
