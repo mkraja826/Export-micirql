@@ -1035,7 +1035,7 @@ test('printable issue evidence uses inspected finding details and escapes HTML',
 
 test('interactive SEO issue evidence remains accessible with technical elements behind developer mode',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
- assert.match(html,/evidenceSummary\.textContent='Observed evidence from '/);
+ assert.match(html,/evidenceSummary\.textContent='Observed evidence: '/);
  assert.match(html,/evidencePanel\.className='issue-evidence'/);
  assert.match(html,/location\.textContent='Page: '\+page\.url/);
  assert.match(html,/observed\.textContent='Observed: '\+page\.observed/);
