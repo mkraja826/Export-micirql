@@ -1098,6 +1098,14 @@ test('beginner issue evidence identifies recorded HTML elements without exposing
  assert.ok(html.includes("snippets.className='developer-only'"));
 });
 
+test('SEO issues without custom verification get cautious beginner fallback',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("if(fixGuide.verification||fixGuide.verify)"));
+ assert.ok(html.includes("else{const verifyFallback=document.createElement('p')"));
+ assert.ok(html.includes("After making changes, run a new audit and compare this finding on the affected pages."));
+ assert.ok(html.includes("it does not guarantee search-engine indexing or rankings."));
+});
+
 test('interactive SEO issue guidance presents beginner fix steps and verification safely',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  assert.ok(html.includes("const fixGuide=issue.fixGuide||{}"));
