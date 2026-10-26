@@ -1057,6 +1057,14 @@ test('issue evidence heading distinguishes displayed samples from recorded pages
  assert.ok(html.includes("' shown (not a full-site count)'"));
 });
 
+test('beginner issue evidence identifies recorded HTML elements without exposing snippets',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("evidenceHint.textContent=(page.elements||[]).length+' recorded HTML element example(s) on this page. Turn on Developer Mode to inspect the element details.'"));
+ assert.ok(html.includes("evidenceHint.className='hint small'"));
+ assert.ok(html.includes("technical.className='developer-only'"));
+ assert.ok(html.includes("snippets.className='developer-only'"));
+});
+
 test('interactive SEO issue guidance presents beginner fix steps and verification safely',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  assert.ok(html.includes("const fixGuide=issue.fixGuide||{}"));
