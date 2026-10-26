@@ -857,7 +857,7 @@ siteButton.addEventListener('click',async()=>{
   }
   renderPageRows();
   for(const failure of failures){const row=document.createElement('p');row.className='finding';row.dataset.severity='high';row.textContent='FAILED after '+failure.attempts+' attempts · '+failure.url+' · '+failure.error;siteResults.append(row)}
- }catch(error){siteStatus.textContent=error.message||'Site audit failed'}
+ }catch(error){siteStatus.textContent=error.message||'Site audit failed';if(previousRetryReport){siteReport=previousRetryReport;retryIncompleteButton.disabled=!extensionReady;siteExport.disabled=false;siteExportText.disabled=false;sitePrintButton.disabled=false;document.getElementById('site-export-pages-csv').disabled=false;document.getElementById('site-export-issues-csv').disabled=false;siteStatus.textContent+=' Previous audit evidence remains available for export and retry.';}}
  finally{siteButton.disabled=false;demoButton.disabled=false;discoverButton.disabled=false}
 });
 const sitePrintButton=document.getElementById('site-export-pdf');
