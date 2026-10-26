@@ -665,7 +665,7 @@ siteButton.addEventListener('click',async()=>{
   categoryLabel.append(categoryFilter);siteResults.append(categoryLabel);
   const searchLabel=document.createElement('label');searchLabel.className='small';searchLabel.textContent='Search findings or affected URLs';
   const issueSearch=document.createElement('input');issueSearch.id='site-issue-search';issueSearch.type='search';issueSearch.placeholder='e.g. canonical, title, /services/';issueSearch.setAttribute('aria-label','Search SEO findings and affected URLs');
-  searchLabel.append(issueSearch);siteResults.append(searchLabel);
+  searchLabel.append(issueSearch);siteResults.append(searchLabel);const clearIssueFilters=document.createElement('button');clearIssueFilters.type='button';clearIssueFilters.textContent='Show all findings';clearIssueFilters.setAttribute('aria-label','Clear SEO issue search and filters');clearIssueFilters.addEventListener('click',()=>{severityFilter.value='all';categoryFilter.value='all';issueSearch.value='';renderIssues();issueCount.scrollIntoView({behavior:'smooth',block:'nearest'})});siteResults.append(clearIssueFilters);
   const issueCount=document.createElement('p');issueCount.className='hint small';issueCount.setAttribute('aria-live','polite');siteResults.append(issueCount);
   // Technical overview counts audited issue groups; no score or crawler claim is inferred.
   const priorityPanel=document.createElement('section');priorityPanel.id='site-fix-first';priorityPanel.setAttribute('aria-label','What to fix first');
