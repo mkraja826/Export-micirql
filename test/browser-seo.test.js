@@ -945,3 +945,15 @@ test('failed page recovery panel explains limitations and offers extension retry
  assert.match(html,/detail\.className='hint small developer-only'/);
  assert.match(html,/if\(!isDemo&&extensionReady\)/);
 });
+
+test('partial scan retry action is conditional and does not leave stale controls',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/if\(needsRetry&&!isDemo&&extensionReady\)/);
+ assert.match(html,/retryNow\.className='seo-retry-now'/);
+ assert.match(html,/retryNow\.addEventListener\('click',\(\)=>retryIncompleteButton\.click\(\)\)/);
+ assert.match(html,/document\.querySelector\('#site-progress-panel \.seo-retry-now'\)\?\.remove\(\)/);
+ assert.match(html,/document\.querySelector\('#site-progress-panel \.seo-results-jump'\)\?\.remove\(\)/);
+ assert.match(html,/retryIncompleteRequested=true/);
+ assert.match(html,/siteStatus\.textContent='Reinspecting '/);
+ assert.match(html,/siteProgress\.value=0/);
+});
