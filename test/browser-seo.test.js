@@ -1057,6 +1057,14 @@ test('issue evidence heading distinguishes displayed samples from recorded pages
  assert.ok(html.includes("' shown (not a full-site count)'"));
 });
 
+test('turning off developer mode closes technical panels and advanced inspector',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("if(!developerMode){document.getElementById('advanced-inspector').open=false;"));
+ assert.ok(html.includes("document.querySelectorAll('.developer-only details, details.developer-only, details.issue-technical')"));
+ assert.ok(html.includes("forEach(panel=>{panel.open=false})"));
+ assert.ok(html.includes("developerModeToggle.setAttribute('aria-checked',String(developerMode))"));
+});
+
 test('page-first SEO guidance does not falsely rule out shared templates',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  assert.ok(html.includes("if(issue.sharedPatternPageCount<3&&issue.affectedUrls.length)"));
