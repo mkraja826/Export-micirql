@@ -438,7 +438,7 @@ test('SEO Studio V2 keeps per-page evidence inside the searchable results table'
  assert.ok(html.includes("const evidence=pageEvidence.get(page.url)"));
  assert.ok(html.includes("pageEvidence.set(report.url,panel)"));
  assert.ok(html.includes("detailsTitle.textContent='Inspect findings'"));
- assert.ok(html.includes("renderPageRows();\n  for(const failure"));
+ assert.match(html,/renderPageRows\(\);\s*if\(failures\.length\)\{/);
  assert.ok(!html.includes("siteResults.append(panel)"));
 });
 
@@ -934,4 +934,14 @@ test('scan progress and completion explain success, partial results, and recover
  assert.match(html,/Scan interrupted — you can try again/);
  assert.match(html,/site-scan-completion/);
  assert.match(html,/scanProgressPanel\.append\(completion\)/);
+});
+
+test('failed page recovery panel explains limitations and offers extension retry',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/failedPanel\.id='site-failed-pages'/);
+ assert.match(html,/Pages that need another check/);
+ assert.match(html,/They are not counted as verified SEO results/);
+ assert.match(html,/retry\.addEventListener\('click',\(\)=>retryIncompleteButton\.click\(\)\)/);
+ assert.match(html,/detail\.className='hint small developer-only'/);
+ assert.match(html,/if\(!isDemo&&extensionReady\)/);
 });
