@@ -1049,6 +1049,14 @@ test('interactive SEO issue evidence remains accessible with technical elements 
 });
 
 
+test('issue evidence heading distinguishes displayed samples from recorded pages',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("const allObservedPages=(issue.pageEvidence||[]).filter(page=>page.observed||(page.elements||[]).length)"));
+ assert.ok(html.includes("const observedPages=allObservedPages.slice(0,8)"));
+ assert.ok(html.includes("observedPages.length+' of '+allObservedPages.length"));
+ assert.ok(html.includes("' shown (not a full-site count)'"));
+});
+
 test('interactive SEO issue guidance presents beginner fix steps and verification safely',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  assert.ok(html.includes("const fixGuide=issue.fixGuide||{}"));
