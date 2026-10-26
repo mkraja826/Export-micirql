@@ -1098,6 +1098,13 @@ test('beginner issue evidence identifies recorded HTML elements without exposing
  assert.ok(html.includes("snippets.className='developer-only'"));
 });
 
+test('SEO issue counter exposes filtered scope to assistive technology',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("const filtersActive=selected!=='all'||categoryFilter.value!=='all'||Boolean(query)"));
+ assert.ok(html.includes("issueCount.setAttribute('aria-label',(filtersActive?'Filtered audit findings: ':'All audit findings: ')"));
+ assert.ok(html.includes("visible.length+' of '+issues.length+' issue groups shown'"));
+});
+
 test('empty SEO issue results distinguish filters from a clean-looking audit',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  assert.ok(html.includes("if(!visible.length){const empty=document.createElement('p')"));
