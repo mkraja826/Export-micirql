@@ -1098,6 +1098,12 @@ test('beginner issue evidence identifies recorded HTML elements without exposing
  assert.ok(html.includes("snippets.className='developer-only'"));
 });
 
+test('beginner SEO issue cards clarify inspected-page scope',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("scopeSummary.textContent='Affected in this audit: '+issue.affectedUrls.length"));
+ assert.ok(html.includes("This count describes the pages checked, not every page on the website."));
+});
+
 test('SEO issues without custom verification get cautious beginner fallback',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  assert.ok(html.includes("if(fixGuide.verification||fixGuide.verify)"));
