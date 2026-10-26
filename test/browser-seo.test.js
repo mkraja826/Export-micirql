@@ -1098,6 +1098,14 @@ test('beginner issue evidence identifies recorded HTML elements without exposing
  assert.ok(html.includes("snippets.className='developer-only'"));
 });
 
+test('SEO show-all-findings control resets search and both filters',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("clearIssueFilters.textContent='Show all findings'"));
+ assert.ok(html.includes("clearIssueFilters.setAttribute('aria-label','Clear SEO issue search and filters')"));
+ assert.ok(html.includes("severityFilter.value='all';categoryFilter.value='all';issueSearch.value='';renderIssues()"));
+ assert.ok(html.includes("siteResults.append(clearIssueFilters)"));
+});
+
 test('filtered action plans warn that hidden findings may have different priorities',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  assert.ok(html.includes("if(visible.length&&visible.length<issues.length){const filterHint=document.createElement('p')"));
