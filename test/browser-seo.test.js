@@ -1098,6 +1098,15 @@ test('beginner issue evidence identifies recorded HTML elements without exposing
  assert.ok(html.includes("snippets.className='developer-only'"));
 });
 
+test('beginner action plan counts filtered issue groups without implying site-wide scope',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("const priorityCounts={'Investigate first':0,'Review next':0,'Lower priority':0}"));
+ assert.ok(html.includes("for(const issue of visible){if(Object.hasOwn(priorityCounts,issue.triageTier))priorityCounts[issue.triageTier]++}"));
+ assert.ok(html.includes("prioritySummary.textContent='Your action plan: '"));
+ assert.ok(html.includes("These are issue groups in the current filtered results, not counts of affected pages."));
+ assert.ok(html.includes("issueContainer.append(prioritySummary)"));
+});
+
 test('beginner SEO priorities retain cautious triage rationale',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  assert.ok(html.includes("issue.triageTier==='Investigate first'?'Fix first'"));
