@@ -163,6 +163,8 @@ export function inspectSeoHtml(html,url,options={}){
   if(evidence?.length)finding.evidence=evidence.slice(0,5);
  }
 
+ // Incomplete captures can produce misleading absence-based findings; flag them for verification.
+ if(isPartial){for(const finding of findings){finding.evidenceConfidence='provisional';finding.requiresRecapture=true;}}
  const deductions=findings.reduce((sum,f)=>sum+(f.points||0),0);
  const score=Math.max(0,100-deductions);
  // Category figures are deduction summaries, not independent 0–100 scores.
