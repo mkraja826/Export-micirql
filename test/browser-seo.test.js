@@ -90,7 +90,7 @@ test('site audit distinguishes selected-page coverage from entire-site completen
  const page=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  assert.match(page,/successfulPercent:measuredCoverage\.successfulPercent/);
  assert.match(page,/discoveryTruncated:discovered\.truncated===true/);
- assert.match(page,/selectionLimited:discovered\.pages\.length>pages\.length/);
+ assert.match(page,/selectionLimited:\(discovered\.originalCount\?\?discovered\.pages\.length\)>pages\.length/);
  assert.match(page,/Unvisited pages are not scored/);
  assert.match(page,/siteReport\.coverage\.successfulPercent/);
 });
@@ -888,7 +888,7 @@ test('reinspection pins original page selection and prioritizes previous complet
 test('interrupted extension reinspection skips rediscovery and reuses prior scope',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  assert.match(html,/if\(!isDemo&&!previousRetryReport&&\(!selectedDiscovery\|\|selectedDiscovery\.startUrl!==url\.href\)\)await discoverForAudit\(url\)/);
- assert.match(html,/previousRetryReport\?\.website===url\.origin\?\{pages:previousRetryReport\.selectedPageUrls\|\|\[\],truncated:previousRetryReport\.coverage\?\.discoveryTruncated===true\}/);
+ assert.match(html,/previousRetryReport\?\.website===url\.origin\?\{pages:previousRetryReport\.selectedPageUrls\|\|\[\],truncated:previousRetryReport\.coverage\?\.discoveryTruncated===true,originalCount:previousRetryReport\.pagesDiscovered\}/);
  assert.match(html,/const cached=reusablePages\(\{pages,reports:reusable\},url\.origin,pages\)/);
 });
 
