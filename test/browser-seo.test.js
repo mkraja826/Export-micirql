@@ -1057,6 +1057,14 @@ test('issue evidence heading distinguishes displayed samples from recorded pages
  assert.ok(html.includes("' shown (not a full-site count)'"));
 });
 
+test('issue evidence explains missing plain-language observations without guessing',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("else if((page.elements||[]).length){const context=document.createElement('p')"));
+ assert.ok(html.includes("context.textContent='Recorded HTML examples are available, but no plain-language observation was saved for this page. Inspect the examples before deciding what to change.'"));
+ assert.ok(html.includes("context.className='hint small'"));
+ assert.ok(html.includes("technical.className='developer-only'"));
+});
+
 test('beginner issue evidence identifies recorded HTML elements without exposing snippets',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  assert.ok(html.includes("evidenceHint.textContent=(page.elements||[]).length+' recorded HTML element example(s) on this page. Turn on Developer Mode to inspect the element details.'"));
