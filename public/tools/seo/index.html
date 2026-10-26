@@ -39,7 +39,7 @@ developerModeToggle.addEventListener('click',()=>{
  document.querySelectorAll('[data-seo-technical]').forEach(el=>{
   el.textContent=developerMode?el.dataset.seoTechnical:el.dataset.seoSimple;
  });
- if(!developerMode)document.getElementById('advanced-inspector').open=false;
+ if(!developerMode){document.getElementById('advanced-inspector').open=false;document.querySelectorAll('.developer-only details, details.developer-only, details.issue-technical').forEach(panel=>{panel.open=false})}
 });
 const fromWorkspace=new URLSearchParams(location.search).get('url');if(fromWorkspace){try{const parsed=new URL(fromWorkspace);if(['https:','http:'].includes(parsed.protocol)&&!parsed.username&&!parsed.password)document.getElementById('url').value=parsed.href}catch{}}
 let lastReport=null,partialCapture=false;
