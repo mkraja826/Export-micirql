@@ -1098,6 +1098,14 @@ test('beginner issue evidence identifies recorded HTML elements without exposing
  assert.ok(html.includes("snippets.className='developer-only'"));
 });
 
+test('beginner SEO priorities retain cautious triage rationale',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("issue.triageTier==='Investigate first'?'Fix first'"));
+ assert.ok(html.includes("issue.triageTier==='Review next'?'Fix next':'Optional review'"));
+ assert.ok(html.includes("priorityHelp.textContent='Suggested priority: '"));
+ assert.ok(html.includes("issue.triageReason+' This is guidance based on audit signals, not a guarantee of search impact.'"));
+});
+
 test('beginner SEO issue cards clarify inspected-page scope',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  assert.ok(html.includes("scopeSummary.textContent='Affected in this audit: '+issue.affectedUrls.length"));
