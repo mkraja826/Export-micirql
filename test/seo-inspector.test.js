@@ -302,3 +302,14 @@ test('partial HTML reports actionable truncation diagnostics',()=>{
  const complete=inspectSeoHtml('<main><h1>Example</h1></main>','https://example.com/');
  assert.deepEqual(complete.incompleteReasons,[]);
 });
+
+test('incomplete captures flag findings as provisional and require recapture',()=>{
+ const partial=inspectSeoHtml('<html><head><title>Example</title></head><body><h1>Example</h1><div class="cut','https://example.com/');
+ assert.equal(partial.auditStatus,'partial');
+ assert.ok(partial.findings.length>0);
+ assert.ok(partial.findings.every(f=>f.evidenceConfidence==='provisional'&&f.requiresRecapture===true));
+ const complete=inspectSeoHtml('<html><body><h1>Example</h1></body></html>','https://example.com/');
+ assert.equal(complete.auditStatus,'complete');
+ assert.ok(complete.findings.length>0);
+ assert.ok(complete.findings.every(f=>f.requiresRecapture!==true));
+});
