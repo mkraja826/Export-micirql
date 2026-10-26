@@ -970,3 +970,15 @@ test('retry progress distinguishes preserved pages from pages being rechecked',(
  assert.match(html,/if\(cached\.has\(pages\[i\]\)\)/);
  assert.match(html,/siteProgress\.max=pages\.length/);
 });
+
+test('progress breakdown remains visible, accessible, and resets between scans',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/progressSummary\.id='site-progress-breakdown'/);
+ assert.match(html,/progressSummary\.setAttribute\('role','status'\)/);
+ assert.match(html,/retryProgressPanel\.append\(progressSummary\)/);
+ assert.match(html,/const refreshProgressBreakdown=\(\)=>/);
+ assert.match(html,/refreshProgressBreakdown\(\);siteStatus\.textContent=/);
+ assert.match(html,/document\.getElementById\('site-progress-breakdown'\)\?\.remove\(\)/);
+ assert.match(html,/@media\(max-width:600px\)/);
+ assert.match(html,/\.seo-progress-breakdown\{/);
+});
