@@ -1031,3 +1031,17 @@ test('printable issue evidence uses inspected finding details and escapes HTML',
  assert.ok(!rendered.includes('<img src="x">'));
  assert.ok(rendered.includes(url));
 });
+
+
+test('interactive SEO issue evidence remains accessible with technical elements behind developer mode',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/evidenceSummary\.textContent='What we found on inspected pages \('/);
+ assert.match(html,/evidencePanel\.className='issue-evidence'/);
+ assert.match(html,/location\.textContent='Page: '\+page\.url/);
+ assert.match(html,/observed\.textContent='Observed: '\+page\.observed/);
+ assert.match(html,/technical\.className='developer-only'/);
+ assert.match(html,/snippet\.textContent=\[entry\.element,entry\.attribute/);
+ assert.match(html,/\.developer-only\{display:none\}/);
+ assert.match(html,/body\.developer-mode \.developer-only\{display:block\}/);
+ assert.ok(html.includes('technical.append(snippet)'));
+});
