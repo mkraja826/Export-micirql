@@ -1098,6 +1098,12 @@ test('beginner issue evidence identifies recorded HTML elements without exposing
  assert.ok(html.includes("snippets.className='developer-only'"));
 });
 
+test('printable SEO report avoids claiming zero findings means no fixes are needed',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes('No grouped findings were recorded in the inspected pages. This does not establish that the website is free of SEO issues; review audit coverage and incomplete inspections below.'));
+ assert.ok(!html.includes('<p>No fixes required by current checks.</p>'));
+});
+
 test('SEO show-all-findings control resets search and both filters',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  assert.ok(html.includes("clearIssueFilters.textContent='Show all findings'"));
