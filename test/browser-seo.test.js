@@ -1014,3 +1014,20 @@ test('Partha-style 60 inspections with four repeated URLs reconcile to 56 unique
  assert.equal((appendix.match(/<tr>/g)||[]).length,57);
  assert.match(rendered,/1 \/ 60 selected/);
 });
+
+
+test('printable issue evidence uses inspected finding details and escapes HTML',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ const start=html.indexOf('function printClientSeoReport(report){');
+ const end=html.indexOf('sitePrintButton.addEventListener',start);
+ assert.ok(start>=0&&end>start);
+ const print=new Function('window','alert',html.slice(start,end)+'; return printClientSeoReport;')({open:()=>({document:{open(){},write(value){rendered=value},close(){}}})},()=>{});
+ let rendered='';
+ const url='https://example.com/about/';
+ print({website:'https://example.com',generatedAt:'2026-10-26T00:00:00Z',pagesSelected:1,pagesAnalyzed:1,reports:[{url,requestedUrl:url,score:72,auditStatus:'complete',findings:[{code:'missing_alt',message:'Image <missing> alt',evidence:'<img src="x">'}]}],failures:[],issueCenter:[{code:'missing_alt',severity:'medium',recommendation:'Add alt text',affectedUrls:[url]}],coverage:{discovered:1},reportNotes:[]});
+ assert.ok(rendered.includes('Issue evidence by page'));
+ assert.ok(rendered.includes('Image &lt;missing&gt; alt'));
+ assert.ok(rendered.includes('&lt;img src=&quot;x&quot;&gt;'));
+ assert.ok(!rendered.includes('<img src="x">'));
+ assert.ok(rendered.includes(url));
+});
