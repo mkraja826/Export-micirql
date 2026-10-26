@@ -982,3 +982,12 @@ test('progress breakdown remains visible, accessible, and resets between scans',
  assert.match(html,/@media\(max-width:600px\)/);
  assert.match(html,/\.seo-progress-breakdown\{/);
 });
+
+test('print report uses deduplicated inspection population for metrics and appendix',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes('const uniqueReports=[...dedupedInspections.values()]'));
+ assert.ok(html.includes('const valid=uniqueReports.filter('));
+ assert.ok(html.includes('const appendix=uniqueReports.map('));
+ assert.ok(html.includes('const inspectedUniqueCount=dedupedInspections.size'));
+ assert.ok(html.includes('affectedUrls:[...new Set('));
+});

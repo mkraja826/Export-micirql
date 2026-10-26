@@ -886,8 +886,6 @@ siteButton.addEventListener('click',async()=>{
 const sitePrintButton=document.getElementById('site-export-pdf');
 function printClientSeoReport(report){
  const escapeHTML=value=>String(value??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
- const valid=report.reports.filter(page=>Number.isFinite(page.score)&&!page.partial&&page.auditStatus==='complete');
- const average=valid.length?Math.round(valid.reduce((sum,page)=>sum+page.score,0)/valid.length):null;
  const inspectedPages=new Map();
  for(const page of report.reports||[]){
   if(!page.url)continue;
@@ -895,19 +893,25 @@ function printClientSeoReport(report){
   const rank=item=>item.auditStatus==='failed'?3:(item.partial||item.auditStatus==='partial')?2:item.auditStatus==='complete'?1:0;
   if(!previous||rank(page)>rank(previous))inspectedPages.set(page.url,page);
  }
- const failedUrls=new Set((report.failures||[]).map(entry=>entry.url).filter(Boolean));
- const completedCount=[...inspectedPages.values()].filter(page=>page.auditStatus==='complete'&&!page.partial&&!failedUrls.has(page.url)).length;
- const partialCount=[...inspectedPages.values()].filter(page=>(page.partial||page.auditStatus==='partial')&&page.auditStatus!=='failed'&&!failedUrls.has(page.url)).length;
- const failedCount=new Set([...failedUrls,...[...inspectedPages.values()].filter(page=>page.auditStatus==='failed').map(page=>page.url)]).size;
- const inspectedUniqueCount=inspectedPages.size;
+ const canonicalAuditUrl=value=>{try{const u=new URL(value,report.website);u.hash='';u.pathname=u.pathname.replace(/\\/+$/,'')||'/';return u.href}catch{return String(value||'')}};
+ const dedupedInspections=new Map();
+ for(const page of report.reports||[]){const key=canonicalAuditUrl(page.requestedUrl||page.url);const previous=dedupedInspections.get(key);const quality=item=>item.auditStatus==='complete'&&!item.partial&&Number.isFinite(item.score)?3:item.partial||item.auditStatus==='partial'?2:1;if(!previous||quality(page)>quality(previous))dedupedInspections.set(key,page)}
+ const uniqueReports=[...dedupedInspections.values()];
+ const valid=uniqueReports.filter(page=>Number.isFinite(page.score)&&!page.partial&&page.auditStatus==='complete');
+ const average=valid.length?Math.round(valid.reduce((sum,page)=>sum+page.score,0)/valid.length):null;
+ const failedUrls=new Set((report.failures||[]).map(entry=>canonicalAuditUrl(entry.url)).filter(Boolean));
+ const completedCount=uniqueReports.filter(page=>page.auditStatus==='complete'&&!page.partial&&!failedUrls.has(canonicalAuditUrl(page.url))).length;
+ const partialCount=uniqueReports.filter(page=>(page.partial||page.auditStatus==='partial')&&page.auditStatus!=='failed'&&!failedUrls.has(canonicalAuditUrl(page.url))).length;
+ const failedCount=new Set([...failedUrls,...uniqueReports.filter(page=>page.auditStatus==='failed').map(page=>page.url)].map(canonicalAuditUrl)).size;
+ const inspectedUniqueCount=dedupedInspections.size;
  const priority={high:0,medium:1,low:2,info:3};
- const issues=[...(report.issueCenter||[])].sort((a,b)=>(priority[a.severity]??4)-(priority[b.severity]??4)||b.affectedUrls.length-a.affectedUrls.length);
+ const issues=[...(report.issueCenter||[])].map(issue=>({...issue,affectedUrls:[...new Set((issue.affectedUrls||[]).map(canonicalAuditUrl))]})).sort((a,b)=>(priority[a.severity]??4)-(priority[b.severity]??4)||b.affectedUrls.length-a.affectedUrls.length);
  const rows=issues.map((issue,index)=>'<tr><td>'+String(index+1)+'</td><td>'+escapeHTML(issue.severity)+'</td><td>'+escapeHTML(issue.code.replaceAll('_',' '))+'</td><td>'+escapeHTML(issue.recommendation)+'</td><td>'+escapeHTML((issue.affectedUrls||[]).length)+' / '+escapeHTML(report.pagesSelected)+' selected</td></tr>').join('');
  const highPriorityCount=issues.filter(issue=>issue.severity==='high').length;
  const affectedScopeNote=report.coverage?.selectionLimited||report.coverage?.discoveryTruncated?'The audit is limited to a subset of discovered pages.':'Results cover the selected pages only; undiscovered pages may exist.';
  const scoreBands=[{label:'Strong (80–100)',count:valid.filter(page=>page.score>=80).length},{label:'Needs work (50–79)',count:valid.filter(page=>page.score>=50&&page.score<80).length},{label:'Critical (0–49)',count:valid.filter(page=>page.score<50).length}];
  const scoreBreakdown=scoreBands.map(band=>'<tr><td>'+escapeHTML(band.label)+'</td><td>'+band.count+'</td></tr>').join('');
- const appendix=(report.reports||[]).map(page=>'<tr><td>'+escapeHTML(page.url)+'</td><td>'+escapeHTML(page.pageRole||'public')+'</td><td>'+(Number.isFinite(page.score)&&!page.partial&&page.auditStatus==='complete'?escapeHTML(page.score+'/100'):'Not scored')+'</td><td>'+escapeHTML(page.scoreConfidence||(page.partial?'provisional':page.auditStatus==='complete'?'verified':'unverified'))+'</td><td>'+escapeHTML((page.findings||[]).length)+'</td></tr>').join('');
+ const appendix=uniqueReports.map(page=>'<tr><td>'+escapeHTML(page.url)+'</td><td>'+escapeHTML(page.pageRole||'public')+'</td><td>'+(Number.isFinite(page.score)&&!page.partial&&page.auditStatus==='complete'?escapeHTML(page.score+'/100'):'Not scored')+'</td><td>'+escapeHTML(page.scoreConfidence||(page.partial?'provisional':page.auditStatus==='complete'?'verified':'unverified'))+'</td><td>'+escapeHTML((page.findings||[]).length)+'</td></tr>').join('');
  const issueAppendix=issues.flatMap(issue=>(issue.affectedUrls||[]).map(url=>'<tr><td>'+escapeHTML(issue.code.replaceAll('_',' '))+'</td><td>'+escapeHTML(issue.severity)+'</td><td>'+escapeHTML(url)+'</td></tr>')).join('');
  const guidance=issues.map(issue=>'<section class="guide"><h3>'+escapeHTML(String(issue.code||'issue').replaceAll('_',' '))+' · '+escapeHTML(issue.severity||'review')+'</h3><p><strong>Why it matters:</strong> '+escapeHTML(issue.fixGuide?.why||'Review this HTML finding in the context of the affected page.')+'</p><p><strong>Action:</strong> '+escapeHTML(issue.recommendation||'Review the affected pages.')+'</p>'+(Array.isArray(issue.fixGuide?.steps)&&issue.fixGuide.steps.length?'<ol>'+issue.fixGuide.steps.map(step=>'<li>'+escapeHTML(step)+'</li>').join('')+'</ol>':'')+'<p><strong>Verification:</strong> '+escapeHTML(issue.fixGuide?.verification||issue.fixGuide?.verify||'Re-audit affected URLs after applying the fix.')+'</p><p class="muted">Affected URLs: '+escapeHTML((issue.affectedUrls||[]).slice(0,10).join(', '))+(issue.affectedUrls?.length>10?' … and '+escapeHTML(issue.affectedUrls.length-10)+' more (see affected page appendix)':'')+'</p></section>').join('');
  const topActions=issues.filter(issue=>issue.severity==='high'||issue.severity==='medium').slice(0,5).map((issue,index)=>'<li><strong>'+escapeHTML(issue.code.replaceAll('_',' '))+'</strong> ('+escapeHTML(issue.severity)+', '+escapeHTML((issue.affectedUrls||[]).length)+' selected-page URL(s)): '+escapeHTML(issue.recommendation||'Review the affected HTML.')+'</li>').join('');
