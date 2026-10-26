@@ -899,3 +899,11 @@ test('selective reinspection preserves original discovery totals and selection-l
  assert.match(html,/discovered:discovered\.originalCount\?\?discovered\.pages\.length/);
  assert.match(html,/selectionLimited:\(discovered\.originalCount\?\?discovered\.pages\.length\)>pages\.length/);
 });
+
+test('aborted reinspection restores previous report and export controls',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/if\(previousRetryReport\)\{siteReport=previousRetryReport;retryIncompleteButton\.disabled=!extensionReady/);
+ assert.match(html,/siteExport\.disabled=false;siteExportText\.disabled=false;sitePrintButton\.disabled=false/);
+ assert.match(html,/siteStatus\.textContent\+=' Previous audit evidence remains available for export and retry\.'/);
+ assert.match(html,/finally\{siteButton\.disabled=false;demoButton\.disabled=false;discoverButton\.disabled=false\}/);
+});
