@@ -765,7 +765,7 @@ test('printable SEO report prioritizes failed and partial duplicate inspection r
  assert.match(html,/if\(!previous\|\|rank\(page\)>rank\(previous\)\)inspectedPages\.set\(page\.url,page\)/);
  assert.match(html,/item\.auditStatus==='failed'\?3:/);
  assert.match(html,/item\.partial\|\|item\.auditStatus==='partial'/);
- assert.match(html,/const inspectedUniqueCount=inspectedPages\.size/);
+ assert.match(html,/const inspectedUniqueCount=dedupedInspections\.size/);
 });
 
 test('SEO page results expose incomplete HTML reasons and provisional scoring',()=>{
