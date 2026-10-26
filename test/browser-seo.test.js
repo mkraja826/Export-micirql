@@ -1045,3 +1045,15 @@ test('interactive SEO issue evidence remains accessible with technical elements 
  assert.match(html,/body\.developer-mode \.developer-only\{display:block\}/);
  assert.ok(html.includes('technical.append(snippet)'));
 });
+
+
+test('interactive SEO issue guidance presents beginner fix steps and verification safely',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("const fixGuide=issue.fixGuide||{}"));
+ assert.ok(html.includes("why.textContent='Why it matters: '+fixGuide.why"));
+ assert.ok(html.includes("heading.textContent='How to fix it'"));
+ assert.ok(html.includes("steps=document.createElement('ol')"));
+ assert.ok(html.includes("item.textContent=step"));
+ assert.ok(html.includes("verify.textContent='How to check the fix: '"));
+ assert.ok(html.includes('fixGuide.verification||fixGuide.verify'));
+});
