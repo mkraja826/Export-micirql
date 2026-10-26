@@ -1098,6 +1098,14 @@ test('beginner issue evidence identifies recorded HTML elements without exposing
  assert.ok(html.includes("snippets.className='developer-only'"));
 });
 
+test('empty SEO issue results distinguish filters from a clean-looking audit',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("if(!visible.length){const empty=document.createElement('p')"));
+ assert.ok(html.includes("issues.length?'No findings match these filters."));
+ assert.ok(html.includes("Clear the search or select all severities and categories to review the full audit."));
+ assert.ok(html.includes("No issue groups were recorded in this audit. This does not prove the website has no SEO problems."));
+});
+
 test('beginner action plan counts filtered issue groups without implying site-wide scope',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  assert.ok(html.includes("const priorityCounts={'Investigate first':0,'Review next':0,'Lower priority':0}"));
