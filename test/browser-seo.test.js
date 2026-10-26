@@ -991,3 +991,26 @@ test('print report uses deduplicated inspection population for metrics and appen
  assert.ok(html.includes('const inspectedUniqueCount=dedupedInspections.size'));
  assert.ok(html.includes('affectedUrls:[...new Set('));
 });
+
+test('Partha-style 60 inspections with four repeated URLs reconcile to 56 unique score records',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ const start=html.indexOf('function printClientSeoReport(report){');
+ const end=html.indexOf('sitePrintButton.addEventListener',start);
+ assert.ok(start>=0&&end>start);
+ const source=html.slice(start,end);
+ const print=new Function('window','alert',source+'; return printClientSeoReport;');
+ let rendered='';
+ const fakeWindow={open:()=>({document:{open(){},write(value){rendered=value},close(){}}})};
+ const printReport=print(fakeWindow,()=>{});
+ const pages=Array.from({length:56},(_,i)=>({url:'https://parthadental.com/page-'+i+'/',requestedUrl:'https://parthadental.com/page-'+i+'/',score:i===0?33:80,auditStatus:'complete',partial:false,pageRole:'public',findings:[]}));
+ const duplicates=[0,1,2,3].map(i=>({...pages[i],url:pages[i].url.replace(/\\/$/,'')}));
+ const reports=[...pages,...duplicates];
+ printReport({website:'https://parthadental.com',generatedAt:'2026-10-26T00:00:00Z',reports,pagesSelected:60,pagesAnalyzed:60,failures:[],issueCenter:[{code:'images_missing_alt',severity:'medium',recommendation:'Add descriptions',affectedUrls:[pages[0].url,duplicates[0].url]}],coverage:{discovered:60},reportNotes:[]});
+ assert.match(rendered,/56 \/ 60<\\/strong>Unique pages with inspection records/);
+ assert.match(rendered,/55<\\/td>/);
+ assert.match(rendered,/1<\\/td>/);
+ assert.match(rendered,/Affected pages<\\/th>/);
+ const appendix=rendered.split('<h2>Audited page appendix</h2>')[1].split('<h2>Affected page appendix</h2>')[0];
+ assert.equal((appendix.match(/<tr>/g)||[]).length,57);
+ assert.match(rendered,/1 \/ 60 selected/);
+});
