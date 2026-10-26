@@ -850,7 +850,7 @@ siteButton.addEventListener('click',async()=>{
    if(!report.findings.length){const clean=document.createElement('p');clean.textContent='No findings from the available HTML checks.';panel.append(clean)}
    for(const item of [...report.findings].sort((a,b)=>({high:0,medium:1,low:2,info:3}[a.severity]??4)-({high:0,medium:1,low:2,info:3}[b.severity]??4))){
     const line=document.createElement('p');line.className='finding';line.dataset.severity=item.severity;
-    line.textContent=item.severity.toUpperCase()+' · '+item.message+(item.points?' (−'+item.points+' points)':'');panel.append(line);
+    line.textContent=item.severity.toUpperCase()+(item.requiresRecapture?' · PROVISIONAL — recapture required':' · Verified capture')+' · '+item.message+(item.points?' (−'+item.points+' points)':'');panel.append(line);
    }
    const detailsTitle=panel.querySelector('summary');if(detailsTitle)detailsTitle.textContent='Inspect findings';
    pageEvidence.set(report.url,panel);
@@ -973,7 +973,7 @@ form.addEventListener('submit',async event=>{
   const summary=document.createElement('div');summary.className='summary';for(const [name,count] of [['High',counts.high],['Medium',counts.medium],['Low',counts.low],['Info',counts.info]]){const chip=document.createElement('span');chip.textContent=name+': '+count;summary.append(chip)}out.append(summary);
   for(const [label,key] of [['Title','title'],['Description','description'],['Canonical','canonical'],['Language','lang'],['Robots','robots'],['H1 count','h1Count']])out.append(line(label,data[key]));
   if(!data.findings.length){const p=document.createElement('p');p.textContent='No issues found by the current static HTML checks.';out.append(p)}
-  for(const item of data.findings){const p=document.createElement('div');p.className='finding';p.dataset.severity=item.severity;p.textContent=item.severity.toUpperCase()+' · '+item.message+(item.points?' (−'+item.points+' points)':'');out.append(p)}
+  for(const item of data.findings){const p=document.createElement('div');p.className='finding';p.dataset.severity=item.severity;p.textContent=item.severity.toUpperCase()+(item.requiresRecapture?' · PROVISIONAL — recapture required':' · Verified capture')+' · '+item.message+(item.points?' (−'+item.points+' points)':'');out.append(p)}
  }catch(e){const p=document.createElement('p');p.className='error';p.textContent=e.message;out.append(p)}
  finally{btn.disabled=false;btn.textContent='Analyze HTML'}
 });
