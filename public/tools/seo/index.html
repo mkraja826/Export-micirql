@@ -597,7 +597,18 @@ siteButton.addEventListener('click',async()=>{
   const pageTableWrap=document.createElement('div');pageTableWrap.className='table-scroll';
   const pageTable=document.createElement('table');const pageHead=document.createElement('thead');const headings=document.createElement('tr');
   for(const label of ['Page','Role','HTML score','Findings','Details']){const cell=document.createElement('th');cell.textContent=label;headings.append(cell)}pageHead.append(headings);pageTable.append(pageHead);
-  const pageEvidence=new Map();
+  const beginnerSeoHelp={
+ missing_title:['Your page needs a name','This is often the blue headline people see in search results.','Add a short, specific page title that describes this page.'],
+ missing_description:['Explain your page in search results','A useful description helps people decide whether to visit.','Write a clear one- or two-sentence description of what this page offers.'],
+ heading_count:['Make your main heading clear','A main heading helps visitors quickly understand the page.','Use one descriptive main heading near the top of the page.'],
+ images_missing_alt:['Describe important images','Image descriptions help people using screen readers understand your content.','Add meaningful alternative text to informative images.'],
+ missing_canonical:['Tell search engines which page is preferred','Similar URLs can make it harder to know which version to show.','Ask your developer to set the preferred canonical URL.']
+ };
+ const explainSeoFinding=(item)=>{
+  const help=beginnerSeoHelp[item.code];
+  return help?help[0]+' — '+help[1]+' How to fix: '+help[2]:item.message;
+ };
+ const pageEvidence=new Map();
   const pageBody=document.createElement('tbody');pageTable.append(pageBody);pageTableWrap.append(pageTable);pageDashboard.append(pageTableWrap);
   const renderPageRows=()=>{
    const needle=pageSearch.value.trim().toLowerCase();let visible=0;pageBody.replaceChildren();
@@ -850,7 +861,7 @@ siteButton.addEventListener('click',async()=>{
    if(!report.findings.length){const clean=document.createElement('p');clean.textContent='No findings from the available HTML checks.';panel.append(clean)}
    for(const item of [...report.findings].sort((a,b)=>({high:0,medium:1,low:2,info:3}[a.severity]??4)-({high:0,medium:1,low:2,info:3}[b.severity]??4))){
     const line=document.createElement('p');line.className='finding';line.dataset.severity=item.severity;
-    line.textContent=item.severity.toUpperCase()+(item.requiresRecapture?' · PROVISIONAL — recapture required':' · Verified capture')+' · '+item.message+(item.points?' (−'+item.points+' points)':'');panel.append(line);
+    line.textContent=item.severity.toUpperCase()+(item.requiresRecapture?' · PROVISIONAL — recapture required':' · Verified capture')+' · '+explainSeoFinding(item)+(item.points?' (−'+item.points+' points)':'');panel.append(line);
    }
    const detailsTitle=panel.querySelector('summary');if(detailsTitle)detailsTitle.textContent='Inspect findings';
    pageEvidence.set(report.url,panel);
