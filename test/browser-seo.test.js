@@ -907,3 +907,18 @@ test('aborted reinspection restores previous report and export controls',()=>{
  assert.match(html,/siteStatus\.textContent\+=' Previous audit evidence remains available for export and retry\.'/);
  assert.match(html,/finally\{siteButton\.disabled=false;demoButton\.disabled=false;discoverButton\.disabled=false\}/);
 });
+
+test('developer mode is opt-in, accessible, and switches issue explanations',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/id="developer-mode-toggle"[^>]*role="switch" aria-checked="false"/);
+ assert.match(html,/let developerMode=false;/);
+ assert.match(html,/developerModeToggle\.addEventListener\('click'/);
+ assert.match(html,/document\.body\.classList\.toggle\('developer-mode',developerMode\)/);
+ assert.match(html,/developerModeToggle\.setAttribute\('aria-checked',String\(developerMode\)\)/);
+ assert.match(html,/el\.textContent=developerMode\?el\.dataset\.seoTechnical:el\.dataset\.seoSimple/);
+ assert.match(html,/class="panel advanced-inspector developer-only"/);
+ assert.match(html,/if\(!developerMode\)document\.getElementById\('advanced-inspector'\)\.open=false/);
+ assert.match(html,/line\.dataset\.seoSimple=prefix\+explainSeoFinding\(item\)\+suffix/);
+ assert.match(html,/line\.dataset\.seoTechnical=prefix\+'\['\+item\.code\+'\] '\+item\.message\+suffix/);
+ assert.match(html,/@media\(prefers-reduced-motion:reduce\)/);
+});
