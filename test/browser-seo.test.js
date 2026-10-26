@@ -1057,6 +1057,14 @@ test('issue evidence heading distinguishes displayed samples from recorded pages
  assert.ok(html.includes("' shown (not a full-site count)'"));
 });
 
+test('page-first SEO guidance does not falsely rule out shared templates',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("if(issue.sharedPatternPageCount<3&&issue.affectedUrls.length)"));
+ assert.ok(html.includes("Start with the affected page"));
+ assert.ok(html.includes("No repeated HTML element example was confirmed across three inspected pages for this finding; this does not rule out a shared template issue."));
+ assert.ok(html.includes("if(issue.sharedPatternPageCount>=3)"));
+});
+
 test('shared SEO patterns are explained as possible template causes rather than proof',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  assert.ok(html.includes("issue.sharedPatternPageCount=sameElement?Math.max(...(issue.sharedEvidence||[]).map(e=>e.affectedUrls.length)):0"));
