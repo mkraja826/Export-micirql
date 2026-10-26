@@ -893,7 +893,7 @@ function printClientSeoReport(report){
   const rank=item=>item.auditStatus==='failed'?3:(item.partial||item.auditStatus==='partial')?2:item.auditStatus==='complete'?1:0;
   if(!previous||rank(page)>rank(previous))inspectedPages.set(page.url,page);
  }
- const canonicalAuditUrl=value=>{try{const u=new URL(value,report.website);u.hash='';u.pathname=u.pathname.replace(/\\/+$/,'')||'/';return u.href}catch{return String(value||'')}};
+ const canonicalAuditUrl=value=>{try{const u=new URL(value,report.website);u.hash='';u.pathname=u.pathname.replace(/\/+$/,'')||'/';return u.href}catch{return String(value||'')}};
  const dedupedInspections=new Map();
  for(const page of report.reports||[]){const key=canonicalAuditUrl(page.requestedUrl||page.url);const previous=dedupedInspections.get(key);const quality=item=>item.auditStatus==='complete'&&!item.partial&&Number.isFinite(item.score)?3:item.partial||item.auditStatus==='partial'?2:1;if(!previous||quality(page)>quality(previous))dedupedInspections.set(key,page)}
  const uniqueReports=[...dedupedInspections.values()];
