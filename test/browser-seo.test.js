@@ -1057,6 +1057,15 @@ test('issue evidence heading distinguishes displayed samples from recorded pages
  assert.ok(html.includes("' shown (not a full-site count)'"));
 });
 
+test('shared SEO patterns are explained as possible template causes rather than proof',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("issue.sharedPatternPageCount=sameElement?Math.max(...(issue.sharedEvidence||[]).map(e=>e.affectedUrls.length)):0"));
+ assert.ok(html.includes("if(issue.sharedPatternPageCount>=3)"));
+ assert.ok(html.includes("the same recorded HTML example appears on "));
+ assert.ok(html.includes("Check a shared header, footer, navigation, or page template before editing pages individually."));
+ assert.ok(html.includes("This is a clue, not proof that the same code caused every issue."));
+});
+
 test('issue evidence explains missing plain-language observations without guessing',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  assert.ok(html.includes("else if((page.elements||[]).length){const context=document.createElement('p')"));
