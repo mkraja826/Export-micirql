@@ -922,3 +922,16 @@ test('developer mode is opt-in, accessible, and switches issue explanations',()=
  assert.match(html,/line\.dataset\.seoTechnical=prefix\+'\['\+item\.code\+'\] '\+item\.message\+suffix/);
  assert.match(html,/@media\(prefers-reduced-motion:reduce\)/);
 });
+
+test('scan progress and completion explain success, partial results, and recovery',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/id="site-progress-panel"/);
+ assert.match(html,/id="site-progress-percent"/);
+ assert.match(html,/const updateSiteProgress=\(\)=>/);
+ assert.match(html,/siteProgress\.value=i\+1;updateSiteProgress\(\)/);
+ assert.match(html,/Scan complete! /);
+ assert.match(html,/pages needing another check/);
+ assert.match(html,/Scan interrupted — you can try again/);
+ assert.match(html,/site-scan-completion/);
+ assert.match(html,/scanProgressPanel\.append\(completion\)/);
+});
