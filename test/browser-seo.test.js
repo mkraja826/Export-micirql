@@ -957,3 +957,16 @@ test('partial scan retry action is conditional and does not leave stale controls
  assert.match(html,/siteStatus\.textContent='Reinspecting '/);
  assert.match(html,/siteProgress\.value=0/);
 });
+
+test('retry progress distinguishes preserved pages from pages being rechecked',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/const retryRun=Boolean\(previousRetryReport\)/);
+ assert.match(html,/const pagesToCheck=pages\.length-resumedCount/);
+ assert.match(html,/let checkedThisRun=0/);
+ assert.match(html,/Rechecking '\+pagesToCheck\+' pages/);
+ assert.match(html,/Keeping '\+resumedCount\+' completed pages/);
+ assert.match(html,/checkedThisRun\+\+/);
+ assert.match(html,/Rechecking '\+checkedThisRun\+' of '\+pagesToCheck/);
+ assert.match(html,/if\(cached\.has\(pages\[i\]\)\)/);
+ assert.match(html,/siteProgress\.max=pages\.length/);
+});
