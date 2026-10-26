@@ -917,7 +917,7 @@ test('developer mode is opt-in, accessible, and switches issue explanations',()=
  assert.match(html,/developerModeToggle\.setAttribute\('aria-checked',String\(developerMode\)\)/);
  assert.match(html,/el\.textContent=developerMode\?el\.dataset\.seoTechnical:el\.dataset\.seoSimple/);
  assert.match(html,/class="panel advanced-inspector developer-only"/);
- assert.match(html,/if\(!developerMode\)document\.getElementById\('advanced-inspector'\)\.open=false/);
+ assert.ok(html.includes("if(!developerMode){document.getElementById('advanced-inspector').open=false;"));
  assert.match(html,/line\.dataset\.seoSimple=prefix\+explainSeoFinding\(item\)\+suffix/);
  assert.match(html,/line\.dataset\.seoTechnical=prefix\+'\['\+item\.code\+'\] '\+item\.message\+suffix/);
  assert.match(html,/@media\(prefers-reduced-motion:reduce\)/);
