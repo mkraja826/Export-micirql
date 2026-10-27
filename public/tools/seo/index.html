@@ -487,7 +487,7 @@ siteButton.addEventListener('click',async()=>{
     const currentUrls=new Set(summarySnapshot.completedUrls);
     const oldUrls=Array.isArray(previous.completedUrls)?new Set(previous.completedUrls):null;
     const sameCoverage=oldUrls!==null&&oldUrls.size===currentUrls.size&&[...currentUrls].every(page=>oldUrls.has(page));
-    const scoreDelta=summarySnapshot.averageScore===null||!Number.isFinite(previous.averageScore)?'Not comparable':(summarySnapshot.averageScore-previous.averageScore>0?'+':'')+(summarySnapshot.averageScore-previous.averageScore)+' points';
+    const scoreDelta=!sameCoverage||summarySnapshot.averageScore===null||!Number.isFinite(previous.averageScore)?'Not comparable (different or unknown completed-page coverage)':(summarySnapshot.averageScore-previous.averageScore>0?'+':'')+(summarySnapshot.averageScore-previous.averageScore)+' points';
     const keys=snapshot=>new Set(snapshot.issues.flatMap(issue=>issue.affectedUrls.map(page=>issue.code+'|'+page)));
     const now=keys(summarySnapshot),before=keys(previous);
     const comparableUrls=oldUrls?new Set([...currentUrls].filter(page=>oldUrls.has(page))):new Set();
