@@ -797,7 +797,7 @@ test('site coverage reports retry diagnostics and includes them in structured ex
  assert.match(html,/const retryDiagnostics=\{retried:reports\.filter/);
  assert.match(html,/recovered:reports\.filter/);
  assert.match(html,/stillPartial:reports\.filter/);
- assert.match(html,/retryPolicy:\{maxAttemptsPerPage:2,sequential:true\},scoreSummary,retryDiagnostics,failureDiagnostics,coverage:/);
+ assert.match(html,/retryPolicy:\{maxAttemptsPerPage:2,sequential:true\},scoreSummary,retryDiagnostics,failureDiagnostics,httpEvidenceCoverage:measuredHttp,coverage:/);
  assert.match(html,/Retry diagnostics: /);
  assert.match(html,/retryDiagnostics\.retried/);
  assert.match(html,/retryDiagnostics\.recovered/);
@@ -875,7 +875,7 @@ test('site report recalculates score summary from eligible completed public page
  assert.match(html,/averagePublicHtmlScore:eligiblePublicScores\.length\?Math\.round\(eligiblePublicScores\.reduce\(\(sum,page\)=>sum\+page\.score,0\)\/eligiblePublicScores\.length\):null/);
  assert.match(html,/provisionalPages:reports\.filter\(page=>page\.partial\|\|page\.auditStatus==='partial'\)\.length/);
  assert.match(html,/const measuredCoverage=auditCoverage\(pages,reports,failures\)/);
- assert.match(html,/retryPolicy:\{maxAttemptsPerPage:2,sequential:true\},scoreSummary,retryDiagnostics,failureDiagnostics,coverage:/);
+ assert.match(html,/retryPolicy:\{maxAttemptsPerPage:2,sequential:true\},scoreSummary,retryDiagnostics,failureDiagnostics,httpEvidenceCoverage:measuredHttp,coverage:/);
 });
 
 test('reinspection pins original page selection and prioritizes previous completed evidence',()=>{
