@@ -817,7 +817,7 @@ siteButton.addEventListener('click',async()=>{
         }catch(error){row.reason=error?.message?.includes('timed out')?'timeout':'request_failed'}
         activeChecks=Math.max(0,activeChecks-1);
         completed.set(destination,row);
-        siteReport.linkVerification=[...completed.values()];
+        siteReport.linkVerification=[...completed.values()];siteReport.verifiedBrokenLinks=siteReport.linkVerification.filter(item=>item.classification==='broken'&&(item.status===404||item.status===410)).map(item=>({destination:item.destination,status:item.status,referringPages:item.referringPages||[],checkedAt:item.checkedAt,finalUrl:item.finalUrl||null}));
         save();refresh();
        }
       }
@@ -827,7 +827,7 @@ siteButton.addEventListener('click',async()=>{
      retryButton.addEventListener('click',()=>{
       if(running)return;
       for(const [destination,row] of completed){if(row.classification==='unverified')completed.delete(destination)}
-      siteReport.linkVerification=[...completed.values()];save();refresh();startButton.click();
+      siteReport.linkVerification=[...completed.values()];siteReport.verifiedBrokenLinks=siteReport.linkVerification.filter(item=>item.classification==='broken'&&(item.status===404||item.status===410)).map(item=>({destination:item.destination,status:item.status,referringPages:item.referringPages||[],checkedAt:item.checkedAt,finalUrl:item.finalUrl||null}));save();refresh();startButton.click();
      });
      stopButton.addEventListener('click',()=>{stop=true;stopButton.disabled=true;statusLine.textContent='Pausing after active checks finish…'});
      exportButton.addEventListener('click',()=>{
@@ -979,6 +979,7 @@ siteExportText.addEventListener('click',()=>{
     lines.push(' - '+page.url+' · '+heading.from+' → '+heading.to+' · Previous: '+(heading.previousText||'(empty)')+' · Next: '+(heading.currentText||'(empty)'));
   }
  }
+ lines.push('','CONFIRMED BROKEN INTERNAL LINKS (HTTP 404/410): '+(siteReport.verifiedBrokenLinks||[]).length);for(const link of siteReport.verifiedBrokenLinks||[]){lines.push(' - HTTP '+link.status+' '+link.destination);for(const source of link.referringPages||[])lines.push('   Linked from: '+source)}
  lines.push('','HTTP link verification: '+((siteReport.linkVerification||[]).length?'results recorded':'not performed or no results saved'),'','Verified link destinations:',...(siteReport.linkVerification||[]).flatMap(x=>[x.destination+' — '+x.classification+(x.status===null?'':' HTTP '+x.status),...x.referringPages.map(url=>'   from '+url)]));
  lines.push('','Failed inspections:',...siteReport.failures.map(f=>f.url+' — '+f.error+(f.httpEvidence?.observed?' | observed HTTP redirects: '+(f.httpEvidence.redirects||[]).map(h=>h.status+' '+h.url+' → '+(h.location||'(unknown)')).join(' ; '):' | HTTP observation unavailable')));
  downloadReport('txt',lines.join('\n'),'text/plain');
