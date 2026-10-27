@@ -289,6 +289,10 @@ async function readWebsiteHtml(url){
   const html=value?.html||'';
   if(!html.trim())throw Error('No HTML was returned. The page may block extension access.');
   return {ok:true,url:finalUrl.href,html,partial:value?.partial===true,originalLength:value?.originalLength||html.length,httpEvidence:{...httpEvidence,requestedUrl:parsed.href,finalUrl:finalUrl.href}};
+ }catch(error){
+  // Keep observed HTTP evidence when navigation fails; a failed page has no HTML SEO score.
+  const detail=String(error?.message||error||'Navigation failed');
+  return {ok:false,error:detail,classification:/timed out|timeout/i.test(detail)?'navigation_timeout':'navigation_failed',httpEvidence:{...httpEvidence,requestedUrl:parsed.href,finalUrl:null}};
  }finally{if(observe)chrome.webRequest.onHeadersReceived.removeListener(onHeaders);try{await chrome.tabs.remove(tab.id)}catch{}}
 }
 async function checkSeoLinkStatus(rawUrl){
