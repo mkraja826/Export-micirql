@@ -1098,6 +1098,13 @@ test('beginner issue evidence identifies recorded HTML elements without exposing
  assert.ok(html.includes("snippets.className='developer-only'"));
 });
 
+test('printable SEO action plan labels affected audited URLs without a misleading selected-page denominator',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ const pdfMarkup=html.slice(html.indexOf('function printClientSeoReport(report)'));
+ assert.ok(pdfMarkup.includes("'+escapeHTML((issue.affectedUrls||[]).length)+' affected audited URL(s)"));
+ assert.ok(!pdfMarkup.includes("'+escapeHTML(report.pagesSelected)+' selected</td>"));
+});
+
 test('printable SEO report discloses score-average eligibility and exclusions',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  const pdfMarkup=html.slice(html.indexOf('function printClientSeoReport(report)'));
