@@ -1236,3 +1236,11 @@ test('interactive SEO issue guidance presents beginner fix steps and verificatio
  assert.ok(html.includes("verify.textContent='How to check the fix: '"));
  assert.ok(html.includes('fixGuide.verification||fixGuide.verify'));
 });
+
+test('SEO Studio warns when installed extension lacks HTTP response capability',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/event\.data\.protocol>=3/);
+ assert.match(html,/capabilities\.includes\('seo-http-evidence'\)/);
+ assert.match(html,/Update extension for HTTP status\/header verification/);
+ assert.match(html,/extensionStatus\.dataset\.httpEvidence/);
+});
