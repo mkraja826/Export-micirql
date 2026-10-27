@@ -1357,3 +1357,10 @@ test('link verification summary distinguishes unchecked URLs from inconclusive c
  assert.match(html,/not yet checked/);
  assert.match(html,/inconclusive checks/);
 });
+
+test('high severity findings receive first priority and printed page table fits paper',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("issue.triageTier=issue.severity==='high'?'Investigate first'"));
+ assert.ok(html.includes('width:43%!important'));
+ assert.ok(html.includes('min-width:0!important'));
+});
