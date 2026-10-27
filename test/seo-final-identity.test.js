@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {uniqueFinalPages,auditCoverage} from '../public/tools/seo/audit-lifecycle.js';
+import {uniqueFinalPages,auditCoverage,httpEvidenceCoverage} from '../public/tools/seo/audit-lifecycle.js';
 
 const page=(requestedUrl,url,title='Homepage')=>({requestedUrl,url,title,score:83,auditStatus:'complete',partial:false});
 
@@ -56,4 +56,16 @@ test('coverage keeps zero unique final pages for failed-only audits',()=>{
  assert.equal(coverage.analyzed,0);
  assert.equal(coverage.failed,1);
  assert.equal(coverage.uniqueFinalPages,0);
+});
+
+test('HTTP evidence does not inherit HTML-only verified status',()=>{
+ const pages=[
+  {...page('https://badseo.dev/','https://badseo.dev/'),captureEvidence:{httpEvidence:{observed:false,status:null}}},
+  {...page('https://badseo.dev/index/noindex-header','https://badseo.dev/index/noindex-header'),captureEvidence:{httpEvidence:{observed:true,status:200,headers:{'x-robots-tag':'noindex'}}}}
+ ];
+ assert.deepEqual(httpEvidenceCoverage(pages),{analyzed:2,observed:1,unverified:1,percent:50});
+});
+test('HTTP evidence coverage for missing evidence stays zero, not verified',()=>{
+ const pages=[page('https://badseo.dev/status/not-found','https://badseo.dev/status/not-found')];
+ assert.equal(httpEvidenceCoverage(pages).observed,0);
 });
