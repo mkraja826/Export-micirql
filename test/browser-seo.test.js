@@ -1328,3 +1328,11 @@ test('link verification dashboard exposes accessible progress and incomplete sta
  assert.match(html,/Verification paused or incomplete/);
  assert.match(html,/Not started: link destination responses have not been checked/);
 });
+
+test('link checker resumes outstanding destinations and requires an explicit full recheck',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/if\(completed\.size===queue\.length\)return/);
+ assert.match(html,/recheckButton\.textContent='Recheck all destinations'/);
+ assert.match(html,/recheckButton\.addEventListener\('click'/);
+ assert.match(html,/startButton\.disabled=running\|\|checked===queue\.length/);
+});
