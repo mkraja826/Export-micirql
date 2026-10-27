@@ -984,7 +984,7 @@ function line(label,value){const p=document.createElement('p');const b=document.
 const local=document.getElementById('local'),extensionStatus=document.getElementById('extension-status');
 let extensionReady=false;
 function setExtensionStatus(ready){extensionReady=ready;extensionStatus.dataset.connected=ready?'yes':'no';extensionStatus.textContent=ready?'Chrome extension connected':'Chrome extension not detected — paste HTML or install/reload the extension';local.disabled=!ready;}
-window.addEventListener('message',event=>{if(event.source===window&&event.origin===location.origin&&event.data?.source==='micirql-extension'&&event.data.type==='MICIRQL_EXTENSION_READY')setExtensionStatus(true)});
+window.addEventListener('message',event=>{if(event.source!==window||event.origin!==location.origin||event.data?.source!=='micirql-extension'||event.data.type!=='MICIRQL_EXTENSION_READY')return;setExtensionStatus(true);const supported=event.data.protocol>=3&&Array.isArray(event.data.capabilities)&&event.data.capabilities.includes('seo-http-evidence');extensionStatus.textContent='Chrome extension '+(event.data.extensionVersion||'version unknown')+' connected'+(supported?' · HTTP evidence supported':' · Update extension for HTTP status/header verification');extensionStatus.dataset.httpEvidence=supported?'supported':'unsupported';});
 window.postMessage({source:'micirql-web',type:'MICIRQL_EXTENSION_PING'},location.origin);
 setTimeout(()=>{if(!extensionReady)setExtensionStatus(false)},1600);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){window.postMessage({source:'micirql-web',type:'MICIRQL_EXTENSION_PING'},location.origin)}});
