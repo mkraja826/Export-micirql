@@ -1376,7 +1376,7 @@ test('link verification provides bounded browser-confirmed destination evidence 
 test('template-like broken URLs retain HTTP evidence and explain malformed href',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  assert.ok(html.includes('Possible malformed template URL: check the original href'));
- assert.ok(html.includes('HTTP '+"' +row.status+'"+' is observed'));
+ assert.ok(html.includes("' is observed, but the link may have been generated incorrectly.'"));
 });
 
 test('link diagnostics distinguish observed HTTP results from malformed URL heuristics',()=>{
@@ -1390,7 +1390,7 @@ test('TXT and printable reports retain browser link diagnostic labels',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  assert.ok(html.includes("'LINK DIAGNOSTICS: '"));
  assert.ok(html.includes('const linkDiagnosticEvidence=diagnosticRows.length'));
- assert.ok(html.includes('brokenLinkEvidence+linkDiagnosticEvidence'));
+ assert.ok(html.includes('brokenLinkEvidence+diagnosticSummary+linkDiagnosticEvidence'));
 });
 
 test('client PDF summarizes verified link classifications without treating unchecked as broken',()=>{
