@@ -244,8 +244,24 @@ async function discoverLocalSubpage(url){
 async function readWebsiteHtml(url){
  const parsed=new URL(url);
  if(!['https:','http:'].includes(parsed.protocol)||parsed.username||parsed.password)throw Error('Invalid website URL');
- const tab=await chrome.tabs.create({url:parsed.href,active:false});
+ // Attach before navigation to observe the actual response, not a second HTTP request.
+ const observe=Boolean(chrome.webRequest?.onHeadersReceived&&chrome.tabs.update);
+ const tab=await chrome.tabs.create({url:observe?'about:blank':parsed.href,active:false});
+ const httpEvidence={observed:false,status:null,headers:{}};
+ const onHeaders=details=>{
+  if(details.tabId!==tab.id||details.type!=='main_frame')return;
+  httpEvidence.observed=true;
+  httpEvidence.status=details.statusCode;
+  const allowed=new Set(['x-robots-tag','link','content-type','location']);
+  httpEvidence.headers=Object.fromEntries((details.responseHeaders||[])
+   .filter(h=>allowed.has(h.name.toLowerCase()))
+   .map(h=>[h.name.toLowerCase(),String(h.value||'').slice(0,2048)]));
+ };
  try{
+  if(observe){
+   chrome.webRequest.onHeadersReceived.addListener(onHeaders,{urls:['http://*/*','https://*/*'],tabId:tab.id},['responseHeaders']);
+   await chrome.tabs.update(tab.id,{url:parsed.href});
+  }
   await waitForTab(tab.id);
   const loaded=await chrome.tabs.get(tab.id);
   const finalUrl=new URL(loaded.url||'');
@@ -267,8 +283,8 @@ async function readWebsiteHtml(url){
   const value=results[0]?.result;
   const html=value?.html||'';
   if(!html.trim())throw Error('No HTML was returned. The page may block extension access.');
-  return {ok:true,url:finalUrl.href,html,partial:value?.partial===true,originalLength:value?.originalLength||html.length};
- }finally{try{await chrome.tabs.remove(tab.id)}catch{}}
+  return {ok:true,url:finalUrl.href,html,partial:value?.partial===true,originalLength:value?.originalLength||html.length,httpEvidence:{...httpEvidence,requestedUrl:parsed.href,finalUrl:finalUrl.href}};
+ }finally{if(observe)chrome.webRequest.onHeadersReceived.removeListener(onHeaders);try{await chrome.tabs.remove(tab.id)}catch{}}
 }
 async function checkSeoLinkStatus(rawUrl){
  const target=new URL(rawUrl);
