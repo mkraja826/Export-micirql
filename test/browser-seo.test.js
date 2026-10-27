@@ -1337,3 +1337,9 @@ test('link checker resumes outstanding destinations and requires an explicit ful
  assert.match(html,/recheckButton\.addEventListener\('click'/);
  assert.match(html,/startButton\.disabled=running\|\|checked===queue\.length/);
 });
+
+test('dashboard start button disables at completion and displays explicit recheck',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/quickStart\.disabled=running\|\|completed\.size===queue\.length/);
+ assert.match(html,/quickVerify\.append\(recheckButton\)/);
+});
