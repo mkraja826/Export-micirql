@@ -1,0 +1,13 @@
+import {readFileSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
+const archive=process.argv[2]||'public/extension/micirql-tools-extension.zip';
+const unpack=name=>execFileSync('unzip',['-p',archive,name],{encoding:'utf8'});
+const source=JSON.parse(readFileSync('extension/manifest.json','utf8'));
+const bundled=JSON.parse(unpack('manifest.json'));
+if(bundled.version!==source.version)throw Error('Extension ZIP version differs from source manifest');
+if(!bundled.permissions?.includes('webRequest'))throw Error('Extension ZIP lacks HTTP observation permission');
+const bridge=unpack('bridge.js');
+const background=unpack('background.js');
+if(!bridge.includes('seo-http-evidence')||!bridge.includes('extensionVersion'))throw Error('Extension ZIP lacks evidence capability announcement');
+if(!background.includes('onHeadersReceived')||!background.includes('httpEvidence'))throw Error('Extension ZIP lacks HTTP observation implementation');
+console.log('Extension ZIP verified:',bundled.version,'with browser-local HTTP evidence support');
