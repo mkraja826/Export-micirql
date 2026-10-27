@@ -1364,3 +1364,11 @@ test('high severity findings receive first priority and printed page table fits 
  assert.ok(html.includes('width:43%!important'));
  assert.ok(html.includes('min-width:0!important'));
 });
+
+test('link verification provides bounded browser-confirmed destination evidence with referring pages',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("quickEvidenceTitle.textContent='View '+confirmed.length"));
+ assert.ok(html.includes('confirmed.slice(0,60)'));
+ assert.ok(html.includes("url.textContent='HTTP '+row.status+' '+row.destination"));
+ assert.ok(html.includes("sources.textContent='Linked from: '"));
+});
