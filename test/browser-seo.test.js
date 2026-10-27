@@ -1392,3 +1392,10 @@ test('TXT and printable reports retain browser link diagnostic labels',()=>{
  assert.ok(html.includes('const linkDiagnosticEvidence=diagnosticRows.length'));
  assert.ok(html.includes('brokenLinkEvidence+linkDiagnosticEvidence'));
 });
+
+test('client PDF summarizes verified link classifications without treating unchecked as broken',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes('const diagnosticCounts={reachable:0,broken:0,server_error:0,unverified:0}'));
+ assert.ok(html.includes('No unchecked destination is counted as broken.'));
+ assert.ok(html.includes('brokenLinkEvidence+diagnosticSummary+linkDiagnosticEvidence'));
+});
