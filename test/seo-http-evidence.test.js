@@ -35,3 +35,16 @@ test('a single observed redirect does not trigger long chain finding',()=>{
  assert.equal(result.redirects.length,1);
  assert.equal(result.findings.some(f=>f.code==='http_redirect_chain'),false);
 });
+
+test('observed circular redirects are detected only with a closing Location edge',()=>{
+ const cyclic={...observe(200),redirects:[
+  {url:'https://example.org/a',status:301,location:'/b'},
+  {url:'https://example.org/b',status:302,location:'/a'}
+ ]};
+ assert.ok(interpretHttpEvidence(cyclic).findings.some(f=>f.code==='http_redirect_loop'));
+ const linear={...observe(200),redirects:[
+  {url:'https://example.org/a',status:301,location:'/b'},
+  {url:'https://example.org/b',status:302,location:'/c'}
+ ]};
+ assert.equal(interpretHttpEvidence(linear).findings.some(f=>f.code==='http_redirect_loop'),false);
+});
