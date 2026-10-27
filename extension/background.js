@@ -247,10 +247,15 @@ async function readWebsiteHtml(url){
  // Attach before navigation to observe the actual response, not a second HTTP request.
  const observe=Boolean(chrome.webRequest?.onHeadersReceived&&chrome.tabs.update);
  const tab=await chrome.tabs.create({url:observe?'about:blank':parsed.href,active:false});
- const httpEvidence={observed:false,status:null,headers:{}};
+ const httpEvidence={observed:false,status:null,headers:{},redirects:[]};
  const onHeaders=details=>{
   if(details.tabId!==tab.id||details.type!=='main_frame')return;
   httpEvidence.observed=true;
+  if(details.statusCode>=300&&details.statusCode<400){
+   const location=(details.responseHeaders||[]).find(h=>h.name.toLowerCase()==='location')?.value;
+   httpEvidence.redirects.push({url:details.url,status:details.statusCode,location:location?String(location).slice(0,2048):null});
+   return;
+  }
   httpEvidence.status=details.statusCode;
   const allowed=new Set(['x-robots-tag','link','content-type','location']);
   httpEvidence.headers=Object.fromEntries((details.responseHeaders||[])
