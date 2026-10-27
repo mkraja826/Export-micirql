@@ -1406,3 +1406,9 @@ test('verified broken link guidance differentiates redirects and intentional tes
  assert.ok(html.includes('correct its link address or restore the missing destination'));
  assert.ok(html.includes('intentional test endpoint'));
 });
+
+test('restoring link verification does not append duplicate cached results',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes('siteReport.linkVerification=[...completed.values()];'));
+ assert.ok(!html.includes('for(const x of completed.values())siteReport.linkVerification.push(x)'));
+});
