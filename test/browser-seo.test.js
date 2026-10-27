@@ -1098,6 +1098,14 @@ test('beginner issue evidence identifies recorded HTML elements without exposing
  assert.ok(html.includes("snippets.className='developer-only'"));
 });
 
+test('printable SEO report discloses score-average eligibility and exclusions',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ const pdfMarkup=html.slice(html.indexOf('function printClientSeoReport(report)'));
+ assert.ok(pdfMarkup.includes("The average includes '+escapeHTML(valid.length)+' eligible page(s) out of '+escapeHTML(inspectedUniqueCount)+' unique inspection records"));
+ assert.ok(pdfMarkup.includes("'+escapeHTML(inspectedUniqueCount-valid.length)+' record(s) were excluded because they were incomplete or unscored."));
+ assert.ok(pdfMarkup.includes("const valid=uniqueReports.filter(page=>Number.isFinite(page.score)&&!page.partial&&page.auditStatus==='complete')"));
+});
+
 test('printable SEO report keeps A4 tables readable across page breaks',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  const pdfStart=html.indexOf('function printClientSeoReport(report)');
