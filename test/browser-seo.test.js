@@ -1372,3 +1372,9 @@ test('link verification provides bounded browser-confirmed destination evidence 
  assert.ok(html.includes("url.textContent='HTTP '+row.status+' '+row.destination"));
  assert.ok(html.includes("sources.textContent='Linked from: '"));
 });
+
+test('template-like broken URLs retain HTTP evidence and explain malformed href',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes('Possible malformed template URL: check the original href'));
+ assert.ok(html.includes('HTTP '+"' +row.status+'"+' is observed'));
+});
