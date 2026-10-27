@@ -788,6 +788,15 @@ siteButton.addEventListener('click',async()=>{
      const save=()=>{try{localStorage.setItem(scopeKey,JSON.stringify({savedAt:Date.now(),rows:[...completed.values()]}))}catch{}};
      const refresh=()=>{
       const counts={reachable:0,broken:0,server_error:0,unverified:0};for(const entry of completed.values()){if(Object.hasOwn(counts,entry.classification))counts[entry.classification]++;else counts.unverified++;}quickSummary.textContent='Checked '+completed.size+'/'+queue.length+' destinations · '+counts.reachable+' reachable · '+counts.broken+' broken (404/410) · '+counts.server_error+' server errors (5xx) · '+counts.unverified+' unverified. '+(counts.broken?'Fix broken destinations or update their referring links. ':'')+(counts.server_error?'Investigate server failures and retry after recovery. ':'')+(counts.unverified?'Retry timeouts or blocked requests; do not assume they are broken. ':'')+'Only HTTP 404/410 counts as confirmed broken.';
+      const confirmed=[...completed.values()].filter(row=>row.classification==='broken'&&(row.status===404||row.status===410));
+      const currentIndex=issues.findIndex(issue=>issue.code==='verified_broken_internal_links');
+      if(currentIndex!==-1)issues.splice(currentIndex,1);
+      if(confirmed.length){
+       const affectedUrls=[...new Set(confirmed.flatMap(row=>row.referringPages||[]))];
+       issues.unshift({code:'verified_broken_internal_links',severity:'high',category:'links',title:'Confirmed broken internal links',message:confirmed.length+' link destination(s) returned HTTP 404/410.',recommendation:'Correct the destination URL, update the referring link or restore the missing page.',affectedUrls,verificationStatus:'verified',fixGuide:{why:'These destinations returned HTTP 404/410 when checked in Chrome.',steps:['Open each confirmed destination and check its referring pages.','Update or remove the broken link, or restore the missing page.','Run link verification again to confirm a reachable result.'],verification:'Check destination responses again after making changes.'},pageEvidence:confirmed.map(row=>({url:row.destination,observed:'HTTP '+row.status+'; linked from '+(row.referringPages||[]).join(', '),elements:[]}))});
+      }
+      siteReport.verifiedBrokenLinks=confirmed.map(row=>({destination:row.destination,status:row.status,referringPages:row.referringPages||[],checkedAt:row.checkedAt,finalUrl:row.finalUrl||null}));
+      renderIssues();
       quickStart.disabled=running;
       const checked=completed.size, broken=[...completed.values()].filter(x=>x.classification==='broken').length;
       const uncertain=[...completed.values()].filter(x=>x.classification==='unverified').length;
