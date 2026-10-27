@@ -1295,3 +1295,11 @@ test('verified 404 and 410 links appear in structured export and text report wit
  assert.match(html,/CONFIRMED BROKEN INTERNAL LINKS \(HTTP 404\/410\)/);
  assert.match(html,/Linked from: /);
 });
+
+test('printable audit prioritizes confirmed 404/410 links and includes referring page evidence',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/issues\.unshift\(\{code:'verified_broken_internal_links'/);
+ assert.match(html,/const brokenLinkEvidence=brokenLinks\.length/);
+ assert.match(html,/\+brokenLinkEvidence\+'<h2>Score breakdown/);
+ assert.match(html,/row\.referringPages\|\|\[\]/);
+});
