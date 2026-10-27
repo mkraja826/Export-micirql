@@ -1425,3 +1425,9 @@ test('restored link evidence refreshes referring pages from the current audit',(
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  assert.ok(html.includes('saved.filter(validCachedRow).map(x=>[x.destination,{...x,referringPages:[...new Set(pending.get(x.destination)||[])]}]')); 
 });
+
+test('finding filters keep active link verification mounted without duplicate panels',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("pending.size&&!siteResults.querySelector('#seo-link-verification-dashboard')"));
+ assert.ok(!html.includes("siteResults.querySelectorAll('#seo-link-verification-dashboard').forEach(panel=>panel.remove())"));
+});
