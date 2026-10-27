@@ -740,6 +740,7 @@ siteButton.addEventListener('click',async()=>{
      for(const x of completed.values())siteReport.linkVerification.push(x);
      let running=false,stop=false,activeChecks=0;
      const statusLine=document.createElement('p');statusLine.className='hint small';const verificationIntro=document.createElement('p');verificationIntro.className='notice';verificationIntro.textContent='Next step: This HTML audit has not checked every link destination. Select Start / resume verification below to check them in your Chrome browser. Only HTTP 404/410 is marked broken; timeouts and blocked requests stay unverified.';details.append(verificationIntro);
+     const quickVerify=document.createElement('section');quickVerify.id='seo-link-verification-dashboard';quickVerify.className='panel';quickVerify.setAttribute('aria-label','Internal link verification');const quickTitle=document.createElement('h3');quickTitle.textContent='Verify internal links';const quickSummary=document.createElement('p');quickSummary.className='hint small';const quickStart=document.createElement('button');quickStart.type='button';quickStart.textContent='Start checking links in Chrome';quickVerify.append(quickTitle,quickSummary,quickStart);siteResults.prepend(quickVerify);
      const startButton=document.createElement('button');startButton.type='button';startButton.textContent='Verify uninspected link destinations in Chrome';startButton.setAttribute('aria-label','Verify uninspected internal link destinations with Chrome');
      const stopButton=document.createElement('button');stopButton.type='button';stopButton.textContent='Pause verification';stopButton.disabled=true;
      const exportButton=document.createElement('button');exportButton.type='button';exportButton.textContent='Download link CSV';
@@ -786,6 +787,8 @@ siteButton.addEventListener('click',async()=>{
      dashboard.append(sourceTitle,sourceSummary,sourceList);
      const save=()=>{try{localStorage.setItem(scopeKey,JSON.stringify({savedAt:Date.now(),rows:[...completed.values()]}))}catch{}};
      const refresh=()=>{
+      quickSummary.textContent='Checked '+completed.size+' of '+queue.length+' destinations. Only HTTP 404/410 counts as confirmed broken; blocked or timed-out requests remain unverified.';
+      quickStart.disabled=running;
       const checked=completed.size, broken=[...completed.values()].filter(x=>x.classification==='broken').length;
       const uncertain=[...completed.values()].filter(x=>x.classification==='unverified').length;
       const timedOut=[...completed.values()].filter(x=>x.reason==='timeout').length;
@@ -795,6 +798,7 @@ siteButton.addEventListener('click',async()=>{
       startButton.disabled=running;retryButton.disabled=running||uncertain===0;renderResults();renderSources();
      };
      refresh();
+     quickStart.addEventListener('click',()=>startButton.click());
      startButton.addEventListener('click',async()=>{
       if(running)return;
       if(completed.size===queue.length)completed.clear();
