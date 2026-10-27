@@ -1098,6 +1098,14 @@ test('beginner issue evidence identifies recorded HTML elements without exposing
  assert.ok(html.includes("snippets.className='developer-only'"));
 });
 
+test('printable SEO report highlights failed and partial inspections in its executive summary',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("const coverageWarning=failedCount||partialCount?"));
+ assert.ok(html.includes("Audit completeness warning:"));
+ assert.ok(html.includes("These pages may have unreported SEO issues and are excluded from the eligible HTML score average."));
+ assert.ok(html.includes("'+coverageWarning+'<h2>Executive priorities</h2>"));
+});
+
 test('printable SEO report avoids claiming zero findings means no fixes are needed',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  assert.ok(html.includes('No grouped findings were recorded in the inspected pages. This does not establish that the website is free of SEO issues; review audit coverage and incomplete inspections below.'));
