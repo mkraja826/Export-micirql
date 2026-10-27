@@ -1420,3 +1420,8 @@ test('restored link evidence requires consistent HTTP classifications',()=>{
  assert.ok(html.includes("row.classification==='reachable'&&Number.isInteger(row.status)"));
  assert.ok(html.includes('saved.filter(validCachedRow)'));
 });
+
+test('restored link evidence refreshes referring pages from the current audit',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes('saved.filter(validCachedRow).map(x=>[x.destination,{...x,referringPages:[...new Set(pending.get(x.destination)||[])]}]')); 
+});
