@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "MiCirql Tools — Website Capture",
-  "version": "0.3.12",
+  "version": "0.3.13",
   "description": "Browser-local website capture and SEO audits, with page discovery progress and ZIP export.",
   "permissions": [
     "debugger",
