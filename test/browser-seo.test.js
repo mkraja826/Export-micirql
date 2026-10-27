@@ -1252,3 +1252,13 @@ test('extension update instructions explain replacing existing unpacked files an
  assert.match(html,/0\.3\.13 or newer/);
  assert.match(html,/HTTP evidence is supported/);
 });
+
+test('HTTP findings propagate from extension response into exported site audit reports',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/httpEvidence:response\.httpEvidence\|\|\{observed:false,status:null,headers:\{\}\}/);
+ assert.match(html,/const httpCheck=interpretHttpEvidence\(response\.httpEvidence,report\.canonical,report\.url\)/);
+ assert.match(html,/report\.httpVerification=\{verified:httpCheck\.verified,status:httpCheck\.status\?\?null\}/);
+ assert.match(html,/if\(httpCheck\.findings\.length\)report\.findings\.push\(\.\.\.httpCheck\.findings\)/);
+ assert.match(html,/httpEvidenceCoverage:measuredHttp/);
+ assert.match(html,/JSON\.stringify\(siteReport,null,2\)/);
+});
