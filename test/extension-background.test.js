@@ -290,3 +290,26 @@ test('HTTP response listener captures status and X-Robots-Tag before page naviga
  assert.equal(result.httpEvidence.headers['x-robots-tag'],'noindex');
  assert.equal(removed,true);
 });
+
+test('navigation failure returns unscored error with available HTTP observations',async()=>{
+ let listener,headerListener,removed=false;
+ const chrome={
+  runtime:{id:'micirql-extension',onMessage:{addListener(fn){listener=fn}}},
+  webRequest:{onHeadersReceived:{addListener(fn){headerListener=fn},removeListener(){removed=true}}},
+  tabs:{
+   onUpdated:{addListener(){},removeListener(){}},
+   async create(){return {id:12,status:'loading'}},
+   async update(){headerListener({tabId:12,type:'main_frame',url:'https://example.com/start',statusCode:302,responseHeaders:[{name:'Location',value:'/loop'}]});throw Error('Page load timed out')},
+   async get(){return {id:12,status:'loading'}},
+   async remove(){}
+  },
+  scripting:{async executeScript(){throw Error('Should not inspect failed navigation')}}
+ };
+ runInNewContext(background,{chrome,URL,Promise,setTimeout,clearTimeout,console});
+ const result=await new Promise(resolve=>listener({type:'READ_SEO_HTML',url:'https://example.com/start'},{id:'micirql-extension',tab:{url:'https://tools.micirql.com/tools/seo/'},url:'https://tools.micirql.com/tools/seo/'},resolve));
+ assert.equal(result.ok,false);
+ assert.equal(result.classification,'navigation_timeout');
+ assert.equal(result.httpEvidence.redirects.length,1);
+ assert.equal(result.httpEvidence.status,null);
+ assert.equal(removed,true);
+});
