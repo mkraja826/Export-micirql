@@ -1378,3 +1378,10 @@ test('template-like broken URLs retain HTTP evidence and explain malformed href'
  assert.ok(html.includes('Possible malformed template URL: check the original href'));
  assert.ok(html.includes('HTTP '+"' +row.status+'"+' is observed'));
 });
+
+test('link diagnostics distinguish observed HTTP results from malformed URL heuristics',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes('siteReport.linkDiagnostics=[...completed.values()].map'));
+ for(const label of ['possible_malformed_source_link','broken_after_redirect','confirmed_http_404_410','inconclusive_request'])assert.ok(html.includes(label));
+ assert.ok(html.includes('malformed-source classification is a heuristic'));
+});
