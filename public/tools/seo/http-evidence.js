@@ -2,6 +2,11 @@
 export function interpretHttpEvidence(evidence, htmlCanonical='', pageUrl=''){
  const findings=[];
  if(!evidence?.observed||!Number.isInteger(evidence.status))return {verified:false,findings};
+ const hops=Array.isArray(evidence.redirects)?evidence.redirects.slice(0,20):[];
+ // Redirect observation is bounded; do not claim an unseen hop or a detected loop.
+ const chain=hops.map(h=>({url:String(h.url||''),status:h.status,location:h.location||null}));
+ const redirectFindings=[];
+ if(chain.length>=3)redirectFindings.push({code:'http_redirect_chain',severity:'medium',message:chain.length+' HTTP redirect hops were observed.',points:0,category:'http',evidenceConfidence:'verified',evidence:chain});
  const status=evidence.status;
  const headers=evidence.headers||{};
  const add=(code,severity,message)=>findings.push({code,severity,message,points:0,category:'http',evidenceConfidence:'verified'});
@@ -19,5 +24,5 @@ export function interpretHttpEvidence(evidence, htmlCanonical='', pageUrl=''){
    if(a.href!==b.href)add('http_canonical_conflict','high','HTTP Link canonical disagrees with the HTML canonical.');
   }catch{/* Invalid URLs require separate canonical validation. */}
  }
- return {verified:true,status,findings};
+ return {verified:true,status,redirects:chain,findings:[...findings,...redirectFindings]};
 }
