@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {uniqueFinalPages} from '../public/tools/seo/audit-lifecycle.js';
+import {uniqueFinalPages,auditCoverage} from '../public/tools/seo/audit-lifecycle.js';
 
 const page=(requestedUrl,url,title='Homepage')=>({requestedUrl,url,title,score:83,auditStatus:'complete',partial:false});
 
@@ -37,4 +37,15 @@ test('query strings and trailing slashes retain distinct final identities',()=>{
 test('partial or failed captures are excluded from cross-page duplicate analysis',()=>{
  const reports=[page('https://example.org/','https://example.org/'),{...page('https://example.org/other','https://example.org/other'),partial:true,auditStatus:'partial'}];
  assert.equal(uniqueFinalPages(reports).length,1);
+});
+
+test('coverage distinguishes selected URLs from distinct final pages',()=>{
+ const reports=[
+  page('https://badseo.dev/','https://badseo.dev/'),
+  page('https://badseo.dev/redirect/chain-1','https://badseo.dev/')
+ ];
+ const coverage=auditCoverage(reports.map(r=>r.requestedUrl),reports,[]);
+ assert.equal(coverage.selected,2);
+ assert.equal(coverage.analyzed,2);
+ assert.equal(coverage.uniqueFinalPages,1);
 });
