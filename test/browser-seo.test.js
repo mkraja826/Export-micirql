@@ -1399,3 +1399,10 @@ test('client PDF summarizes verified link classifications without treating unche
  assert.ok(html.includes('No unchecked destination is counted as broken.'));
  assert.ok(html.includes('brokenLinkEvidence+diagnosticSummary+linkDiagnosticEvidence'));
 });
+
+test('verified broken link guidance differentiates redirects and intentional test endpoints',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes('this link redirects to a missing destination'));
+ assert.ok(html.includes('correct its link address or restore the missing destination'));
+ assert.ok(html.includes('intentional test endpoint'));
+});
