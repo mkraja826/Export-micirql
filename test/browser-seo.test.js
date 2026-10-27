@@ -1287,3 +1287,11 @@ test('link dashboard separates verified broken, server errors and uncertain dest
  assert.match(html,/Investigate server failures and retry after recovery/);
  assert.match(html,/Retry timeouts or blocked requests/);
 });
+
+test('verified 404 and 410 links appear in structured export and text report with referring pages',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/siteReport\.verifiedBrokenLinks=siteReport\.linkVerification\.filter/);
+ assert.match(html,/item\.classification==='broken'&&\(item\.status===404\|\|item\.status===410\)/);
+ assert.match(html,/CONFIRMED BROKEN INTERNAL LINKS \(HTTP 404\/410\)/);
+ assert.match(html,/Linked from: /);
+});
