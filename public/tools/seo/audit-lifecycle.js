@@ -16,7 +16,7 @@ export function auditCoverage(pages,reports,failures){
  if(selected<1||selected>60)throw Error('Audit selection must contain 1–60 pages');
  if(analyzed+failed!==selected)throw Error('Audit results do not account for every selected page');
  const complete=reports.filter(r=>r.auditStatus==='complete'&&!r.partial&&Number.isFinite(r.score)).length;
- return {selected,analyzed,failed,complete,partial:analyzed-complete,successfulPercent:Math.round(analyzed/selected*100)};
+ return {selected,analyzed,failed,complete,partial:analyzed-complete,successfulPercent:Math.round(analyzed/selected*100),uniqueFinalPages:uniqueFinalPages(reports).length};
 }
 export async function inspectBatch({pages,checkpoint,origin,inspect,onProgress=()=>{},maxAttempts=2}){
  if(pages.length<1||pages.length>60||new Set(pages).size!==pages.length)throw Error('Invalid batch selection');
