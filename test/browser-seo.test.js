@@ -1244,3 +1244,11 @@ test('SEO Studio warns when installed extension lacks HTTP response capability',
  assert.match(html,/Update extension for HTTP status\/header verification/);
  assert.match(html,/extensionStatus\.dataset\.httpEvidence/);
 });
+
+test('extension update instructions explain replacing existing unpacked files and reloading Chrome',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/same permanent extension folder/);
+ assert.match(html,/chrome:\/\/extensions/);
+ assert.match(html,/0\.3\.13 or newer/);
+ assert.match(html,/HTTP evidence is supported/);
+});
