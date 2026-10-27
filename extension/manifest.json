@@ -10,7 +10,8 @@
     "activeTab",
     "scripting",
     "offscreen",
-    "storage"
+    "storage",
+    "webRequest"
   ],
   "host_permissions": [
     "http://*/*",
