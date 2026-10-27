@@ -1270,3 +1270,12 @@ test('unverified link panel explains manual verification and conservative broken
  assert.match(html,/Verify uninspected internal link destinations with Chrome/);
  assert.match(html,/MICIRQL_SEO_LINK_CHECK/);
 });
+
+test('link checker offers a dedicated dashboard launch control and live progress',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/quickVerify\.id='seo-link-verification-dashboard'/);
+ assert.match(html,/siteResults\.prepend\(quickVerify\)/);
+ assert.match(html,/quickStart\.addEventListener\('click',\(\)=>startButton\.click\(\)\)/);
+ assert.match(html,/quickSummary\.textContent='Checked '/);
+ assert.match(html,/quickStart\.disabled=running/);
+});
