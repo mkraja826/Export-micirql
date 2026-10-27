@@ -1262,3 +1262,11 @@ test('HTTP findings propagate from extension response into exported site audit r
  assert.match(html,/httpEvidenceCoverage:measuredHttp/);
  assert.match(html,/JSON\.stringify\(siteReport,null,2\)/);
 });
+
+test('unverified link panel explains manual verification and conservative broken-link classification',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/This HTML audit has not checked every link destination/);
+ assert.match(html,/Only HTTP 404\/410 is marked broken/);
+ assert.match(html,/Verify uninspected internal link destinations with Chrome/);
+ assert.match(html,/MICIRQL_SEO_LINK_CHECK/);
+});
