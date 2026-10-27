@@ -7,6 +7,7 @@ function httpFailure(response){
 const base=(process.env.MICIRQL_BASE_URL||'https://tools.micirql.com').replace(/\/$/,'');
 const checks=[
  ['/extension/micirql-tools-extension.zip',async r=>{const bytes=new Uint8Array(await r.arrayBuffer());if(bytes.length<1000||bytes[0]!==0x50||bytes[1]!==0x4b)throw Error('Extension download is not a valid ZIP (bytes='+bytes.length+')')}],
+ ['/extension/micirql-tools-extension.zip?utm_source=chatgpt.com',async r=>{const bytes=new Uint8Array(await r.arrayBuffer());if(bytes.length<1000||bytes[0]!==0x50||bytes[1]!==0x4b)throw Error('Extension download is not a valid ZIP (bytes='+bytes.length+')')}],
  ['/api/health',async r=>{const d=await r.json();if(!d.ok||d.presets!==3)throw Error('Health response invalid')}],
  ['/api/presets',async r=>{const d=await r.json();if(!Array.isArray(d)||d.length!==3)throw Error('Expected 3 width presets')}],
  ['/',async r=>{const t=await r.text();if(!t.includes('MiCirql')||!t.includes('Screenshot Studio'))throw Error('Tool homepage missing')}],
