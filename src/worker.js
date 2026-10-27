@@ -177,6 +177,12 @@ async function exportHandler(request,env){
    }catch(e){console.error('Screenshot request error',{message:e?.message});return json({error:e.message||'Screenshot request failed',code:'CAPTURE_ERROR'},/Invalid URL|Only public|Use a public|Unsupported/.test(e.message||'')?400:502);}
   }
   if(path.startsWith('/api/'))return json({error:'Not found'},404);
+  // Download links can acquire tracking query parameters in messaging apps.
+  // Resolve the ZIP by its canonical asset path rather than query string.
+  if(['GET','HEAD'].includes(request.method)&&path==='/extension/micirql-tools-extension.zip'&&env.ASSETS){
+   const assetUrl=new URL(request.url);assetUrl.search='';
+   return env.ASSETS.fetch(new Request(assetUrl.href,request));
+  }
   return env.ASSETS.fetch(request);
  }
 export {exportHandler};
