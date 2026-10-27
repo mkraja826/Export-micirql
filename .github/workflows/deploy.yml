@@ -31,6 +31,7 @@ jobs:
           zip -q -r ../public/extension/micirql-tools-extension.zip manifest.json background.js bridge.js offscreen.html popup.html popup.js zip.js
           cd ..
           unzip -t public/extension/micirql-tools-extension.zip
+          node scripts/verify-extension-package.mjs public/extension/micirql-tools-extension.zip
       - name: Validate Worker
         run: |
           node --check src/worker.js
