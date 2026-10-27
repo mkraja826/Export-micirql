@@ -720,6 +720,8 @@ siteButton.addEventListener('click',async()=>{
   const issueTitles={missing_title:'Page title is missing',missing_meta_description:'Search description is missing',missing_description:'Search description is missing',missing_h1:'Main page heading is missing',multiple_h1:'Multiple main headings detected',missing_canonical:'Preferred page URL is not specified',noindex:'Page is excluded from search indexing',internal_links_unverified:'Some internal links still need verification',broken_internal_links:'Broken internal links detected',images_missing_alt:'Images are missing descriptions',missing_alt:'Images are missing descriptions',thin_content:'Page has limited written content'};
   const issueTitle=code=>issueTitles[code]||code.replaceAll('_',' ').replace(/\b\w/g,character=>character.toUpperCase());
   function renderIssues(){
+   // Re-rendering filters must not accumulate site-level verification panels.
+   siteResults.querySelectorAll('#seo-link-verification-dashboard').forEach(panel=>panel.remove());
    issueContainer.replaceChildren();
    const selected=severityFilter.value;
    const query=issueSearch.value.trim().toLocaleLowerCase();
@@ -799,7 +801,7 @@ siteButton.addEventListener('click',async()=>{
       siteReport.verifiedBrokenLinks=confirmed.map(row=>({destination:row.destination,status:row.status,referringPages:row.referringPages||[],checkedAt:row.checkedAt,finalUrl:row.finalUrl||null}));
       siteReport.issueCenter=issues.map(issue=>({...issue}));
       siteReport.linkVerification=[...completed.values()];
-      renderIssues();
+      // Do not call renderIssues() here: constructing link controls invokes refresh() and would recurse.
       quickProgress.value=completed.size;quickState.textContent=running?'Checking link destinations in Chrome…':completed.size===queue.length?'All selected destinations checked. Review unverified outcomes before drawing conclusions.':completed.size?'Verification paused or incomplete. Resume checking remaining destinations.':'Not started: link destination responses have not been checked.';
       quickStart.disabled=running||completed.size===queue.length;
       const checked=completed.size, broken=[...completed.values()].filter(x=>x.classification==='broken').length;
