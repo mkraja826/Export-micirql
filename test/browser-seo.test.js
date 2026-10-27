@@ -493,7 +493,7 @@ test('SEO Studio V2.4 offers a printable client summary without changing audit s
  assert.ok(html.includes('window.open(\'\',\'_blank\')'));
  assert.ok(html.includes('escapeHTML(issue.recommendation)'));
  assert.ok(html.includes('report.coverage?.discoveryTruncated'));
- assert.ok(html.includes('Average excludes incomplete and unscored pages.'));
+ assert.ok(html.includes("The average includes '+escapeHTML(valid.length)+' eligible page(s) out of '+escapeHTML(inspectedUniqueCount)+' unique inspection records"));
 });
 
 
