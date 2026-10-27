@@ -1343,3 +1343,10 @@ test('dashboard start button disables at completion and displays explicit rechec
  assert.match(html,/quickStart\.disabled=running\|\|completed\.size===queue\.length/);
  assert.match(html,/quickVerify\.append\(recheckButton\)/);
 });
+
+test('link verification refresh cannot recursively rebuild issues or stack dashboard panels',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/siteResults\.querySelectorAll\('#seo-link-verification-dashboard'\)\.forEach\(panel=>panel\.remove\(\)\)/);
+ assert.match(html,/siteReport\.linkVerification=\[\.\.\.completed\.values\(\)\];\s*\/\/ Do not call renderIssues\(\) here:[^\n]*\n\s*quickProgress\.value=completed\.size/);
+ assert.doesNotMatch(html,/siteReport\.linkVerification=\[\.\.\.completed\.values\(\)\];\s*renderIssues\(\);/);
+});
