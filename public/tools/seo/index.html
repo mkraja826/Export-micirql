@@ -801,7 +801,7 @@ siteButton.addEventListener('click',async()=>{
       siteReport.linkVerification=[...completed.values()];
       renderIssues();
       quickProgress.value=completed.size;quickState.textContent=running?'Checking link destinations in Chrome…':completed.size===queue.length?'All selected destinations checked. Review unverified outcomes before drawing conclusions.':completed.size?'Verification paused or incomplete. Resume checking remaining destinations.':'Not started: link destination responses have not been checked.';
-      quickStart.disabled=running;
+      quickStart.disabled=running||completed.size===queue.length;
       const checked=completed.size, broken=[...completed.values()].filter(x=>x.classification==='broken').length;
       const uncertain=[...completed.values()].filter(x=>x.classification==='unverified').length;
       const timedOut=[...completed.values()].filter(x=>x.reason==='timeout').length;
@@ -837,6 +837,7 @@ siteButton.addEventListener('click',async()=>{
       await Promise.all([worker(),worker()]);
       running=false;stopButton.disabled=true;refresh();
      });
+     quickVerify.append(recheckButton);
      recheckButton.addEventListener('click',()=>{if(running)return;completed.clear();siteReport.linkVerification=[];save();refresh();startButton.click()});
      retryButton.addEventListener('click',()=>{
       if(running)return;
