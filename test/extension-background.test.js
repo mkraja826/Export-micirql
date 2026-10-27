@@ -258,3 +258,35 @@ test('partial viewport failure does not stop subsequent widths or pages',async()
  assert.equal(removed,1);
  assert.ok(captures>=8,'Failed viewport receives three attempts before continuing');
 });
+
+test('HTTP evidence is unverified when response observation is unavailable',async()=>{
+ const h=harness();
+ const result=await h.send('https://example.com/');
+ assert.equal(result.ok,true);
+ assert.equal(result.httpEvidence.observed,false);
+ assert.equal(result.httpEvidence.status,null);
+ assert.equal(result.httpEvidence.finalUrl,'https://example.com/landing');
+});
+
+test('HTTP response listener captures status and X-Robots-Tag before page navigation',async()=>{
+ let listener,headerListener,removed=false;
+ const chrome={
+  runtime:{id:'micirql-extension',onMessage:{addListener(fn){listener=fn}}},
+  webRequest:{onHeadersReceived:{addListener(fn){headerListener=fn},removeListener(){removed=true}}},
+  tabs:{
+   onUpdated:{addListener(){},removeListener(){}},
+   async create(){return {id:12,status:'loading'}},
+   async update(){headerListener({tabId:12,type:'main_frame',statusCode:200,responseHeaders:[{name:'X-Robots-Tag',value:'noindex'},{name:'Content-Type',value:'text/html'}]});return {}},
+   async get(){return {id:12,status:'complete',url:'https://example.com/final'}},
+   async remove(){}
+  },
+  scripting:{async executeScript(){return [{result:{html:'<html><body>Test</body></html>'}}]}}
+ };
+ runInNewContext(background,{chrome,URL,Promise,setTimeout,clearTimeout,console});
+ const result=await new Promise(resolve=>listener({type:'READ_SEO_HTML',url:'https://example.com/start'},{id:'micirql-extension',tab:{url:'https://tools.micirql.com/tools/seo/'},url:'https://tools.micirql.com/tools/seo/'},resolve));
+ assert.equal(result.ok,true);
+ assert.equal(result.httpEvidence.observed,true);
+ assert.equal(result.httpEvidence.status,200);
+ assert.equal(result.httpEvidence.headers['x-robots-tag'],'noindex');
+ assert.equal(removed,true);
+});
