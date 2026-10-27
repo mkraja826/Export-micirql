@@ -1385,3 +1385,10 @@ test('link diagnostics distinguish observed HTTP results from malformed URL heur
  for(const label of ['possible_malformed_source_link','broken_after_redirect','confirmed_http_404_410','inconclusive_request'])assert.ok(html.includes(label));
  assert.ok(html.includes('malformed-source classification is a heuristic'));
 });
+
+test('TXT and printable reports retain browser link diagnostic labels',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("'LINK DIAGNOSTICS: '"));
+ assert.ok(html.includes('const linkDiagnosticEvidence=diagnosticRows.length'));
+ assert.ok(html.includes('brokenLinkEvidence+linkDiagnosticEvidence'));
+});
