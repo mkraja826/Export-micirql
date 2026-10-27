@@ -1279,3 +1279,11 @@ test('link checker offers a dedicated dashboard launch control and live progress
  assert.match(html,/quickSummary\.textContent='Checked '/);
  assert.match(html,/quickStart\.disabled=running/);
 });
+
+test('link dashboard separates verified broken, server errors and uncertain destinations',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/counts=\{reachable:0,broken:0,server_error:0,unverified:0\}/);
+ assert.match(html,/Fix broken destinations or update their referring links/);
+ assert.match(html,/Investigate server failures and retry after recovery/);
+ assert.match(html,/Retry timeouts or blocked requests/);
+});
