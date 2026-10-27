@@ -61,5 +61,9 @@ export function uniqueFinalPages(reports){
 export function httpEvidenceCoverage(reports=[]){
  const analyzed=reports.length;
  const observed=reports.filter(r=>r?.captureEvidence?.httpEvidence?.observed===true&&Number.isInteger(r.captureEvidence.httpEvidence.status)).length;
- return {analyzed,observed,unverified:analyzed-observed,percent:analyzed?Math.round(observed/analyzed*100):0};
+ const reasons={apiUnavailable:0,noResponseEvent:0,unknown:0};
+ for(const report of reports){const evidence=report?.captureEvidence?.httpEvidence;if(evidence?.observed===true&&Number.isInteger(evidence.status))continue;
+  if(evidence?.observationState==='api_unavailable')reasons.apiUnavailable++;else if(evidence?.observationState==='no_response_event')reasons.noResponseEvent++;else reasons.unknown++;
+ }
+ return {analyzed,observed,unverified:analyzed-observed,percent:analyzed?Math.round(observed/analyzed*100):0,reasons};
 }
