@@ -1431,3 +1431,10 @@ test('finding filters keep active link verification mounted without duplicate pa
  assert.ok(html.includes("pending.size&&!siteResults.querySelector('#seo-link-verification-dashboard')"));
  assert.ok(!html.includes("siteResults.querySelectorAll('#seo-link-verification-dashboard').forEach(panel=>panel.remove())"));
 });
+
+test('live link checker reconciles classification against observed HTTP status',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes('// HTTP status is authoritative; do not persist contradictory extension labels.'));
+ assert.ok(html.includes("row.classification=row.status===404||row.status===410?'broken'"));
+ assert.ok(html.indexOf('row.classification=row.status===404||row.status===410')<html.indexOf('completed.set(destination,row)'));
+});
