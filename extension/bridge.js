@@ -2,7 +2,7 @@
 const ORIGIN=location.origin;
 const TRUSTED=new Set(['https://export.micirql.com','https://tools.micirql.com']);
 const reply=(type,id,result)=>window.postMessage({source:'micirql-extension',type,id,...result},ORIGIN);
-const announce=()=>reply('MICIRQL_EXTENSION_READY',null,{protocol:3,extensionVersion:chrome.runtime.getManifest().version,capabilities:['discover','capture','bulk','progress','seo-http-evidence']});
+const announce=()=>reply('MICIRQL_EXTENSION_READY',null,{protocol:3,extensionVersion:chrome.runtime.getManifest?.()?.version||'unknown',capabilities:['discover','capture','bulk','progress','seo-http-evidence']});
 window.addEventListener('message',async event=>{
  if(event.source!==window||event.origin!==ORIGIN||!TRUSTED.has(ORIGIN)||event.data?.source!=='micirql-web')return;
  const {type,id}=event.data;
