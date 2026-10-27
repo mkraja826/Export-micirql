@@ -1098,6 +1098,20 @@ test('beginner issue evidence identifies recorded HTML elements without exposing
  assert.ok(html.includes("snippets.className='developer-only'"));
 });
 
+test('printable SEO report keeps A4 tables readable across page breaks',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ const pdfStart=html.indexOf('function printClientSeoReport(report)');
+ assert.ok(pdfStart>=0);
+ const pdfMarkup=html.slice(pdfStart);
+ assert.ok(pdfMarkup.includes('body{margin:0;max-width:none;font-size:11pt;line-height:1.45}'));
+ assert.ok(pdfMarkup.includes('h1,h2,h3{break-after:avoid}'));
+ assert.ok(pdfMarkup.includes('table{display:table;overflow:visible;font-size:9pt;table-layout:fixed}'));
+ assert.ok(pdfMarkup.includes('thead{display:table-header-group}'));
+ assert.ok(pdfMarkup.includes('tr,.guide{break-inside:avoid}'));
+ assert.ok(pdfMarkup.includes('td,th{overflow-wrap:anywhere;word-break:break-word}'));
+ assert.ok(pdfMarkup.includes('@page{size:A4;margin:14mm}'));
+});
+
 test('printable SEO action plan labels suggested priority without hiding severity',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  assert.ok(html.includes("issue.severity==='high'?'Fix first':issue.severity==='medium'?'Fix next':'Optional review'"));
