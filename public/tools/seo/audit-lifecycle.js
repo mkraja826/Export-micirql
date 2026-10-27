@@ -39,3 +39,20 @@ export async function inspectBatch({pages,checkpoint,origin,inspect,onProgress=(
  }
  return {reports,failures,coverage:auditCoverage(pages,reports,failures)};
 }
+
+/** Distinct final HTML documents, while retaining every requested URL as an audit attempt.
+ * Strip fragments (not queries or trailing slashes) to avoid merging distinct resources.
+ * Only completed inspections with known final URLs participate in cross-page comparisons.
+ */
+export function uniqueFinalPages(reports){
+ const results=new Map();
+ for(const report of reports||[]){
+  if(!report||report.auditStatus!=='complete'||report.partial||!report.url)continue;
+  let key;
+  try{const url=new URL(report.url);if(!['http:','https:'].includes(url.protocol))continue;url.hash='';key=url.href}
+  catch{continue}
+  const previous=results.get(key);
+  if(!previous||Number.isFinite(report.score)&&!Number.isFinite(previous.score))results.set(key,report);
+ }
+ return [...results.values()];
+}
