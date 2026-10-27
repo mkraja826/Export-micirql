@@ -247,10 +247,11 @@ async function readWebsiteHtml(url){
  // Attach before navigation to observe the actual response, not a second HTTP request.
  const observe=Boolean(chrome.webRequest?.onHeadersReceived&&chrome.tabs.update);
  const tab=await chrome.tabs.create({url:observe?'about:blank':parsed.href,active:false});
- const httpEvidence={observed:false,status:null,headers:{},redirects:[]};
+ const httpEvidence={observed:false,status:null,headers:{},redirects:[],observationState:observe?'waiting_for_response':'api_unavailable'};
  const onHeaders=details=>{
   if(details.tabId!==tab.id||details.type!=='main_frame')return;
   httpEvidence.observed=true;
+  httpEvidence.observationState='response_observed';
   if(details.statusCode>=300&&details.statusCode<400){
    const location=(details.responseHeaders||[]).find(h=>h.name.toLowerCase()==='location')?.value;
    httpEvidence.redirects.push({url:details.url,status:details.statusCode,location:location?String(location).slice(0,2048):null});
@@ -288,7 +289,7 @@ async function readWebsiteHtml(url){
   const value=results[0]?.result;
   const html=value?.html||'';
   if(!html.trim())throw Error('No HTML was returned. The page may block extension access.');
-  return {ok:true,url:finalUrl.href,html,partial:value?.partial===true,originalLength:value?.originalLength||html.length,httpEvidence:{...httpEvidence,requestedUrl:parsed.href,finalUrl:finalUrl.href}};
+  return {ok:true,url:finalUrl.href,html,partial:value?.partial===true,originalLength:value?.originalLength||html.length,httpEvidence:{...httpEvidence,observationState:httpEvidence.observed?'response_observed':httpEvidence.observationState==='waiting_for_response'?'no_response_event':httpEvidence.observationState,requestedUrl:parsed.href,finalUrl:finalUrl.href}};
  }catch(error){
   // Keep observed HTTP evidence when navigation fails; a failed page has no HTML SEO score.
   const detail=String(error?.message||error||'Navigation failed');
