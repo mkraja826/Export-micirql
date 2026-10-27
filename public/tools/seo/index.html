@@ -175,11 +175,11 @@ siteButton.addEventListener('click',async()=>{
   for(let i=0;i<pages.length;i++){
    if(cached.has(pages[i])){reports.push(cached.get(pages[i]));siteProgress.value=i+1;updateSiteProgress();continue}
    if(retryRun){checkedThisRun++;refreshProgressBreakdown();siteStatus.textContent='Rechecking '+checkedThisRun+' of '+pagesToCheck+' pages that need another check…';}else siteStatus.textContent='Inspecting page '+(i+1)+' of '+pages.length+'…';
-   let lastError=null;let partialReport=null;
+   let lastError=null;let partialReport=null;let failedHttpEvidence=null;
    for(let attempt=1;attempt<=2;attempt++){
     try{
      const response=isDemo?{ok:true,html:demoByUrl.get(pages[i]),url:pages[i],partial:false}:await extensionRequest('MICIRQL_SEO_READ','MICIRQL_SEO_RESULT',pages[i],90000);
-     if(!response.ok)throw Error(response.error||'Inspection failed');
+     if(!response.ok){failedHttpEvidence=response.httpEvidence||null;throw Error(response.error||'Inspection failed');}
      const report=inspectSeoHtml(response.html,response.url||pages[i],{partial:response.partial===true});
      report.requestedUrl=pages[i];report.captureEvidence={source:isDemo?'demo_html':'browser_extension_html',partialResponse:response.partial===true,htmlBytes:new TextEncoder().encode(String(response.html||'')).length,httpEvidence:response.httpEvidence||{observed:false,status:null,headers:{}}};
      const httpCheck=interpretHttpEvidence(response.httpEvidence,report.canonical,report.url);
@@ -207,7 +207,7 @@ siteButton.addEventListener('click',async()=>{
    }
    if(lastError&&partialReport){partialReport.attempts=2;partialReport.recoveryError=lastError.message||'Retry failed';reports.push(partialReport);if(!isDemo)saveCheckpoint(url.origin,pages,reports);lastError=null;}
    if(lastError&&previousRetryReport?.website===url.origin){const preserved=(previousRetryReport.reports||[]).find(page=>(page.requestedUrl||page.url)===pages[i]&&(page.partial||page.auditStatus==='partial'));if(preserved){reports.push({...preserved,recoveryError:lastError.message||'Reinspection failed',reinspectionAttempts:2});saveCheckpoint(url.origin,pages,reports);lastError=null;}}
-   if(lastError){const message=lastError.message||'Inspection failed';const category=/timed?\s*out|timeout|stopped responding/i.test(message)?'timeout':/extension|chrome|not connected|not installed/i.test(message)?'extension':/incomplete|partial|truncat/i.test(message)?'incomplete_html':'capture_error';failures.push({url:pages[i],error:message,category,attempts:2});}
+   if(lastError){const message=lastError.message||'Inspection failed';const category=/timed?\s*out|timeout|stopped responding/i.test(message)?'timeout':/extension|chrome|not connected|not installed/i.test(message)?'extension':/incomplete|partial|truncat/i.test(message)?'incomplete_html':'capture_error';failures.push({url:pages[i],error:message,category,attempts:2,httpEvidence:failedHttpEvidence});}
    siteProgress.value=i+1;updateSiteProgress();
   }
   // Keep completed page findings if any page failed, so retrying this selection only rechecks failures.
