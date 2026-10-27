@@ -1319,3 +1319,12 @@ test('verified link findings remain synchronized for JSON and printable reports'
  assert.match(html,/siteReport\.linkVerification=\[\.\.\.completed\.values\(\)\]/);
  assert.match(html,/brokenLinks\.length&&!issues\.some\(issue=>issue\.code==='verified_broken_internal_links'\)/);
 });
+
+test('link verification dashboard exposes accessible progress and incomplete state',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/quickProgress=document\.createElement\('progress'\)/);
+ assert.match(html,/quickProgress\.max=queue\.length/);
+ assert.match(html,/quickProgress\.value=completed\.size/);
+ assert.match(html,/Verification paused or incomplete/);
+ assert.match(html,/Not started: link destination responses have not been checked/);
+});
