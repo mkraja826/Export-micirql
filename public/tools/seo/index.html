@@ -787,7 +787,7 @@ siteButton.addEventListener('click',async()=>{
      dashboard.append(sourceTitle,sourceSummary,sourceList);
      const save=()=>{try{localStorage.setItem(scopeKey,JSON.stringify({savedAt:Date.now(),rows:[...completed.values()]}))}catch{}};
      const refresh=()=>{
-      quickSummary.textContent='Checked '+completed.size+' of '+queue.length+' destinations. Only HTTP 404/410 counts as confirmed broken; blocked or timed-out requests remain unverified.';
+      const counts={reachable:0,broken:0,server_error:0,unverified:0};for(const entry of completed.values()){if(Object.hasOwn(counts,entry.classification))counts[entry.classification]++;else counts.unverified++;}quickSummary.textContent='Checked '+completed.size+'/'+queue.length+' destinations · '+counts.reachable+' reachable · '+counts.broken+' broken (404/410) · '+counts.server_error+' server errors (5xx) · '+counts.unverified+' unverified. '+(counts.broken?'Fix broken destinations or update their referring links. ':'')+(counts.server_error?'Investigate server failures and retry after recovery. ':'')+(counts.unverified?'Retry timeouts or blocked requests; do not assume they are broken. ':'')+'Only HTTP 404/410 counts as confirmed broken.';
       quickStart.disabled=running;
       const checked=completed.size, broken=[...completed.values()].filter(x=>x.classification==='broken').length;
       const uncertain=[...completed.values()].filter(x=>x.classification==='unverified').length;
