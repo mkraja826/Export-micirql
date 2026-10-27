@@ -831,6 +831,8 @@ siteButton.addEventListener('click',async()=>{
          if(reply.ok===true){row={...row,status:Number.isInteger(reply.status)?reply.status:null,classification:reply.classification||'unverified',finalUrl:reply.finalUrl||null,reason:reply.reason||null}}
          else row.reason='extension_error';
         }catch(error){row.reason=error?.message?.includes('timed out')?'timeout':'request_failed'}
+        // HTTP status is authoritative; do not persist contradictory extension labels.
+        row.classification=row.status===404||row.status===410?'broken':Number.isInteger(row.status)&&row.status>=500&&row.status<600?'server_error':Number.isInteger(row.status)&&row.status>=200&&row.status<400?'reachable':'unverified';
         activeChecks=Math.max(0,activeChecks-1);
         completed.set(destination,row);
         siteReport.linkVerification=[...completed.values()];siteReport.verifiedBrokenLinks=siteReport.linkVerification.filter(item=>item.classification==='broken'&&(item.status===404||item.status===410)).map(item=>({destination:item.destination,status:item.status,referringPages:item.referringPages||[],checkedAt:item.checkedAt,finalUrl:item.finalUrl||null}));
