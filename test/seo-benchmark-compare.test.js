@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {compareSeoAudits} from '../src/seo-benchmark-compare.js';
+import {compareSeoAudits as browserCompare} from '../public/tools/seo/benchmark-compare.js';
 const site='https://badseo.dev';
 const page=(requestedUrl,url,findings=[],httpObserved=false)=>({requestedUrl,url,auditStatus:'complete',partial:false,findings:findings.map(code=>({code})),captureEvidence:{httpEvidence:{observed:httpObserved}}});
 const audit=(reports,extras={})=>({website:site,reports,selectedPageUrls:reports.map(r=>r.requestedUrl),failures:[],siteFindings:[],...extras});
@@ -28,4 +29,10 @@ test('changed selection is explicitly noncomparable',()=>{
 test('cross-site comparisons are rejected',()=>{
  const a=audit([page(site+'/a',site+'/a')]);
  assert.throws(()=>compareSeoAudits(a,{...a,website:'https://testingurl.dev'}),/same website/);
+});
+
+test('browser-delivered comparison matches CLI comparison',()=>{
+ const earlier=audit([page(site+'/a',site+'/a')]);
+ const latest=audit([page(site+'/a',site+'/a',['http_noindex'],true)]);
+ assert.deepEqual(browserCompare(earlier,latest),compareSeoAudits(earlier,latest));
 });
