@@ -49,3 +49,11 @@ test('coverage distinguishes selected URLs from distinct final pages',()=>{
  assert.equal(coverage.analyzed,2);
  assert.equal(coverage.uniqueFinalPages,1);
 });
+
+test('coverage keeps zero unique final pages for failed-only audits',()=>{
+ const coverage=auditCoverage(['https://badseo.dev/redirect/loop'],[],[{url:'https://badseo.dev/redirect/loop',error:'Page load timed out'}]);
+ assert.equal(coverage.selected,1);
+ assert.equal(coverage.analyzed,0);
+ assert.equal(coverage.failed,1);
+ assert.equal(coverage.uniqueFinalPages,0);
+});
