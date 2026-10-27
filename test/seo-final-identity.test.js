@@ -63,9 +63,17 @@ test('HTTP evidence does not inherit HTML-only verified status',()=>{
   {...page('https://badseo.dev/','https://badseo.dev/'),captureEvidence:{httpEvidence:{observed:false,status:null}}},
   {...page('https://badseo.dev/index/noindex-header','https://badseo.dev/index/noindex-header'),captureEvidence:{httpEvidence:{observed:true,status:200,headers:{'x-robots-tag':'noindex'}}}}
  ];
- assert.deepEqual(httpEvidenceCoverage(pages),{analyzed:2,observed:1,unverified:1,percent:50});
+ assert.deepEqual(httpEvidenceCoverage(pages),{analyzed:2,observed:1,unverified:1,percent:50,reasons:{apiUnavailable:0,noResponseEvent:0,unknown:1}});
 });
 test('HTTP evidence coverage for missing evidence stays zero, not verified',()=>{
  const pages=[page('https://badseo.dev/status/not-found','https://badseo.dev/status/not-found')];
  assert.equal(httpEvidenceCoverage(pages).observed,0);
+});
+
+test('HTTP diagnostics distinguish missing API from missing response events',()=>{
+ const reports=[
+  {...page('https://badseo.dev/a','https://badseo.dev/a'),captureEvidence:{httpEvidence:{observed:false,status:null,observationState:'api_unavailable'}}},
+  {...page('https://badseo.dev/b','https://badseo.dev/b'),captureEvidence:{httpEvidence:{observed:false,status:null,observationState:'no_response_event'}}}
+ ];
+ assert.deepEqual(httpEvidenceCoverage(reports).reasons,{apiUnavailable:1,noResponseEvent:1,unknown:0});
 });
