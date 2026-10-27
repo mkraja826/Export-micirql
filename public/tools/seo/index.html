@@ -745,6 +745,7 @@ siteButton.addEventListener('click',async()=>{
      const stopButton=document.createElement('button');stopButton.type='button';stopButton.textContent='Pause verification';stopButton.disabled=true;
      const exportButton=document.createElement('button');exportButton.type='button';exportButton.textContent='Download link CSV';
      const retryButton=document.createElement('button');retryButton.type='button';retryButton.textContent='Retry unverified checks';
+     const recheckButton=document.createElement('button');recheckButton.type='button';recheckButton.textContent='Recheck all destinations';
      const dashboard=document.createElement('section');dashboard.className='panel';dashboard.setAttribute('aria-label','Verified link results');
      const dashboardTitle=document.createElement('h4');dashboardTitle.textContent='Link verification results';dashboard.append(dashboardTitle);
      const search=document.createElement('input');search.type='search';search.placeholder='Search destination or referring page';search.setAttribute('aria-label','Search verified links');
@@ -806,14 +807,14 @@ siteButton.addEventListener('click',async()=>{
       const timedOut=[...completed.values()].filter(x=>x.reason==='timeout').length;
       const requestFailed=[...completed.values()].filter(x=>x.reason==='request_failed').length;
       statusLine.textContent='Verified '+checked+'/'+queue.length+' destinations · '+broken+' confirmed 404/410 · '+(queue.length-checked)+' pending · '+activeChecks+' active · '+uncertain+' unverified ('+timedOut+' timeouts, '+requestFailed+' network failures). Network failures can be retried.';
-      startButton.textContent=running?'Checking links…':checked===queue.length?'Recheck destinations':'Start / resume verification';
-      startButton.disabled=running;retryButton.disabled=running||uncertain===0;renderResults();renderSources();
+      startButton.textContent=running?'Checking links…':checked===queue.length?'All destinations checked':'Start / resume verification';
+      startButton.disabled=running||checked===queue.length;recheckButton.disabled=running||checked===0;retryButton.disabled=running||uncertain===0;renderResults();renderSources();
      };
      refresh();
      quickStart.addEventListener('click',()=>startButton.click());
      startButton.addEventListener('click',async()=>{
       if(running)return;
-      if(completed.size===queue.length)completed.clear();
+      if(completed.size===queue.length)return;
       stop=false;running=true;stopButton.disabled=false;refresh();
       const remaining=queue.filter(destination=>!completed.has(destination));
       let cursor=0;
@@ -836,6 +837,7 @@ siteButton.addEventListener('click',async()=>{
       await Promise.all([worker(),worker()]);
       running=false;stopButton.disabled=true;refresh();
      });
+     recheckButton.addEventListener('click',()=>{if(running)return;completed.clear();siteReport.linkVerification=[];save();refresh();startButton.click()});
      retryButton.addEventListener('click',()=>{
       if(running)return;
       for(const [destination,row] of completed){if(row.classification==='unverified')completed.delete(destination)}
@@ -848,7 +850,7 @@ siteButton.addEventListener('click',async()=>{
       for(const row of siteReport.linkVerification||[])lines.push([row.destination,row.classification,row.status??'',row.reason||'',row.finalUrl||'',row.checkedAt,(row.referringPages||[]).join(' | ')].map(cell).join(','));
       downloadReport('csv',lines.join('\r\n'),'text/csv;charset=utf-8');
      });
-     details.append(statusLine,startButton,stopButton,retryButton,exportButton);
+     details.append(statusLine,startButton,stopButton,retryButton,recheckButton,exportButton);
     }
     const allObservedPages=(issue.pageEvidence||[]).filter(page=>page.observed||(page.elements||[]).length);
     const observedPages=allObservedPages.slice(0,8);
