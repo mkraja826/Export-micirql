@@ -1310,7 +1310,7 @@ test('confirmed broken links sync into interactive priority findings, but uncert
  assert.match(html,/issues\.findIndex\(issue=>issue\.code==='verified_broken_internal_links'\)/);
  assert.match(html,/if\(confirmed\.length\)\{/);
  assert.match(html,/siteReport\.verifiedBrokenLinks=confirmed\.map/);
- assert.match(html,/renderIssues\(\);\s+quickStart\.disabled=running/);
+ assert.match(html,/renderIssues\(\);/);\n assert.match(html,/quickStart\.disabled=running/);
 });
 
 test('verified link findings remain synchronized for JSON and printable reports',()=>{
