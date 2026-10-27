@@ -1105,6 +1105,14 @@ test('printable SEO action plan labels affected audited URLs without a misleadin
  assert.ok(!pdfMarkup.includes("'+escapeHTML(report.pagesSelected)+' selected</td>"));
 });
 
+test('printable SEO report formats issue codes for nontechnical readers',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ const pdfMarkup=html.slice(html.indexOf('function printClientSeoReport(report)'));
+ assert.ok(pdfMarkup.includes("const readableIssueName=code=>String(code||'issue').replaceAll('_',' ').replace(/\\b\\w/g,letter=>letter.toUpperCase())"));
+ assert.ok(pdfMarkup.includes("escapeHTML(readableIssueName(issue.code))"));
+ assert.ok(!pdfMarkup.includes("escapeHTML(issue.code.replaceAll('_',' '))"));
+});
+
 test('printable SEO report discloses score-average eligibility and exclusions',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  const pdfMarkup=html.slice(html.indexOf('function printClientSeoReport(report)'));
