@@ -56,3 +56,10 @@ export function uniqueFinalPages(reports){
  }
  return [...results.values()];
 }
+
+/** Browser response evidence coverage: HTML success never implies HTTP verification. */
+export function httpEvidenceCoverage(reports=[]){
+ const analyzed=reports.length;
+ const observed=reports.filter(r=>r?.captureEvidence?.httpEvidence?.observed===true&&Number.isInteger(r.captureEvidence.httpEvidence.status)).length;
+ return {analyzed,observed,unverified:analyzed-observed,percent:analyzed?Math.round(observed/analyzed*100):0};
+}
