@@ -1105,6 +1105,14 @@ test('printable SEO action plan labels affected audited URLs without a misleadin
  assert.ok(!pdfMarkup.includes("'+escapeHTML(report.pagesSelected)+' selected</td>"));
 });
 
+test('audit history only compares average scores for identical completed URL coverage',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("const sameCoverage=oldUrls!==null&&oldUrls.size===currentUrls.size&&[...currentUrls].every(page=>oldUrls.has(page))"));
+ assert.ok(html.includes("const scoreDelta=!sameCoverage||summarySnapshot.averageScore===null||!Number.isFinite(previous.averageScore)?'Not comparable (different or unknown completed-page coverage)'"));
+ assert.ok(html.includes("const comparableUrls=oldUrls?new Set([...currentUrls].filter(page=>oldUrls.has(page))):new Set()"));
+ assert.ok(html.includes("const newly=[...now].filter(key=>comparableKey(key)&&!before.has(key)),cleared=[...before].filter(key=>comparableKey(key)&&!now.has(key)),recurring=[...now].filter(key=>comparableKey(key)&&before.has(key))"));
+});
+
 test('printable SEO report formats issue codes for nontechnical readers',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  const pdfMarkup=html.slice(html.indexOf('function printClientSeoReport(report)'));
