@@ -1012,7 +1012,7 @@ test('Partha-style 60 inspections with four repeated URLs reconcile to 56 unique
  assert.match(rendered,/Affected pages<\/th>/);
  const appendix=rendered.split('<h2>Audited page appendix</h2>')[1].split('<h2>Affected page appendix</h2>')[0];
  assert.equal((appendix.match(/<tr>/g)||[]).length,57);
- assert.match(rendered,/1 \/ 60 selected/);
+ assert.match(rendered,/1 affected audited URL\(s\)/);
 });
 
 
