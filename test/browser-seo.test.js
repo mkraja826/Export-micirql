@@ -1303,3 +1303,12 @@ test('printable audit prioritizes confirmed 404/410 links and includes referring
  assert.match(html,/\+brokenLinkEvidence\+'<h2>Score breakdown/);
  assert.match(html,/row\.referringPages\|\|\[\]/);
 });
+
+test('confirmed broken links sync into interactive priority findings, but uncertain results do not',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/const confirmed=\[\.\.\.completed\.values\(\)\]\.filter\(row=>row\.classification==='broken'&&\(row\.status===404\|\|row\.status===410\)\)/);
+ assert.match(html,/issues\.findIndex\(issue=>issue\.code==='verified_broken_internal_links'\)/);
+ assert.match(html,/if\(confirmed\.length\)\{/);
+ assert.match(html,/siteReport\.verifiedBrokenLinks=confirmed\.map/);
+ assert.match(html,/renderIssues\(\);\s+quickStart\.disabled=running/);
+});
