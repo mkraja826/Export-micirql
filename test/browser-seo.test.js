@@ -1412,3 +1412,11 @@ test('restoring link verification does not append duplicate cached results',()=>
  assert.ok(html.includes('siteReport.linkVerification=[...completed.values()];'));
  assert.ok(!html.includes('for(const x of completed.values())siteReport.linkVerification.push(x)'));
 });
+
+test('restored link evidence requires consistent HTTP classifications',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes('const validCachedRow=row=>'));
+ assert.ok(html.includes("row.classification==='broken'&&[404,410].includes(row.status)"));
+ assert.ok(html.includes("row.classification==='reachable'&&Number.isInteger(row.status)"));
+ assert.ok(html.includes('saved.filter(validCachedRow)'));
+});
