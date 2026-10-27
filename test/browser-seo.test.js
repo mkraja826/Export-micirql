@@ -1098,6 +1098,13 @@ test('beginner issue evidence identifies recorded HTML elements without exposing
  assert.ok(html.includes("snippets.className='developer-only'"));
 });
 
+test('printable SEO action plan labels suggested priority without hiding severity',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("issue.severity==='high'?'Fix first':issue.severity==='medium'?'Fix next':'Optional review'"));
+ assert.ok(html.includes('<th>Suggested priority</th><th>Severity</th><th>Issue</th>'));
+ assert.ok(html.includes('colspan="6">No grouped findings in inspected pages.'));
+});
+
 test('printable SEO report highlights failed and partial inspections in its executive summary',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  assert.ok(html.includes("const coverageWarning=failedCount||partialCount?"));
