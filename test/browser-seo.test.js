@@ -1350,3 +1350,10 @@ test('link verification refresh cannot recursively rebuild issues or stack dashb
  assert.match(html,/siteReport\.linkVerification=\[\.\.\.completed\.values\(\)\];\s*\/\/ Do not call renderIssues\(\) here:[^\n]*\n\s*quickProgress\.value=completed\.size/);
  assert.doesNotMatch(html,/siteReport\.linkVerification=\[\.\.\.completed\.values\(\)\];\s*renderIssues\(\);/);
 });
+
+test('link verification summary distinguishes unchecked URLs from inconclusive checks',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/queue\.length-completed\.size/);
+ assert.match(html,/not yet checked/);
+ assert.match(html,/inconclusive checks/);
+});
