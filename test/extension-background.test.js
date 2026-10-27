@@ -313,3 +313,35 @@ test('navigation failure returns unscored error with available HTTP observations
  assert.equal(result.httpEvidence.status,null);
  assert.equal(removed,true);
 });
+
+test('real navigation event sequence captures redirect hops but keeps final headers separate',async()=>{
+ let listener,headersListener,listenerRemoved=false,tabRemoved=false;
+ const chrome={
+  runtime:{id:'micirql-extension',onMessage:{addListener(fn){listener=fn}}},
+  webRequest:{onHeadersReceived:{addListener(fn){headersListener=fn},removeListener(){listenerRemoved=true}}},
+  tabs:{
+   onUpdated:{addListener(){},removeListener(){}},
+   async create(){return {id:18,status:'loading'}},
+   async update(){
+    headersListener({tabId:18,type:'main_frame',url:'https://example.com/start',statusCode:301,responseHeaders:[{name:'Location',value:'/middle'}]});
+    headersListener({tabId:18,type:'main_frame',url:'https://example.com/middle',statusCode:302,responseHeaders:[{name:'Location',value:'/final'}]});
+    headersListener({tabId:18,type:'main_frame',url:'https://example.com/final',statusCode:200,responseHeaders:[{name:'X-Robots-Tag',value:'noindex'},{name:'Content-Type',value:'text/html'}]});
+   },
+   async get(){return {id:18,status:'complete',url:'https://example.com/final'}},
+   async remove(){tabRemoved=true}
+  },
+  scripting:{async executeScript(){return [{result:{html:'<html><head></head><body>Final</body></html>'}}]}}
+ };
+ runInNewContext(background,{chrome,URL,Promise,setTimeout,clearTimeout,console});
+ const result=await new Promise(resolve=>listener({type:'READ_SEO_HTML',url:'https://example.com/start'},{id:'micirql-extension',tab:{url:'https://tools.micirql.com/tools/seo/'},url:'https://tools.micirql.com/tools/seo/'},resolve));
+ assert.equal(result.ok,true,result.error);
+ assert.equal(result.url,'https://example.com/final');
+ assert.equal(result.httpEvidence.status,200);
+ assert.equal(result.httpEvidence.redirects.length,2);
+ assert.equal(result.httpEvidence.redirects[0].status,301);
+ assert.equal(result.httpEvidence.redirects[1].location,'/final');
+ assert.equal(result.httpEvidence.headers['x-robots-tag'],'noindex');
+ assert.equal(Object.hasOwn(result.httpEvidence.headers,'location'),false);
+ assert.equal(listenerRemoved,true);
+ assert.equal(tabRemoved,true);
+});
