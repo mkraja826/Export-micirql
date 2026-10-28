@@ -134,9 +134,25 @@ try{
   const fullCsv=await readFile(await (await fullDownloadPromise).path(),'utf8');
   if(fullCsv.trimEnd().split('\r\n').length!==66||!fullCsv.includes('/repair-64'))throw Error(width+': repair CSV did not include all 65 matching repairs beyond current page');
   if(!fullCsv.includes("'=HYPERLINK")||fullCsv.includes('"=HYPERLINK'))throw Error(width+': CSV export did not escape spreadsheet formula content');
+  const briefExport=pagedRepairs.getByRole('button',{name:'Download developer brief (TXT)'});
+  await repairSearch.fill('repair-64');
+  const oneBriefPromise=page.waitForEvent('download');
+  await briefExport.click();
+  const oneBriefDownload=await oneBriefPromise;
+  const oneBrief=await readFile(await oneBriefDownload.path(),'utf8');
+  if(oneBriefDownload.suggestedFilename()!=='micirql-seo-developer-brief.txt'||!oneBrief.includes('Tasks included: 1')||!oneBrief.includes('Page: https://demo.micirql.invalid/repair-64')||oneBrief.includes('Page: https://demo.micirql.invalid/repair-63'))throw Error(width+': filtered developer brief exported unrelated repairs');
+  if(!oneBrief.includes('This page was not checked in a complete audit')||oneBrief.includes('Suggested fix:'))throw Error(width+': developer brief incorrectly claimed unverified finding evidence');
+  await repairSearch.fill('');
+  const fullBriefPromise=page.waitForEvent('download');
+  await briefExport.click();
+  const fullBrief=await readFile(await (await fullBriefPromise).path(),'utf8');
+  if(!fullBrief.includes('Tasks included: 65')||(fullBrief.match(/^Page: /gm)||[]).length!==65||!fullBrief.includes('/repair-64')||!fullBrief.includes('Saved note: =HYPERLINK'))throw Error(width+': developer brief omitted hidden repairs or saved notes');
+  await repairSearch.fill('no-results-for-developer-brief');
+  if(!await briefExport.isDisabled())throw Error(width+': developer brief download should be disabled when no repairs match');
+
 
   if(errors.length)throw Error(width+': script error '+errors.join('; '));
-  console.log('Mobile SEO QA '+width+'px passed: focus, guide fit, button target, exact issue-and-page navigation, accessible back action, 65-repair paging, issue and URL search, sorting, CSV export, handoff copy and fallback, no page errors');
+  console.log('Mobile SEO QA '+width+'px passed: focus, guide fit, button target, exact issue-and-page navigation, accessible back action, 65-repair paging, issue and URL search, sorting, CSV export, handoff copy and fallback, developer brief downloads, no page errors');
   await page.close();
  }
 }finally{await browser.close();await new Promise(resolve=>server.close(resolve))}
