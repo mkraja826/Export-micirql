@@ -1603,3 +1603,12 @@ test('common SEO findings have beginner explanations without removing technical 
  assert.ok(html.includes("technicalSummary.textContent='Technical details'"));
  assert.ok(html.includes("How to check the fix: "));
 });
+
+test('guided SEO repair links to audited pages and requires fresh verification',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("guidedSummary.textContent='Fix this issue — guided steps'"));
+ assert.ok(html.includes("guidePagesSummary.textContent='Open affected pages ('+issue.affectedUrls.length+')'"));
+ assert.ok(html.includes("a.rel='noopener noreferrer'"));
+ assert.ok(html.includes("compare a fresh, complete audit of the same pages"));
+ assert.ok(html.includes("MiCirql cannot edit your website automatically"));
+});
