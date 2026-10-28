@@ -1504,3 +1504,16 @@ test('saved link progress restores only current, status-consistent destinations'
  restored.delete(queue[2]);
  assert.deepEqual(queue.filter(destination=>!restored.has(destination)),[queue[2]]);
 });
+
+test('saved link checks are isolated by the current inspected audit fingerprint',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ const expression=html.match(/const auditSignature=(JSON\.stringify\(reports\.map\(.*?\)\));/)?.[1];
+ assert.ok(expression,'audit fingerprint expression exists');
+ const signature=Function('reports','return '+expression);
+ const first=[{url:'https://example.com/',title:'Home',score:92,internalLinkTargets:['https://example.com/a']}];
+ assert.equal(signature(first),signature([{...first[0]}]));
+ assert.notEqual(signature(first),signature([{...first[0],internalLinkTargets:['https://example.com/b']}]));
+ assert.notEqual(signature(first),signature([{...first[0],score:88}]));
+ assert.ok(html.includes('data.auditSignature===auditSignature'));
+ assert.ok(html.includes('JSON.stringify({auditSignature,savedAt:Date.now(),rows:[...completed.values()]})'));
+});
