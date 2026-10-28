@@ -1546,3 +1546,10 @@ test('different audits on one domain persist to separate browser cache keys',()=
  assert.equal(storage.get(a).rows[0].status,404);
  assert.equal(storage.get(b).rows[0].status,200);
 });
+
+test('per-audit cache cleanup retains current and non-expired snapshots',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("key===scopeKey)continue"));
+ assert.ok(html.includes('Date.now()-entry.savedAt>=86400000'));
+ assert.ok(html.includes("key.startsWith(prefix)"));
+});
