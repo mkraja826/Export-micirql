@@ -26,6 +26,11 @@ try{
   if(!response?.ok())throw Error(width+': SEO fixture did not load (HTTP '+response?.status()+')');
   await page.locator('#site-demo').click();
   await page.locator('#site-fix-dashboard').waitFor();
+  const plannedFilter=page.getByRole('button',{name:'View planned SEO repairs'});
+  const detectedFilter=page.getByRole('button',{name:'View still detected SEO repairs'});
+  if(await plannedFilter.getAttribute('aria-pressed')!=='true')throw Error(width+': empty tracker should default to Planned');
+  await detectedFilter.click();
+  if(await detectedFilter.getAttribute('aria-pressed')!=='true'||await plannedFilter.getAttribute('aria-pressed')!=='false')throw Error(width+': repair filter selection not reflected accessibly');
   const guide=page.locator('#site-fix-dashboard .repair-verification-help');
   await guide.getByRole('button',{name:'Go to website audit'}).click();
   if(!await page.locator('#site-url').evaluate(el=>el===document.activeElement))throw Error(width+': URL field did not receive focus');
