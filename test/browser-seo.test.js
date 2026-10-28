@@ -1817,3 +1817,20 @@ test('tracked repair guide requires the exact issue and page occurrence',()=>{
  assert.ok(html.includes("This is your tracked page"));
  assert.ok(html.includes("#site-issues .is-target-repair"));
 });
+
+test('tracked issue guides support all 60 audited pages without hiding late-page repairs',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("issue.affectedUrls.slice(0,60)"));
+ assert.ok(html.includes("if(issue.affectedUrls.length>60)"));
+ assert.ok(!html.includes("issue.affectedUrls.slice(0,30)"));
+ assert.ok(html.includes("item.dataset.repairPage===page"));
+});
+
+test('tracked issue guides provide a keyboard accessible route back to repair tasks',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("returnToRepairTasks.textContent='Back to repair tasks'"));
+ assert.ok(html.includes("summary?.insertAdjacentElement('afterend',returnToRepairTasks)"));
+ assert.ok(html.includes("repairTitle.focus({preventScroll:true})"));
+ assert.ok(html.includes("#site-issues .repair-back-button{display:inline-flex;align-items:center;min-height:44px"));
+ assert.ok(html.includes("#site-issues .repair-back-button{width:100%;justify-content:center}"));
+});
