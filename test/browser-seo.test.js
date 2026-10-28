@@ -1553,3 +1553,10 @@ test('per-audit cache cleanup retains current and non-expired snapshots',()=>{
  assert.ok(html.includes('Date.now()-entry.savedAt>=86400000'));
  assert.ok(html.includes("key.startsWith(prefix)"));
 });
+
+test('link checker warns when browser cannot checkpoint progress',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("checkpointWarning=' Browser storage could not save this progress."));
+ assert.ok(html.includes("Network failures can be retried.'+checkpointWarning"));
+ assert.ok(html.includes("checkpointWarning=''"));
+});
