@@ -1875,3 +1875,18 @@ test('repair dashboard sorts page and issue results using accessible sort select
  assert.ok(html.includes("repairSort.addEventListener('change',()=>{repairDisplayLimit=60;renderRepairTasks()})"));
  assert.ok(html.includes("#seo-filtered-repairs #seo-repair-sort:focus-visible"));
 });
+
+test('repair export saves every matching repair with tracking states and safe CSV cells',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("repairExport.textContent='Download matching repairs (CSV)'"));
+ assert.ok(html.includes("filteredRepairMatches=matching;repairExport.disabled=!matching.length"));
+ assert.ok(html.includes("if(!filteredRepairMatches.length)return"));
+ assert.ok(html.includes("...filteredRepairMatches.map(([key,item])=>"));
+ assert.ok(html.includes("['Issue','Page URL','Tracking status','Verification state','Last marked addressed','Notes']"));
+ assert.ok(html.includes("repairState(key,item)"));
+ assert.ok(html.includes("item.markedAt||'',item.note||''"));
+ assert.ok(html.includes("replace(/^[\\s\\u0000-\\u001f]*[=+@-]/"));
+ assert.ok(html.includes("downloadReport('csv',"));
+ assert.ok(html.includes("'micirql-seo-repairs')"));
+ assert.ok(html.includes("#seo-filtered-repairs .repair-export{display:block;min-height:44px"));
+});
