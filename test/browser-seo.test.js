@@ -1622,3 +1622,13 @@ test('guided repair cards save page-level fix status without claiming verificati
  assert.ok(html.includes("result.textContent=saveFixTracker()?"));
  assert.ok(html.includes("run a new complete audit to verify"));
 });
+
+test('SEO fix dashboard uses browser tracker and refreshes after changes',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("fixDashboard.id='site-fix-dashboard'"));
+ for(const label of ['Planned','Addressed','Still detected','Verified absent','Awaiting verification'])assert.ok(html.includes("'"+label+"'"));
+ assert.ok(html.includes("document.addEventListener('seo-fix-tracker-updated',refreshFixDashboard)"));
+ assert.ok(html.includes("document.dispatchEvent(new Event('seo-fix-tracker-updated'))"));
+ assert.ok(html.includes("auditedAt<=markedAt||!completedUrls.has(page)"));
+ assert.ok(html.includes("not improved rankings"));
+});
