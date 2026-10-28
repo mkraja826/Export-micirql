@@ -1719,3 +1719,25 @@ test('guided repairs offer an explicit save action in addition to automatic stat
  assert.ok(html.includes("li.append(controls,result)"));
  assert.ok(html.includes("result.textContent=saved?"));
 });
+
+test('repair verification requires newer complete page evidence and distinguishes still detected from absent',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ const match=html.match(/const repairState=\(key,item\)=>\{(.*?)\};/s);
+ assert.ok(match,'Production repair verification function exists');
+ const key='missing_canonical|https://demo.micirql.invalid/';
+ const page='https://demo.micirql.invalid/';
+ const markedAt='2026-10-28T10:00:00.000Z';
+ const status=(auditDate,complete,detected,marked=markedAt)=>{
+  const completedUrls=new Set(complete?[page]:[]);
+  const issueOccurrences=new Set(detected?[key]:[]);
+  const siteReport={generatedAt:auditDate};
+  const fn=Function('siteReport','completedUrls','issueOccurrences','return (key,item)=>{'+match[1]+'};')(siteReport,completedUrls,issueOccurrences);
+  return fn(key,{status:'fixed',markedAt:marked});
+ };
+ assert.equal(status('2026-10-28T09:00:00.000Z',true,false),'Awaiting verification','Old audits cannot verify a new fix');
+ assert.equal(status('2026-10-28T10:00:00.000Z',true,false),'Awaiting verification','Same-time audits cannot verify');
+ assert.equal(status('2026-10-28T11:00:00.000Z',false,false),'Awaiting verification','Incomplete page cannot verify');
+ assert.equal(status('2026-10-28T11:00:00.000Z',true,true),'Still detected','Later complete audit with issue present stays unresolved');
+ assert.equal(status('2026-10-28T11:00:00.000Z',true,false),'Verified absent','Later complete audit without issue confirms absence');
+ assert.equal(status('2026-10-28T11:00:00.000Z',true,false,'invalid'),'Awaiting verification','Invalid publication timestamp cannot verify');
+});
