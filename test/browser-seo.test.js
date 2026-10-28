@@ -1890,3 +1890,21 @@ test('repair export saves every matching repair with tracking states and safe CS
  assert.ok(html.includes("'micirql-seo-repairs')"));
  assert.ok(html.includes("#seo-filtered-repairs .repair-export{display:block;min-height:44px"));
 });
+
+test('repair handoff copies page-specific audit evidence without claiming automatic fixes',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("copyGuide.textContent='Copy developer instructions'"));
+ assert.ok(html.includes("copyGuide.setAttribute('aria-label','Copy developer instructions for '"));
+ assert.ok(html.includes("copyFeedback.setAttribute('role','status')"));
+ assert.ok(html.includes("issues.find(issue=>issue.code===code&&issue.affectedUrls.includes(page))"));
+ assert.ok(html.includes("Audit finding: '+exactIssue.message"));
+ assert.ok(html.includes("Suggested correction: '+exactIssue.recommendation"));
+ assert.ok(html.includes("This page was not checked in a complete audit; do not assume the issue is resolved."));
+ assert.ok(html.includes("Next action: Recheck the affected page in a complete audit before changing the website."));
+ assert.ok(html.includes("Saved repair note: '+item.note"));
+ assert.ok(html.includes("This is a handoff note; MiCirql did not modify the website."));
+ assert.ok(html.includes("navigator.clipboard.writeText(lines.join("));
+ assert.ok(html.includes("Could not copy automatically. Download matching repairs (CSV) instead."));
+ assert.ok(html.includes("li.append(label,stateBadge,explanation,progress,link,instruction,guide,copyGuide,copyFeedback)"));
+ assert.ok(html.includes("#seo-filtered-repairs .repair-copy{display:inline-flex;align-items:center;min-height:44px"));
+});
