@@ -1637,7 +1637,7 @@ test('mobile SEO dashboard metrics navigate to repair details',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  assert.ok(html.includes("metric.className='tracker-metric fix-metric-button'"));
  assert.ok(html.includes("metric.addEventListener('click'"));
- assert.ok(html.includes("getElementById('site-fix-verification')"));
+ assert.ok(html.includes("repairTasks.scrollIntoView({behavior:'smooth',block:'start'})"));
  assert.ok(html.includes("grid-template-columns:repeat(2,minmax(0,1fr))"));
 });
 
@@ -1647,7 +1647,7 @@ test('SEO fix metric selection filters the matching browser-local repair tasks',
  assert.ok(html.includes("activeRepairFilter=label;renderRepairTasks()"));
  assert.ok(html.includes("repairState(key,item)===activeRepairFilter"));
  assert.ok(html.includes("repairList.replaceChildren()"));
- assert.ok(html.includes("li.append(label,link,instruction)"));
+ assert.ok(html.includes("li.append(label,stateBadge,progress,link,instruction,guide)"));
 });
 
 test('filtered repair tasks open the relevant guided issue and support mobile controls',()=>{
