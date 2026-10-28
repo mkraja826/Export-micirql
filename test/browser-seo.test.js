@@ -1619,7 +1619,7 @@ test('guided repair cards save page-level fix status without claiming verificati
  assert.ok(html.includes("'I published a fix'"));
  assert.ok(html.includes("status.value=fixTracker[key]?.status||'untracked'"));
  assert.ok(html.includes("markedAt:status.value==='fixed'"));
- assert.ok(html.includes("result.textContent=saveFixTracker()?"));
+ assert.ok(html.includes("result.textContent=saved?"));
  assert.ok(html.includes("run a new complete audit to verify"));
 });
 
@@ -1639,4 +1639,13 @@ test('mobile SEO dashboard metrics navigate to repair details',()=>{
  assert.ok(html.includes("metric.addEventListener('click'"));
  assert.ok(html.includes("getElementById('site-fix-verification')"));
  assert.ok(html.includes("grid-template-columns:repeat(2,minmax(0,1fr))"));
+});
+
+test('SEO fix metric selection filters the matching browser-local repair tasks',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("repairTasks.id='seo-filtered-repairs'"));
+ assert.ok(html.includes("activeRepairFilter=label;renderRepairTasks()"));
+ assert.ok(html.includes("repairState(key,item)===activeRepairFilter"));
+ assert.ok(html.includes("repairList.replaceChildren()"));
+ assert.ok(html.includes("li.append(label,link,instruction)"));
 });
