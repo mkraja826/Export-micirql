@@ -1644,7 +1644,7 @@ test('mobile SEO dashboard metrics navigate to repair details',()=>{
 test('SEO fix metric selection filters the matching browser-local repair tasks',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  assert.ok(html.includes("repairTasks.id='seo-filtered-repairs'"));
- assert.ok(html.includes("activeRepairFilter=label;renderRepairTasks()"));
+ assert.ok(html.includes("activeRepairFilter=label;for(const button of fixMetrics.querySelectorAll('button'))button.setAttribute('aria-pressed',String(button===metric));renderRepairTasks()"));
  assert.ok(html.includes("repairState(key,item)===activeRepairFilter"));
  assert.ok(html.includes("repairList.replaceChildren()"));
  assert.ok(html.includes("li.append(label,stateBadge,explanation,progress,link,instruction,guide)"));
