@@ -7,9 +7,10 @@ const root=resolve('public');
 const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.json':'application/json','.svg':'image/svg+xml'};
 const server=createServer(async(req,res)=>{
  try{
-  const path=resolve(root,'.'+decodeURIComponent(new URL(req.url,'http://localhost').pathname));
+  const pathname=decodeURIComponent(new URL(req.url,'http://localhost').pathname);
+  const path=resolve(root,'.'+pathname);
   if(path!==root&&!path.startsWith(root+sep)){res.writeHead(403).end();return}
-  const file=path.endsWith(sep)?path+'index.html':path;
+  const file=pathname.endsWith('/')?resolve(path,'index.html'):path;
   const body=await readFile(file);
   res.writeHead(200,{'Content-Type':types[extname(file)]||'application/octet-stream'});
   res.end(body);
@@ -21,8 +22,9 @@ try{
  for(const width of [375,768]){
   const page=await browser.newPage({viewport:{width,height:820},reducedMotion:'reduce'});
   const errors=[];page.on('pageerror',error=>errors.push(error.message));
-  await page.goto('http://127.0.0.1:'+server.address().port+'/tools/seo/');
-  await page.getByRole('button',{name:/Try sample audit/i}).click();
+  const response=await page.goto('http://127.0.0.1:'+server.address().port+'/tools/seo/');
+  if(!response?.ok())throw Error(width+': SEO fixture did not load (HTTP '+response?.status()+')');
+  await page.locator('#site-demo').click();
   await page.locator('#site-fix-dashboard').waitFor();
   const guide=page.locator('#site-fix-dashboard .repair-verification-help');
   await guide.getByRole('button',{name:'Go to website audit'}).click();
