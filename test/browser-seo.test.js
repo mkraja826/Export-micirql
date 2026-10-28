@@ -1465,3 +1465,15 @@ test('link-check state messages behave across running, pausing and resumed state
  assert.match(status(false,false,{size:90},queue),/All selected destinations checked/);
  assert.equal(button(false,false,90,queue),'All destinations checked');
 });
+
+test('resuming link checks skips already completed destinations, including saved 404 and inconclusive results',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ const expression=html.match(/const remaining=(queue\.filter\(destination=>!completed\.has\(destination\)\));/)?.[1];
+ assert.ok(expression,'Find the live destination-resume expression');
+ const remaining=Function('queue','completed','return '+expression);
+ const queue=['https://example.org/a','https://example.org/b','https://example.org/c','https://example.org/d'];
+ const completed=new Map([[queue[0],{classification:'reachable'}],[queue[1],{classification:'broken',status:404}],[queue[2],{classification:'unverified'}]]);
+ assert.deepEqual(remaining(queue,completed),[queue[3]]);
+ completed.delete(queue[2]);
+ assert.deepEqual(remaining(queue,completed),[queue[2],queue[3]],'Retrying inconclusive results should include them once');
+});
