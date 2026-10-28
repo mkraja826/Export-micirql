@@ -1580,7 +1580,7 @@ test('beginner link dashboard gives status-specific next actions',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  assert.ok(html.includes("quickAction.setAttribute('aria-label','Recommended next step')"));
  assert.ok(html.includes('Next: retry '));
- assert.ok(html.includes('confirmed broken destination(s) and update their referring links'));
+ assert.ok(html.includes("'Fix first: review '+counts.broken+' confirmed broken destination(s)."));
  assert.ok(html.includes('Verification complete: no confirmed broken links'));
  assert.ok(html.includes('quickSummary,quickAction,quickProgress'));
 });
