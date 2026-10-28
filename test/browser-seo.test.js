@@ -589,7 +589,7 @@ test('SEO Studio V2.6 fix tracking persists user statuses without claiming audit
  assert.ok(html.includes("if(label!=='No longer observed')"));
  assert.ok(html.includes("note.maxLength=240"));
  assert.ok(html.includes("localStorage.setItem(fixTrackerKey,JSON.stringify(fixTracker))"));
- assert.ok(html.includes("feedback.textContent=saveFixTracker()?'Saved in this browser'"));
+ assert.ok(html.includes("feedback.textContent=saved?'Saved in this browser'"));
 });
 
 
@@ -1631,4 +1631,12 @@ test('SEO fix dashboard uses browser tracker and refreshes after changes',()=>{
  assert.ok(html.includes("document.dispatchEvent(new Event('seo-fix-tracker-updated'))"));
  assert.ok(html.includes("auditedAt<=markedAt||!completedUrls.has(page)"));
  assert.ok(html.includes("not improved rankings"));
+});
+
+test('mobile SEO dashboard metrics navigate to repair details',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("metric.className='tracker-metric fix-metric-button'"));
+ assert.ok(html.includes("metric.addEventListener('click'"));
+ assert.ok(html.includes("getElementById('site-fix-verification')"));
+ assert.ok(html.includes("grid-template-columns:repeat(2,minmax(0,1fr))"));
 });
