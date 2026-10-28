@@ -1649,3 +1649,12 @@ test('SEO fix metric selection filters the matching browser-local repair tasks',
  assert.ok(html.includes("repairList.replaceChildren()"));
  assert.ok(html.includes("li.append(label,link,instruction)"));
 });
+
+test('filtered repair tasks open the relevant guided issue and support mobile controls',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("guide.textContent='Open issue guide'"));
+ assert.ok(html.includes("issueSearch.value=key.slice(0,split);renderIssues()"));
+ assert.ok(html.includes("if(guided)guided.open=true"));
+ assert.ok(html.includes("#seo-filtered-repairs .repair-guide-link{width:100%;justify-content:center}"));
+ assert.ok(html.includes("guide.setAttribute('aria-label','Open repair guide for '"));
+});
