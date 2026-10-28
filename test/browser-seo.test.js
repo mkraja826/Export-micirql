@@ -1903,8 +1903,23 @@ test('repair handoff copies page-specific audit evidence without claiming automa
  assert.ok(html.includes("Next action: Recheck the affected page in a complete audit before changing the website."));
  assert.ok(html.includes("Saved repair note: '+item.note"));
  assert.ok(html.includes("This is a handoff note; MiCirql did not modify the website."));
- assert.ok(html.includes("navigator.clipboard.writeText(lines.join("));
- assert.ok(html.includes("Could not copy automatically. Download matching repairs (CSV) instead."));
+ assert.ok(html.includes("navigator.clipboard.writeText(handoffText)"));
+ assert.ok(html.includes("Automatic copy is blocked. The instructions below are selected; use Copy on your device."));
  assert.ok(html.includes("li.append(label,stateBadge,explanation,progress,link,instruction,guide,copyGuide,copyFeedback)"));
  assert.ok(html.includes("#seo-filtered-repairs .repair-copy{display:inline-flex;align-items:center;min-height:44px"));
+});
+
+test('browser clipboard denial reveals a selectable, read-only developer handoff with dismiss control',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("let manualCopyPanel=null"));
+ assert.ok(html.includes("const handoffText=lines.join('\\n')"));
+ assert.ok(html.includes("manualCopyPanel.className='repair-copy-manual'"));
+ assert.ok(html.includes("manualText.readOnly=true"));
+ assert.ok(html.includes("manualText.value=handoffText"));
+ assert.ok(html.includes("manualText.setAttribute('aria-label','Developer instructions for '+page)"));
+ assert.ok(html.includes("manualText.focus();manualText.select()"));
+ assert.ok(html.includes("closeManual.textContent='Close instructions'"));
+ assert.ok(html.includes("copyGuide.focus()"));
+ assert.ok(html.includes("#seo-filtered-repairs .repair-copy-manual textarea{display:block;width:100%"));
+ assert.ok(html.includes("#seo-filtered-repairs .repair-copy-manual button{min-height:44px"));
 });
