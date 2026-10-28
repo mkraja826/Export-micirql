@@ -1847,3 +1847,16 @@ test('repair dashboard allows more than 60 tracked repairs through progressive l
  assert.ok(html.includes(".repair-load-more[hidden]{display:none}"));
  assert.ok(!html.includes("Showing 60 of '+matching.length+' matching tasks."));
 });
+
+test('SEO repair search filters tracked items by issue code and page URL without discarding pagination',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("repairSearchLabel.htmlFor='seo-repair-search'"));
+ assert.ok(html.includes("repairSearch.type='search'"));
+ assert.ok(html.includes("repairSearch.setAttribute('aria-controls','seo-repair-list')"));
+ assert.ok(html.includes("key.slice(0,separator).replaceAll('_',' ').toLocaleLowerCase().includes(repairSearchQuery)"));
+ assert.ok(html.includes("key.slice(separator+1).toLocaleLowerCase().includes(repairSearchQuery)"));
+ assert.ok(html.includes("repairSearch.addEventListener('input',()=>{repairDisplayLimit=60;renderRepairTasks()})"));
+ assert.ok(html.includes("repairSearchClear.addEventListener('click',()=>{repairSearch.value='';repairDisplayLimit=60;renderRepairTasks();repairSearch.focus()})"));
+ assert.ok(html.includes("No '+activeRepairFilter.toLowerCase()+' repairs match your search."));
+ assert.ok(html.includes(".repair-search-clear[hidden]{display:none}"));
+});
