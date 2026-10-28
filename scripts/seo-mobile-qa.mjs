@@ -103,12 +103,12 @@ try{
   await exportRepairs.click();
   const filteredDownload=await filteredDownloadPromise;
   const filteredCsv=await readFile(await filteredDownload.path(),'utf8');
-  if(filteredDownload.suggestedFilename()!=='micirql-seo-repairs.csv'||filteredCsv.trimEnd().split('\\r\\n').length!==2||!filteredCsv.includes('/repair-64'))throw Error(width+': filtered repair export did not contain the matching page only');
+  if(filteredDownload.suggestedFilename()!=='micirql-seo-repairs.csv'||filteredCsv.trimEnd().split('\r\n').length!==2||!filteredCsv.includes('/repair-64'))throw Error(width+': filtered repair export did not contain the matching page only');
   await repairSearch.fill('');
   const fullDownloadPromise=page.waitForEvent('download');
   await exportRepairs.click();
   const fullCsv=await readFile(await (await fullDownloadPromise).path(),'utf8');
-  if(fullCsv.trimEnd().split('\\r\\n').length!==66||!fullCsv.includes('/repair-64'))throw Error(width+': repair CSV did not include all 65 matching repairs beyond current page');
+  if(fullCsv.trimEnd().split('\r\n').length!==66||!fullCsv.includes('/repair-64'))throw Error(width+': repair CSV did not include all 65 matching repairs beyond current page');
   if(!fullCsv.includes("'=HYPERLINK")||fullCsv.includes('"=HYPERLINK'))throw Error(width+': CSV export did not escape spreadsheet formula content');
 
   if(errors.length)throw Error(width+': script error '+errors.join('; '));
