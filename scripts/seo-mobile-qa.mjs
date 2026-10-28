@@ -46,8 +46,16 @@ try{
   if(!await page.locator('#site-url').evaluate(el=>el===document.activeElement))throw Error(width+': URL field did not receive focus');
   const measurements=await guide.evaluate(el=>({width:el.getBoundingClientRect().width,right:el.getBoundingClientRect().right,viewport:window.innerWidth,buttonHeight:el.querySelector('button').getBoundingClientRect().height}));
   if(measurements.right>width+2||measurements.buttonHeight<44)throw Error(width+': guide overflow or undersized button '+JSON.stringify(measurements));
+  const firstIssue=page.locator('#site-issues details.finding').first();
+  await firstIssue.locator(':scope > summary').click();
+  await firstIssue.locator('details.seo-guided-fix > summary').click();
+  await firstIssue.getByRole('button',{name:'Planning a fix'}).first().click();
+  await page.getByRole('button',{name:'View planned SEO repairs'}).click();
+  await page.locator('#seo-filtered-repairs .repair-guide-link').first().click();
+  const openedIssue=page.locator('#site-issues details.finding').first();
+  if(!await openedIssue.evaluate(el=>el.open&&el.querySelector(':scope > summary')===document.activeElement&&el.querySelector('details.seo-guided-fix')?.open))throw Error(width+': guided repair navigation did not open and focus the matching issue');
   if(errors.length)throw Error(width+': script error '+errors.join('; '));
-  console.log('Mobile SEO QA '+width+'px passed: focus, guide fit, button target, no page errors');
+  console.log('Mobile SEO QA '+width+'px passed: focus, guide fit, button target, exact issue navigation, no page errors');
   await page.close();
  }
 }finally{await browser.close();await new Promise(resolve=>server.close(resolve))}
