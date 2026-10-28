@@ -1439,3 +1439,9 @@ test('live link checker reconciles classification against observed HTTP status',
  assert.ok(html.includes("row.classification=row.status===404||row.status===410?'broken'"));
  assert.ok(html.indexOf('row.classification=row.status===404||row.status===410')<html.indexOf('completed.set(destination,row)'));
 });
+
+test('pausing link verification is visible while active requests finish',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("running?(stop?'Pausing after active checks finish…':'Checking link destinations in Chrome…')"));
+ assert.ok(html.includes("running?(stop?'Pausing checks…':'Checking links…')"));
+});
