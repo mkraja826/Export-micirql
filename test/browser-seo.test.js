@@ -1560,3 +1560,18 @@ test('link checker warns when browser cannot checkpoint progress',()=>{
  assert.ok(html.includes("Network failures can be retried.'+checkpointWarning"));
  assert.ok(html.includes("checkpointWarning=''"));
 });
+
+test('checkpoint warning appears on storage failure and clears after recovery',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ const match=html.match(/let checkpointWarning='';const save=\(\)=>\{(.*?)\};\s*const refresh=/s);
+ assert.ok(match,'Find production save implementation');
+ let fail=true;
+ const storage={setItem(){if(fail)throw Error('Storage quota exceeded')}};
+ const setup=Function('localStorage','scopeKey','auditSignature','completed',"let checkpointWarning='';const save=()=>{"+match[1]+"};return {save,warning:()=>checkpointWarning}");
+ const state=setup(storage,'test-cache','test-audit',new Map([['a',{status:200}]]));
+ state.save();
+ assert.match(state.warning(),/could not save this progress/);
+ fail=false;
+ state.save();
+ assert.equal(state.warning(),'');
+});
