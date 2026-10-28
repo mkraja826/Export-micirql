@@ -18,9 +18,35 @@ const checks=[
 ];
 checks.push(['/tools/screenshots/',async r=>{const t=await r.text();if(!t.includes('Screenshot')||!t.includes('MiCirql'))throw Error('Screenshot Studio missing')}]);
 checks.push(['/tools/seo/',async r=>{const t=await r.text();for(const marker of ['MiCirql SEO Studio','site-export-pdf','site-audit-history','site-progress-report','Print progress report / Save PDF'])if(!t.includes(marker))throw Error('SEO Studio missing marker: '+marker)}]);
+// A freshly uploaded ZIP may not be available at every Cloudflare edge immediately.
+// Retry only transient HTTP outcomes for this downloadable asset; a sustained 404
+// or an invalid ZIP must still fail the deployment.
+const extensionPath='/extension/micirql-tools-extension.zip';
+const extensionRetryDelaysMs=[0,3000,6000,10000,15000];
+const retryableExtensionStatuses=new Set([404,429,502,503,504]);
+const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+async function runCheck(path,verify){
+ const isExtension=path.startsWith(extensionPath);
+ const delays=isExtension?extensionRetryDelaysMs:[0];
+ for(let attempt=0;attempt<delays.length;attempt++){
+  if(delays[attempt])await sleep(delays[attempt]);
+  const response=await fetch(base+path,{signal:AbortSignal.timeout(15000),cache:'no-store'});
+  if(!response.ok){
+   const failure=httpFailure(response);
+   if(isExtension&&retryableExtensionStatuses.has(response.status)&&attempt<delays.length-1){
+    console.warn('RETRY',path,failure,'attempt '+(attempt+2)+' of '+delays.length);
+    continue;
+   }
+   throw Error(failure);
+  }
+  await verify(response);
+  console.log('PASS',path);
+  return;
+ }
+}
 let failures=0;
 for(const [path,verify] of checks){
- try{const r=await fetch(base+path,{signal:AbortSignal.timeout(15000)});if(!r.ok)throw Error(httpFailure(r));await verify(r);console.log('PASS',path)}
+ try{await runCheck(path,verify)}
  catch(e){failures++;console.error('FAIL',path,e.message)}
 }
 if(failures)process.exitCode=1;
