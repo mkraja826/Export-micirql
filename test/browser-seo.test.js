@@ -1704,8 +1704,8 @@ test('fix status persistence and immediate refresh contract supports the demo au
 
 test('repair status controls update immediately and report storage failures clearly',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
- assert.ok(html.includes("status.addEventListener('change',updateGuidedStatus)"));
- assert.ok(html.includes("status.addEventListener('input',updateGuidedStatus)"));
+ assert.ok(html.includes("button.addEventListener('click',()=>setGuidedStatus(value))"));
+ assert.ok(html.includes("button.dataset.status=value"));
  assert.ok(html.includes("state.addEventListener('input',persist)"));
  assert.ok(html.includes("document.dispatchEvent(new Event('seo-fix-tracker-updated'));result.textContent=saved?"));
  assert.ok(html.includes("it may not persist after reload"));
@@ -1713,9 +1713,9 @@ test('repair status controls update immediately and report storage failures clea
 
 test('guided repairs offer an explicit save action in addition to automatic status updates',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
- assert.ok(html.includes("saveButton.textContent='Save repair status'"));
- assert.ok(html.includes("saveButton.addEventListener('click',updateGuidedStatus)"));
- assert.ok(html.includes("status.addEventListener('change',updateGuidedStatus)"));
- assert.ok(html.includes("li.append(status,saveButton,result)"));
+ assert.ok(html.includes("controls.className='repair-status-actions'"));
+ assert.ok(html.includes("button.addEventListener('click',()=>setGuidedStatus(value))"));
+ assert.ok(html.includes("button.addEventListener('click',()=>setGuidedStatus(value))"));
+ assert.ok(html.includes("li.append(controls,result)"));
  assert.ok(html.includes("result.textContent=saved?"));
 });
