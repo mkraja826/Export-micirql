@@ -1667,3 +1667,11 @@ test('repair workflow stages distinguish published changes from verified absent 
  assert.ok(html.includes("stateBadge.textContent==='Awaiting verification'?2:1"));
  assert.ok(html.includes("progress.setAttribute('aria-label','Repair workflow stage '"));
 });
+
+test('addressed repair dashboard filter includes all published fixes regardless of audit outcome',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("activeRepairFilter==='Addressed'?item.status==='fixed':repairState(key,item)===activeRepairFilter"));
+ assert.ok(html.includes("states.filter(value=>value==='Still detected')"));
+ assert.ok(html.includes("states.filter(value=>value==='Verified absent')"));
+ assert.ok(html.includes("states.filter(value=>value==='Awaiting verification')"));
+});
