@@ -1756,7 +1756,15 @@ test('repair verification guidance sends beginners to a fresh website audit with
  assert.ok(html.includes("postFixGuideVerificationHeading.textContent='How to verify a published fix'"));
  assert.ok(html.includes("The sample audit is only a demo and cannot check your live website."));
  assert.ok(html.includes("postFixGuideVerificationJump.textContent='Go to website audit'"));
- assert.ok(html.includes("document.getElementById('site-heading').scrollIntoView"));
- assert.ok(html.includes("document.getElementById('site-url').focus({preventScroll:true})"));
+ assert.ok(html.includes("auditHeading.scrollIntoView"));
+ assert.ok(html.includes("auditUrlInput.focus()"));
  assert.ok(!html.includes("postFixGuideVerificationJump.addEventListener('click',()=>siteButton.click()"));
+});
+
+test('re-audit navigation supports keyboard focus, touch controls and reduced motion',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'"));
+ assert.ok(html.includes("auditUrlInput.focus()"));
+ assert.ok(html.includes(".repair-verification-help button{min-height:44px"));
+ assert.ok(html.includes(".repair-verification-help button{width:100%"));
 });
