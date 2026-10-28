@@ -1533,3 +1533,16 @@ test('saved link cache accepts only the matching audit within 24 hours',()=>{
  assert.deepEqual(restore({...data,rows:{}},'audit-A',now,clock),[]);
  assert.deepEqual(restore(null,'audit-A',now,clock),[]);
 });
+
+test('different audits on one domain persist to separate browser cache keys',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("const scopeKey='micirql-seo-link-check-v3:'+siteReport.website+':'+auditHash.toString(16)"));
+ assert.ok(html.includes('data.auditSignature===auditSignature'));
+ const hash=value=>{let n=2166136261;for(let i=0;i<value.length;i++)n=Math.imul(n^value.charCodeAt(i),16777619)>>>0;return n.toString(16)};
+ const key=signature=>'micirql-seo-link-check-v3:https://example.org/:'+hash(signature);
+ const a=key('audit pages A');const b=key('audit pages B');
+ assert.notEqual(a,b);
+ const storage=new Map([[a,{auditSignature:'audit pages A',rows:[{status:404}]}],[b,{auditSignature:'audit pages B',rows:[{status:200}]}]]);
+ assert.equal(storage.get(a).rows[0].status,404);
+ assert.equal(storage.get(b).rows[0].status,200);
+});
