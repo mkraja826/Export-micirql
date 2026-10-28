@@ -1834,3 +1834,16 @@ test('tracked issue guides provide a keyboard accessible route back to repair ta
  assert.ok(html.includes("#site-issues .repair-back-button{display:inline-flex;align-items:center;min-height:44px"));
  assert.ok(html.includes("#site-issues .repair-back-button{width:100%;justify-content:center}"));
 });
+
+test('repair dashboard allows more than 60 tracked repairs through progressive loading',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("let repairDisplayLimit=60"));
+ assert.ok(html.includes("matching.slice(0,repairDisplayLimit)"));
+ assert.ok(html.includes("repairMore.hidden=matching.length<=repairDisplayLimit"));
+ assert.ok(html.includes("repairDisplayLimit+=60;renderRepairTasks()"));
+ assert.ok(html.includes("repairDisplayLimit=60;activeRepairFilter=label"));
+ assert.ok(html.includes("repairListCount.setAttribute('role','status')"));
+ assert.ok(html.includes("firstNewTask.focus({preventScroll:true})"));
+ assert.ok(html.includes(".repair-load-more[hidden]{display:none}"));
+ assert.ok(!html.includes("Showing 60 of '+matching.length+' matching tasks."));
+});
