@@ -1753,10 +1753,10 @@ test('filtered repairs explain verification outcomes without claiming rankings i
 
 test('repair verification guidance sends beginners to a fresh website audit without running it automatically',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
- assert.ok(html.includes("verificationHeading.textContent='How to verify a published fix'"));
+ assert.ok(html.includes("postFixGuideVerificationHeading.textContent='How to verify a published fix'"));
  assert.ok(html.includes("The sample audit is only a demo and cannot check your live website."));
- assert.ok(html.includes("verificationJump.textContent='Go to website audit'"));
+ assert.ok(html.includes("postFixGuideVerificationJump.textContent='Go to website audit'"));
  assert.ok(html.includes("document.getElementById('site-heading').scrollIntoView"));
  assert.ok(html.includes("document.getElementById('site-url').focus({preventScroll:true})"));
- assert.ok(!html.includes("verificationJump.addEventListener('click',()=>siteButton.click()"));
+ assert.ok(!html.includes("postFixGuideVerificationJump.addEventListener('click',()=>siteButton.click()"));
 });
