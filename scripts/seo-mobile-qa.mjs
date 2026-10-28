@@ -55,8 +55,11 @@ try{
   await page.locator('#seo-filtered-repairs .repair-guide-link').first().click();
   const openedIssue=page.locator('#site-issues details.finding').first();
   if(!await openedIssue.evaluate(el=>el.open&&el.querySelector(':scope > summary')===document.activeElement&&el.querySelector('details.seo-guided-fix')?.open))throw Error(width+': guided repair navigation did not open and focus the matching issue');
+  const highlightedPage=openedIssue.locator('details.seo-guided-fix li.is-target-repair');
+  if(await highlightedPage.count()!==1||!await highlightedPage.locator('.repair-target-label').isVisible())throw Error(width+': tracked page was not highlighted within the issue guide');
+  if(!await openedIssue.locator('details.seo-guided-fix > details').evaluate(el=>el.open))throw Error(width+': affected-page details were not expanded');
   if(errors.length)throw Error(width+': script error '+errors.join('; '));
-  console.log('Mobile SEO QA '+width+'px passed: focus, guide fit, button target, exact issue navigation, no page errors');
+  console.log('Mobile SEO QA '+width+'px passed: focus, guide fit, button target, exact issue-and-page navigation, no page errors');
   await page.close();
  }
 }finally{await browser.close();await new Promise(resolve=>server.close(resolve))}
