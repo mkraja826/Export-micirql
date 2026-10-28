@@ -1647,7 +1647,7 @@ test('SEO fix metric selection filters the matching browser-local repair tasks',
  assert.ok(html.includes("activeRepairFilter=label;renderRepairTasks()"));
  assert.ok(html.includes("repairState(key,item)===activeRepairFilter"));
  assert.ok(html.includes("repairList.replaceChildren()"));
- assert.ok(html.includes("li.append(label,stateBadge,progress,link,instruction,guide)"));
+ assert.ok(html.includes("li.append(label,stateBadge,explanation,progress,link,instruction,guide)"));
 });
 
 test('filtered repair tasks open the relevant guided issue and support mobile controls',()=>{
@@ -1740,4 +1740,13 @@ test('repair verification requires newer complete page evidence and distinguishe
  assert.equal(status('2026-10-28T11:00:00.000Z',true,true),'Still detected','Later complete audit with issue present stays unresolved');
  assert.equal(status('2026-10-28T11:00:00.000Z',true,false),'Verified absent','Later complete audit without issue confirms absence');
  assert.equal(status('2026-10-28T11:00:00.000Z',true,false,'invalid'),'Awaiting verification','Invalid publication timestamp cannot verify');
+});
+
+test('filtered repairs explain verification outcomes without claiming rankings improved',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("explanation.className='hint small repair-verification-explanation'"));
+ assert.ok(html.includes('Run a new, complete audit of this page'));
+ assert.ok(html.includes('A later complete audit still found this issue'));
+ assert.ok(html.includes('This does not guarantee improved rankings'));
+ assert.ok(html.includes('li.append(label,stateBadge,explanation,progress,link,instruction,guide)'));
 });
