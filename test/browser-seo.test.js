@@ -1449,7 +1449,7 @@ test('pausing link verification is visible while active requests finish',()=>{
 test('link-check state messages behave across running, pausing and resumed states',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  const stateExpression=html.match(/quickState\.textContent=(.*?);\s*quickStart\.disabled=/s)?.[1];
- const buttonExpression=html.match(/startButton\.textContent=(.*?);\s*startButton\.disabled=/s)?.[1];
+ const buttonExpression=html.match(/startButton\.textContent=(running\?.*?);\s*startButton\.disabled=/s)?.[1];
  assert.ok(stateExpression,'Find live status expression');
  assert.ok(buttonExpression,'Find live button expression');
  const status=Function('running','stop','completed','queue','return '+stateExpression);
