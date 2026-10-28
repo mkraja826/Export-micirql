@@ -58,8 +58,12 @@ try{
   const highlightedPage=openedIssue.locator('details.seo-guided-fix li.is-target-repair');
   if(await highlightedPage.count()!==1||!await highlightedPage.locator('.repair-target-label').isVisible())throw Error(width+': tracked page was not highlighted within the issue guide');
   if(!await openedIssue.locator('details.seo-guided-fix > details').evaluate(el=>el.open))throw Error(width+': affected-page details were not expanded');
+  const backButton=openedIssue.getByRole('button',{name:'Back to repair tasks'});
+  if(await backButton.evaluate(el=>el.getBoundingClientRect().height)<44)throw Error(width+': back button touch target is undersized');
+  await backButton.click();
+  if(!await page.locator('#seo-filtered-repairs h4').evaluate(el=>el===document.activeElement))throw Error(width+': back navigation failed to focus repair task heading');
   if(errors.length)throw Error(width+': script error '+errors.join('; '));
-  console.log('Mobile SEO QA '+width+'px passed: focus, guide fit, button target, exact issue-and-page navigation, no page errors');
+  console.log('Mobile SEO QA '+width+'px passed: focus, guide fit, button target, exact issue-and-page navigation, accessible back action, no page errors');
   await page.close();
  }
 }finally{await browser.close();await new Promise(resolve=>server.close(resolve))}
