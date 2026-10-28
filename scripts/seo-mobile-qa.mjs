@@ -62,8 +62,23 @@ try{
   if(await backButton.evaluate(el=>el.getBoundingClientRect().height)<44)throw Error(width+': back button touch target is undersized');
   await backButton.click();
   if(!await page.locator('#seo-filtered-repairs h4').evaluate(el=>el===document.activeElement))throw Error(width+': back navigation failed to focus repair task heading');
+  await page.evaluate(()=>{
+   const repairs={};
+   for(let n=0;n<65;n++)repairs['missing_canonical|https://demo.micirql.invalid/repair-'+n]={status:'planned',note:'',markedAt:null};
+   localStorage.setItem('micirql-seo-fix-tracker-v1:https://demo.micirql.invalid',JSON.stringify(repairs));
+  });
+  await page.locator('#site-demo').click();
+  const pagedRepairs=page.locator('#seo-filtered-repairs');
+  const loadMore=pagedRepairs.getByRole('button',{name:'Show 60 more repairs'});
+  await loadMore.waitFor({state:'visible'});
+  if(await pagedRepairs.locator('ul > li').count()!==60)throw Error(width+': first repair page should show 60 tasks');
+  await loadMore.click();
+  if(await pagedRepairs.locator('ul > li').count()!==65)throw Error(width+': paging did not reveal all 65 tasks');
+  if(!await pagedRepairs.locator('ul > li').nth(60).evaluate(el=>document.activeElement===el))throw Error(width+': paging did not focus the first newly loaded repair');
+  await page.getByRole('button',{name:'View planned SEO repairs'}).click();
+  if(await pagedRepairs.locator('ul > li').count()!==60||!await loadMore.isVisible())throw Error(width+': selecting a repair filter should reset paging');
   if(errors.length)throw Error(width+': script error '+errors.join('; '));
-  console.log('Mobile SEO QA '+width+'px passed: focus, guide fit, button target, exact issue-and-page navigation, accessible back action, no page errors');
+  console.log('Mobile SEO QA '+width+'px passed: focus, guide fit, button target, exact issue-and-page navigation, accessible back action, 65-repair paging, no page errors');
   await page.close();
  }
 }finally{await browser.close();await new Promise(resolve=>server.close(resolve))}
