@@ -65,6 +65,7 @@ try{
   await page.evaluate(()=>{
    const repairs={};
    for(let n=0;n<65;n++)repairs[(n%2===0?'missing_canonical':'missing_h1')+'|https://demo.micirql.invalid/repair-'+n]={status:'planned',note:'',markedAt:null};
+   repairs['missing_canonical|https://demo.micirql.invalid/repair-64'].note='=HYPERLINK("https://example.org","click")';
    localStorage.setItem('micirql-seo-fix-tracker-v1:https://demo.micirql.invalid',JSON.stringify(repairs));
   });
   await page.locator('#site-demo').click();
@@ -96,8 +97,22 @@ try{
   if(await pagedRepairs.locator('ul > li').count()!==1||await repairSearch.inputValue()!=='repair-64')throw Error(width+': sorting discarded the repair search query');
   await pagedRepairs.getByRole('button',{name:'Clear search'}).click();
   if(await pagedRepairs.locator('ul > li').count()!==60||await repairSort.inputValue()!=='page-asc')throw Error(width+': clearing repair search lost sort selection or paging');
+  const exportRepairs=pagedRepairs.getByRole('button',{name:'Download matching repairs (CSV)'});
+  await repairSearch.fill('repair-64');
+  const filteredDownloadPromise=page.waitForEvent('download');
+  await exportRepairs.click();
+  const filteredDownload=await filteredDownloadPromise;
+  const filteredCsv=await readFile(await filteredDownload.path(),'utf8');
+  if(filteredDownload.suggestedFilename()!=='micirql-seo-repairs.csv'||filteredCsv.trimEnd().split('\\r\\n').length!==2||!filteredCsv.includes('/repair-64'))throw Error(width+': filtered repair export did not contain the matching page only');
+  await repairSearch.fill('');
+  const fullDownloadPromise=page.waitForEvent('download');
+  await exportRepairs.click();
+  const fullCsv=await readFile(await (await fullDownloadPromise).path(),'utf8');
+  if(fullCsv.trimEnd().split('\\r\\n').length!==66||!fullCsv.includes('/repair-64'))throw Error(width+': repair CSV did not include all 65 matching repairs beyond current page');
+  if(!fullCsv.includes("'=HYPERLINK")||fullCsv.includes('"=HYPERLINK'))throw Error(width+': CSV export did not escape spreadsheet formula content');
+
   if(errors.length)throw Error(width+': script error '+errors.join('; '));
-  console.log('Mobile SEO QA '+width+'px passed: focus, guide fit, button target, exact issue-and-page navigation, accessible back action, 65-repair paging, issue and URL search, sorting, no page errors');
+  console.log('Mobile SEO QA '+width+'px passed: focus, guide fit, button target, exact issue-and-page navigation, accessible back action, 65-repair paging, issue and URL search, sorting, CSV export, no page errors');
   await page.close();
  }
 }finally{await browser.close();await new Promise(resolve=>server.close(resolve))}
