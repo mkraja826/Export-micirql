@@ -1860,3 +1860,18 @@ test('SEO repair search filters tracked items by issue code and page URL without
  assert.ok(html.includes("No '+activeRepairFilter.toLowerCase()+' repairs match your search."));
  assert.ok(html.includes(".repair-search-clear[hidden]{display:none}"));
 });
+
+test('repair dashboard sorts page and issue results using accessible sort selection',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("repairSortLabel.htmlFor='seo-repair-sort'"));
+ assert.ok(html.includes("repairSort.setAttribute('aria-controls','seo-repair-list')"));
+ assert.ok(html.includes("['page-asc','Page URL (A–Z)']"));
+ assert.ok(html.includes("['page-desc','Page URL (Z–A)']"));
+ assert.ok(html.includes("['issue-asc','Issue type (A–Z)']"));
+ assert.ok(html.includes("new Intl.Collator(undefined,{numeric:true,sensitivity:'base'})"));
+ assert.ok(html.includes(".sort(([left],[right])=>{"));
+ assert.ok(html.includes("repairSort.value==='issue-asc'?(issueOrder||pageOrder)"));
+ assert.ok(html.includes("repairSort.value==='page-desc'?(-pageOrder||issueOrder)"));
+ assert.ok(html.includes("repairSort.addEventListener('change',()=>{repairDisplayLimit=60;renderRepairTasks()})"));
+ assert.ok(html.includes("#seo-filtered-repairs #seo-repair-sort:focus-visible"));
+});
