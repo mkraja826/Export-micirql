@@ -1615,10 +1615,10 @@ test('guided SEO repair links to audited pages and requires fresh verification',
 
 test('guided repair cards save page-level fix status without claiming verification',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
- assert.ok(html.includes("status.setAttribute('aria-label','Fix status for '+pageUrl)"));
+ assert.ok(html.includes("controls.setAttribute('aria-label','Fix status for '+pageUrl)"));
  assert.ok(html.includes("'I published a fix'"));
- assert.ok(html.includes("status.value=fixTracker[key]?.status||'untracked'"));
- assert.ok(html.includes("markedAt:status.value==='fixed'"));
+ assert.ok(html.includes("const currentStatus=()=>fixTracker[key]?.status||'untracked'"));
+ assert.ok(html.includes("markedAt:nextStatus==='fixed'"));
  assert.ok(html.includes("result.textContent=saved?"));
  assert.ok(html.includes("run a new complete audit to verify"));
 });
