@@ -62,6 +62,13 @@ try{
   if(await backButton.evaluate(el=>el.getBoundingClientRect().height)<44)throw Error(width+': back button touch target is undersized');
   await backButton.click();
   if(!await page.locator('#seo-filtered-repairs h4').evaluate(el=>el===document.activeElement))throw Error(width+': back navigation failed to focus repair task heading');
+  await page.evaluate(()=>{Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async value=>{window.__seoCopiedHandoff=value}}})});
+  const copyHandoff=page.locator('#seo-filtered-repairs .repair-copy').first();
+  if(await copyHandoff.evaluate(el=>el.getBoundingClientRect().height)<44)throw Error(width+': developer handoff button is below mobile touch-target size');
+  await copyHandoff.click();
+  const handoff=await page.evaluate(()=>window.__seoCopiedHandoff||'');
+  if(!handoff.includes('MiCirql SEO Studio')||!handoff.includes('Affected page: https://demo.micirql.invalid/')||!handoff.includes('Audit finding:')||!handoff.includes('Suggested correction:')||!handoff.includes('MiCirql did not modify the website.')||!handoff.includes('\\n'))throw Error(width+': copied handoff lacks exact-page evidence or verification cautions');
+  if(!await page.locator('#seo-filtered-repairs .repair-copy + [role=status]').first().textContent().then(value=>value.includes('copied')))throw Error(width+': copy confirmation not announced');
   await page.evaluate(()=>{
    const repairs={};
    for(let n=0;n<65;n++)repairs[(n%2===0?'missing_canonical':'missing_h1')+'|https://demo.micirql.invalid/repair-'+n]={status:'planned',note:'',markedAt:null};
@@ -82,6 +89,9 @@ try{
   await repairSearch.fill('REPAIR-64');
   if(await pagedRepairs.locator('ul > li').count()!==1||!await pagedRepairs.locator('ul > li').first().textContent().then(value=>value.includes('/repair-64')))throw Error(width+': URL search failed to find a late-page repair');
   if(await loadMore.isVisible())throw Error(width+': search showing one repair should hide the load-more control');
+  await pagedRepairs.locator('.repair-copy').first().click();
+  const unknownHandoff=await page.evaluate(()=>window.__seoCopiedHandoff||'');
+  if(!unknownHandoff.includes('/repair-64')||!unknownHandoff.includes('This page was not checked in a complete audit')||!unknownHandoff.includes('Recheck the affected page')||unknownHandoff.includes('Suggested correction:'))throw Error(width+': unverified repair was presented as an audited finding');
   await repairSearch.fill('missing_thing_that_does_not_exist');
   if(await pagedRepairs.locator('ul > li').count()!==0||!await pagedRepairs.locator('.hint').allTextContents().then(values=>values.some(value=>value.includes('repairs match your search'))))throw Error(width+': empty repair search is not explained');
   await pagedRepairs.getByRole('button',{name:'Clear search'}).click();
@@ -112,7 +122,7 @@ try{
   if(!fullCsv.includes("'=HYPERLINK")||fullCsv.includes('"=HYPERLINK'))throw Error(width+': CSV export did not escape spreadsheet formula content');
 
   if(errors.length)throw Error(width+': script error '+errors.join('; '));
-  console.log('Mobile SEO QA '+width+'px passed: focus, guide fit, button target, exact issue-and-page navigation, accessible back action, 65-repair paging, issue and URL search, sorting, CSV export, no page errors');
+  console.log('Mobile SEO QA '+width+'px passed: focus, guide fit, button target, exact issue-and-page navigation, accessible back action, 65-repair paging, issue and URL search, sorting, CSV export, handoff copy, no page errors');
   await page.close();
  }
 }finally{await browser.close();await new Promise(resolve=>server.close(resolve))}
