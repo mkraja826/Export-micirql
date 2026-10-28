@@ -64,7 +64,7 @@ try{
   if(!await page.locator('#seo-filtered-repairs h4').evaluate(el=>el===document.activeElement))throw Error(width+': back navigation failed to focus repair task heading');
   await page.evaluate(()=>{
    const repairs={};
-   for(let n=0;n<65;n++)repairs['missing_canonical|https://demo.micirql.invalid/repair-'+n]={status:'planned',note:'',markedAt:null};
+   for(let n=0;n<65;n++)repairs[(n%2===0?'missing_canonical':'missing_h1')+'|https://demo.micirql.invalid/repair-'+n]={status:'planned',note:'',markedAt:null};
    localStorage.setItem('micirql-seo-fix-tracker-v1:https://demo.micirql.invalid',JSON.stringify(repairs));
   });
   await page.locator('#site-demo').click();
@@ -85,8 +85,19 @@ try{
   if(await pagedRepairs.locator('ul > li').count()!==0||!await pagedRepairs.locator('.hint').allTextContents().then(values=>values.some(value=>value.includes('repairs match your search'))))throw Error(width+': empty repair search is not explained');
   await pagedRepairs.getByRole('button',{name:'Clear search'}).click();
   if(await pagedRepairs.locator('ul > li').count()!==60||!await loadMore.isVisible()||!await repairSearch.evaluate(el=>el===document.activeElement))throw Error(width+': clearing search failed to restore list, pagination and focus');
+  const repairSort=pagedRepairs.getByRole('combobox',{name:'Organize repairs'});
+  await repairSort.selectOption('page-desc');
+  if(!await pagedRepairs.locator('ul > li').first().textContent().then(value=>value.includes('/repair-64')))throw Error(width+': URL descending order did not place last page first');
+  await repairSort.selectOption('issue-asc');
+  const firstFive=await pagedRepairs.locator('ul > li').allTextContents();
+  if(!firstFive.slice(0,5).every(value=>value.startsWith('missing canonical')))throw Error(width+': issue sorting did not group issue types together');
+  await repairSearch.fill('repair-64');
+  await repairSort.selectOption('page-asc');
+  if(await pagedRepairs.locator('ul > li').count()!==1||await repairSearch.inputValue()!=='repair-64')throw Error(width+': sorting discarded the repair search query');
+  await pagedRepairs.getByRole('button',{name:'Clear search'}).click();
+  if(await pagedRepairs.locator('ul > li').count()!==60||await repairSort.inputValue()!=='page-asc')throw Error(width+': clearing repair search lost sort selection or paging');
   if(errors.length)throw Error(width+': script error '+errors.join('; '));
-  console.log('Mobile SEO QA '+width+'px passed: focus, guide fit, button target, exact issue-and-page navigation, accessible back action, 65-repair paging, issue and URL search, no page errors');
+  console.log('Mobile SEO QA '+width+'px passed: focus, guide fit, button target, exact issue-and-page navigation, accessible back action, 65-repair paging, issue and URL search, sorting, no page errors');
   await page.close();
  }
 }finally{await browser.close();await new Promise(resolve=>server.close(resolve))}
