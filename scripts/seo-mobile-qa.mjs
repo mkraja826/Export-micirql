@@ -67,7 +67,7 @@ try{
   if(await copyHandoff.evaluate(el=>el.getBoundingClientRect().height)<44)throw Error(width+': developer handoff button is below mobile touch-target size');
   await copyHandoff.click();
   const handoff=await page.evaluate(()=>window.__seoCopiedHandoff||'');
-  if(!handoff.includes('MiCirql SEO Studio')||!handoff.includes('Affected page: https://demo.micirql.invalid/')||!handoff.includes('Audit finding:')||!handoff.includes('Suggested correction:')||!handoff.includes('MiCirql did not modify the website.')||!handoff.includes('\\n'))throw Error(width+': copied handoff lacks exact-page evidence or verification cautions');
+  if(!handoff.includes('MiCirql SEO Studio')||!handoff.includes('Affected page: https://demo.micirql.invalid/')||!handoff.includes('Audit finding:')||!handoff.includes('Suggested correction:')||!handoff.includes('MiCirql did not modify the website.')||!handoff.includes('\n'))throw Error(width+': copied handoff lacks exact-page evidence or verification cautions');
   if(!await page.locator('#seo-filtered-repairs .repair-copy + [role=status]').first().textContent().then(value=>value.includes('copied')))throw Error(width+': copy confirmation not announced');
   await page.evaluate(()=>{
    const repairs={};
