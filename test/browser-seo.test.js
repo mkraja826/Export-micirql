@@ -1593,3 +1593,13 @@ test('link verification guidance prioritizes confirmed HTTP failures before unch
  assert.ok(guidance.includes('do not count them as broken'));
  assert.ok(guidance.includes('remaining destination(s)'));
 });
+
+test('common SEO findings have beginner explanations without removing technical evidence',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ for(const code of ['missing_meta_description','missing_h1','multiple_h1','missing_alt','noindex','thin_content','broken_internal_links','internal_links_unverified']){
+  assert.ok(html.includes(code+':['),'Expected beginner guidance for '+code);
+ }
+ assert.ok(html.includes("plain.textContent='In simple terms: '+beginnerDetail[0]"));
+ assert.ok(html.includes("technicalSummary.textContent='Technical details'"));
+ assert.ok(html.includes("How to check the fix: "));
+});
