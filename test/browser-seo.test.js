@@ -1675,3 +1675,29 @@ test('addressed repair dashboard filter includes all published fixes regardless 
  assert.ok(html.includes("states.filter(value=>value==='Verified absent')"));
  assert.ok(html.includes("states.filter(value=>value==='Awaiting verification')"));
 });
+
+test('fix status persistence and immediate refresh contract supports the demo audit',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ const saveMatch=html.match(/const saveFixTracker=\(\)=>\{(.*?)\};/s);
+ assert.ok(saveMatch,'Find the production browser-storage writer');
+ const storage=new Map();
+ const localStorage={setItem:(key,value)=>storage.set(key,value),getItem:key=>storage.get(key)||null};
+ const fixTrackerKey='micirql-seo-fix-tracker-v1:https://demo.micirql.invalid';
+ const fixTracker={};
+ const saveFixTracker=Function('localStorage','fixTrackerKey','fixTracker', 'return ()=>{'+saveMatch[1]+'};')(localStorage,fixTrackerKey,fixTracker);
+ const key='missing_canonical|https://demo.micirql.invalid/';
+ fixTracker[key]={status:'planned',note:'',markedAt:null};
+ assert.equal(saveFixTracker(),true,'The planned repair should save');
+ let planned=Object.values(fixTracker).filter(item=>item.status==='planned').length;
+ assert.equal(planned,1,'Dashboard planned metric should reflect saved repair');
+ const reloaded=JSON.parse(localStorage.getItem(fixTrackerKey));
+ assert.equal(reloaded[key].status,'planned','Browser reload can recover the stored selection');
+ const now=new Date().toISOString();
+ reloaded[key]={status:'fixed',note:'',markedAt:now};
+ assert.equal(reloaded[key].status,'fixed');
+ assert.ok(html.includes("document.dispatchEvent(new Event('seo-fix-tracker-updated'))"),'Status updates dispatch an immediate refresh');
+ assert.ok(html.includes("document.addEventListener('seo-fix-tracker-updated',refreshFixDashboard)"),'Dashboard subscribes to refresh events');
+ const markedAt=Date.parse(now),auditedAt=Date.parse('2026-01-01T00:00:00Z');
+ const completedUrls=new Set(['https://demo.micirql.invalid/']);
+ assert.equal(auditedAt>markedAt&&completedUrls.has('https://demo.micirql.invalid/'),false,'A fix marked after an audit remains awaiting verification');
+});
