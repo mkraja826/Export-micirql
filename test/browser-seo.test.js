@@ -1445,3 +1445,23 @@ test('pausing link verification is visible while active requests finish',()=>{
  assert.ok(html.includes("running?(stop?'Pausing after active checks finish…':'Checking link destinations in Chrome…')"));
  assert.ok(html.includes("running?(stop?'Pausing checks…':'Checking links…')"));
 });
+
+test('link-check state messages behave across running, pausing and resumed states',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ const stateExpression=html.match(/quickState\.textContent=(.*?);\s*quickStart\.disabled=/s)?.[1];
+ const buttonExpression=html.match(/startButton\.textContent=(.*?);\s*startButton\.disabled=/s)?.[1];
+ assert.ok(stateExpression,'Find live status expression');
+ assert.ok(buttonExpression,'Find live button expression');
+ const status=Function('running','stop','completed','queue','return '+stateExpression);
+ const button=Function('running','stop','checked','queue','return '+buttonExpression);
+ const queue={length:90};
+ const completed={size:23};
+ assert.match(status(false,false,completed,queue),/paused or incomplete/i);
+ assert.match(status(true,false,completed,queue),/Checking link destinations/);
+ assert.match(status(true,true,completed,queue),/Pausing after active checks finish/);
+ assert.equal(button(true,true,23,queue),'Pausing checks…');
+ assert.equal(button(true,false,23,queue),'Checking links…');
+ assert.equal(button(false,false,23,queue),'Start / resume verification');
+ assert.match(status(false,false,{size:90},queue),/All selected destinations checked/);
+ assert.equal(button(false,false,90,queue),'All destinations checked');
+});
