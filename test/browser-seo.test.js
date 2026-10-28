@@ -1658,3 +1658,12 @@ test('filtered repair tasks open the relevant guided issue and support mobile co
  assert.ok(html.includes("#seo-filtered-repairs .repair-guide-link{width:100%;justify-content:center}"));
  assert.ok(html.includes("guide.setAttribute('aria-label','Open repair guide for '"));
 });
+
+test('repair workflow stages distinguish published changes from verified absent findings',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("stateBadge.textContent=repairState(key,item)"));
+ assert.ok(html.includes("progress.max=3"));
+ assert.ok(html.includes("stateBadge.textContent==='Verified absent'?3"));
+ assert.ok(html.includes("stateBadge.textContent==='Awaiting verification'?2:1"));
+ assert.ok(html.includes("progress.setAttribute('aria-label','Repair workflow stage '"));
+});
