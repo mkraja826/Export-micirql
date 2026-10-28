@@ -77,8 +77,16 @@ try{
   if(!await pagedRepairs.locator('ul > li').nth(60).evaluate(el=>document.activeElement===el))throw Error(width+': paging did not focus the first newly loaded repair');
   await page.getByRole('button',{name:'View planned SEO repairs'}).click();
   if(await pagedRepairs.locator('ul > li').count()!==60||!await loadMore.isVisible())throw Error(width+': selecting a repair filter should reset paging');
+  const repairSearch=pagedRepairs.getByRole('searchbox',{name:'Find a repair by issue or page URL'});
+  await repairSearch.fill('REPAIR-64');
+  if(await pagedRepairs.locator('ul > li').count()!==1||!await pagedRepairs.locator('ul > li').first().textContent().then(value=>value.includes('/repair-64')))throw Error(width+': URL search failed to find a late-page repair');
+  if(await loadMore.isVisible())throw Error(width+': search showing one repair should hide the load-more control');
+  await repairSearch.fill('missing_thing_that_does_not_exist');
+  if(await pagedRepairs.locator('ul > li').count()!==0||!await pagedRepairs.locator('.hint').allTextContents().then(values=>values.some(value=>value.includes('repairs match your search'))))throw Error(width+': empty repair search is not explained');
+  await pagedRepairs.getByRole('button',{name:'Clear search'}).click();
+  if(await pagedRepairs.locator('ul > li').count()!==60||!await loadMore.isVisible()||!await repairSearch.evaluate(el=>el===document.activeElement))throw Error(width+': clearing search failed to restore list, pagination and focus');
   if(errors.length)throw Error(width+': script error '+errors.join('; '));
-  console.log('Mobile SEO QA '+width+'px passed: focus, guide fit, button target, exact issue-and-page navigation, accessible back action, 65-repair paging, no page errors');
+  console.log('Mobile SEO QA '+width+'px passed: focus, guide fit, button target, exact issue-and-page navigation, accessible back action, 65-repair paging, issue and URL search, no page errors');
   await page.close();
  }
 }finally{await browser.close();await new Promise(resolve=>server.close(resolve))}
