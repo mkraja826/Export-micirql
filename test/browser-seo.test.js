@@ -1637,7 +1637,7 @@ test('mobile SEO dashboard metrics navigate to repair details',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  assert.ok(html.includes("metric.className='tracker-metric fix-metric-button'"));
  assert.ok(html.includes("metric.addEventListener('click'"));
- assert.ok(html.includes("repairTasks.scrollIntoView({behavior:'smooth',block:'start'})"));
+ assert.ok(html.includes("repairTasks.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'})"));
  assert.ok(html.includes("grid-template-columns:repeat(2,minmax(0,1fr))"));
 });
 
@@ -1777,4 +1777,12 @@ test('repair dashboard defaults to actionable work, with accessible selected fil
  assert.ok(html.includes("button.setAttribute('aria-pressed',String(button===metric))"));
  assert.ok(html.includes("No repairs tracked yet. Open an SEO finding below and choose Fix this issue to start."));
  assert.ok(html.includes(".fix-metric-button[aria-pressed=true]"));
+});
+
+test('repair filter navigation focuses its task heading and honors reduced-motion preferences',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("repairTitle.tabIndex=-1"));
+ assert.ok(html.includes("repairTitle.focus({preventScroll:true})"));
+ assert.ok(html.includes("#seo-filtered-repairs h4:focus-visible"));
+ assert.ok(html.includes("repairTasks.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'})"));
 });
