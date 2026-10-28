@@ -22,6 +22,13 @@ try{
  for(const width of [375,768]){
   const page=await browser.newPage({viewport:{width,height:820},reducedMotion:'reduce'});
   const errors=[];page.on('pageerror',error=>errors.push(error.message));
+  await page.addInitScript(()=>{
+   const nativeScroll=Element.prototype.scrollIntoView;
+   Element.prototype.scrollIntoView=function(options){
+    (window.__seoScrollCalls??=[]).push({id:this.id,behavior:options?.behavior});
+    return nativeScroll.call(this,options);
+   };
+  });
   const response=await page.goto('http://127.0.0.1:'+server.address().port+'/tools/seo/');
   if(!response?.ok())throw Error(width+': SEO fixture did not load (HTTP '+response?.status()+')');
   await page.locator('#site-demo').click();
@@ -31,6 +38,9 @@ try{
   if(await plannedFilter.getAttribute('aria-pressed')!=='true')throw Error(width+': empty tracker should default to Planned');
   await detectedFilter.click();
   if(await detectedFilter.getAttribute('aria-pressed')!=='true'||await plannedFilter.getAttribute('aria-pressed')!=='false')throw Error(width+': repair filter selection not reflected accessibly');
+  if(!await page.locator('#seo-filtered-repairs h4').evaluate(el=>el===document.activeElement))throw Error(width+': repair task heading did not receive keyboard focus');
+  const repairScroll=await page.evaluate(()=>window.__seoScrollCalls?.find(call=>call.id==='seo-filtered-repairs'));
+  if(repairScroll?.behavior!=='auto')throw Error(width+': reduced-motion repair navigation should scroll without animation');
   const guide=page.locator('#site-fix-dashboard .repair-verification-help');
   await guide.getByRole('button',{name:'Go to website audit'}).click();
   if(!await page.locator('#site-url').evaluate(el=>el===document.activeElement))throw Error(width+': URL field did not receive focus');
