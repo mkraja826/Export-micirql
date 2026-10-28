@@ -1584,3 +1584,12 @@ test('beginner link dashboard gives status-specific next actions',()=>{
  assert.ok(html.includes('Verification complete: no confirmed broken links'));
  assert.ok(html.includes('quickSummary,quickAction,quickProgress'));
 });
+
+test('link verification guidance prioritizes confirmed HTTP failures before unchecked work',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ const guidance=html.match(/quickAction\.textContent=(.*?);\s*const confirmed=/s)?.[1];
+ assert.ok(guidance,'Find current recommended next step');
+ assert.ok(guidance.indexOf('counts.broken?')<guidance.indexOf('completed.size<queue.length?'));
+ assert.ok(guidance.includes('do not count them as broken'));
+ assert.ok(guidance.includes('remaining destination(s)'));
+});
