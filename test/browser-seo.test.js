@@ -1750,3 +1750,13 @@ test('filtered repairs explain verification outcomes without claiming rankings i
  assert.ok(html.includes('This does not guarantee improved rankings'));
  assert.ok(html.includes('li.append(label,stateBadge,explanation,progress,link,instruction,guide)'));
 });
+
+test('repair verification guidance sends beginners to a fresh website audit without running it automatically',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("verificationHeading.textContent='How to verify a published fix'"));
+ assert.ok(html.includes("The sample audit is only a demo and cannot check your live website."));
+ assert.ok(html.includes("verificationJump.textContent='Go to website audit'"));
+ assert.ok(html.includes("document.getElementById('site-heading').scrollIntoView"));
+ assert.ok(html.includes("document.getElementById('site-url').focus({preventScroll:true})"));
+ assert.ok(!html.includes("verificationJump.addEventListener('click',()=>siteButton.click()"));
+});
