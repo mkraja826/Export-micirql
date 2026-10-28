@@ -1517,3 +1517,19 @@ test('saved link checks are isolated by the current inspected audit fingerprint'
  assert.ok(html.includes('data.auditSignature===auditSignature'));
  assert.ok(html.includes('JSON.stringify({auditSignature,savedAt:Date.now(),rows:[...completed.values()]})'));
 });
+
+test('saved link cache accepts only the matching audit within 24 hours',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ const match=html.match(/return (data&&data\.auditSignature===auditSignature&&Date\.now\(\)-data\.savedAt<86400000&&Array\.isArray\(data\.rows\)\?data\.rows:\[\])/);
+ assert.ok(match,'Find production audit cache acceptance expression');
+ const restore=Function('data','auditSignature','now','Date','return '+match[1]);
+ const now=1750000000000;
+ const clock={now:()=>now};
+ const rows=[{destination:'https://example.org/missing',classification:'broken',status:404}];
+ const data={auditSignature:'audit-A',savedAt:now-120000,rows};
+ assert.deepEqual(restore(data,'audit-A',now,clock),rows);
+ assert.deepEqual(restore(data,'audit-B',now,clock),[]);
+ assert.deepEqual(restore({...data,savedAt:now-86400001},'audit-A',now,clock),[]);
+ assert.deepEqual(restore({...data,rows:{}},'audit-A',now,clock),[]);
+ assert.deepEqual(restore(null,'audit-A',now,clock),[]);
+});
