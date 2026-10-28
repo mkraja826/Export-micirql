@@ -1768,3 +1768,13 @@ test('re-audit navigation supports keyboard focus, touch controls and reduced mo
  assert.ok(html.includes(".repair-verification-help button{min-height:44px"));
  assert.ok(html.includes(".repair-verification-help button{width:100%"));
 });
+
+test('repair dashboard defaults to actionable work, with accessible selected filters and clear empty guidance',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes('let activeRepairFilter=null;'));
+ assert.ok(html.includes("activeRepairFilter=detected?'Still detected':awaiting?'Awaiting verification':planned?'Planned':addressed.length?'Addressed':'Planned'"));
+ assert.ok(html.includes("metric.setAttribute('aria-pressed',String(activeRepairFilter===label))"));
+ assert.ok(html.includes("button.setAttribute('aria-pressed',String(button===metric))"));
+ assert.ok(html.includes("No repairs tracked yet. Open an SEO finding below and choose Fix this issue to start."));
+ assert.ok(html.includes(".fix-metric-button[aria-pressed=true]"));
+});
