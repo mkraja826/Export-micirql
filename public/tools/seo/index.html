@@ -803,14 +803,14 @@ siteButton.addEventListener('click',async()=>{
       siteReport.issueCenter=issues.map(issue=>({...issue}));
       siteReport.linkVerification=[...completed.values()];
       // Do not call renderIssues() here: constructing link controls invokes refresh() and would recurse.
-      quickProgress.value=completed.size;quickState.textContent=running?'Checking link destinations in Chrome…':completed.size===queue.length?'All selected destinations checked. Review unverified outcomes before drawing conclusions.':completed.size?'Verification paused or incomplete. Resume checking remaining destinations.':'Not started: link destination responses have not been checked.';
+      quickProgress.value=completed.size;quickState.textContent=running?(stop?'Pausing after active checks finish…':'Checking link destinations in Chrome…'):completed.size===queue.length?'All selected destinations checked. Review unverified outcomes before drawing conclusions.':completed.size?'Verification paused or incomplete. Resume checking remaining destinations.':'Not started: link destination responses have not been checked.';
       quickStart.disabled=running||completed.size===queue.length;
       const checked=completed.size, broken=[...completed.values()].filter(x=>x.classification==='broken').length;
       const uncertain=[...completed.values()].filter(x=>x.classification==='unverified').length;
       const timedOut=[...completed.values()].filter(x=>x.reason==='timeout').length;
       const requestFailed=[...completed.values()].filter(x=>x.reason==='request_failed').length;
       statusLine.textContent='Verified '+checked+'/'+queue.length+' destinations · '+broken+' confirmed 404/410 · '+(queue.length-checked)+' pending · '+activeChecks+' active · '+uncertain+' unverified ('+timedOut+' timeouts, '+requestFailed+' network failures). Network failures can be retried.';
-      startButton.textContent=running?'Checking links…':checked===queue.length?'All destinations checked':'Start / resume verification';
+      startButton.textContent=running?(stop?'Pausing checks…':'Checking links…'):checked===queue.length?'All destinations checked':'Start / resume verification';
       startButton.disabled=running||checked===queue.length;recheckButton.disabled=running||checked===0;retryButton.disabled=running||uncertain===0;renderResults();renderSources();
      };
      refresh();
