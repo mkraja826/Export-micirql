@@ -1936,3 +1936,20 @@ test('production smoke test retries transient extension asset propagation withou
  assert.ok(smoke.includes("try{await runCheck(path,verify)}"));
  assert.ok(smoke.includes("if(failures)process.exitCode=1"));
 });
+
+test('developer repair brief exports all matching tasks with exact-page evidence and re-audit cautions',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("repairBriefExport.textContent='Download developer brief (TXT)'"));
+ assert.ok(html.includes("repairBriefExport.disabled=!matching.length"));
+ assert.ok(html.includes("repairBriefExport.addEventListener('click',()=>{if(!filteredRepairMatches.length)return;"));
+ assert.ok(html.includes("Tasks included: '+filteredRepairMatches.length"));
+ assert.ok(html.includes("for(const [index,[key,item]] of filteredRepairMatches.entries())"));
+ assert.ok(html.includes("issues.find(issue=>issue.code===code&&issue.affectedUrls.includes(page))"));
+ assert.ok(html.includes("Finding: '+exactIssue.message,'Suggested fix: '+exactIssue.recommendation"));
+ assert.ok(html.includes("This page was not checked in a complete audit; evidence is insufficient to declare the issue resolved."));
+ assert.ok(html.includes("An absent finding does not guarantee better search rankings."));
+ assert.ok(html.includes("Next step: Run a complete audit of this exact page before assuming the issue is fixed."));
+ assert.ok(html.includes("Saved note: '+item.note"));
+ assert.ok(html.includes("downloadReport('txt',lines.join("));
+ assert.ok(html.includes("'micirql-seo-developer-brief')"));
+});
