@@ -736,7 +736,9 @@ siteButton.addEventListener('click',async()=>{
     if(issue.code==='internal_links_unverified'&&pending.size&&!siteResults.querySelector('#seo-link-verification-dashboard')){
      const queue=[...pending.keys()].filter(destination=>!/\$\{[^}]+\}|\{\{[^}]+\}\}/.test(decodeTemplate(destination)));
      const scopeKey='micirql-seo-link-check-v2:'+siteReport.website;
-     const saved=(()=>{try{const data=JSON.parse(localStorage.getItem(scopeKey)||'null');return data&&Date.now()-data.savedAt<86400000&&Array.isArray(data.rows)?data.rows:[]}catch{return []}})();
+     // A different page selection or changed inspected content must not inherit another audit's HTTP evidence.
+     const auditSignature=JSON.stringify(reports.map(page=>[page.requestedUrl||page.url,page.url,page.title||'',page.score??null,[...(page.internalLinkTargets||[])].sort()]).sort((a,b)=>String(a[0]).localeCompare(String(b[0]))));
+     const saved=(()=>{try{const data=JSON.parse(localStorage.getItem(scopeKey)||'null');return data&&data.auditSignature===auditSignature&&Date.now()-data.savedAt<86400000&&Array.isArray(data.rows)?data.rows:[]}catch{return []}})();
      const validCachedRow=row=>row&&typeof row.destination==='string'&&queue.includes(row.destination)&&['reachable','broken','server_error','unverified'].includes(row.classification)&&((row.classification==='broken'&&[404,410].includes(row.status))||(row.classification==='server_error'&&Number.isInteger(row.status)&&row.status>=500&&row.status<600)||(row.classification==='reachable'&&Number.isInteger(row.status)&&row.status>=200&&row.status<400)||(row.classification==='unverified'));const completed=new Map(saved.filter(validCachedRow).map(x=>[x.destination,{...x,referringPages:[...new Set(pending.get(x.destination)||[])]}]));
      siteReport.linkVerification=[...completed.values()];
      let running=false,stop=false,activeChecks=0;
@@ -787,7 +789,7 @@ siteButton.addEventListener('click',async()=>{
       }
      };
      dashboard.append(sourceTitle,sourceSummary,sourceList);
-     const save=()=>{try{localStorage.setItem(scopeKey,JSON.stringify({savedAt:Date.now(),rows:[...completed.values()]}))}catch{}};
+     const save=()=>{try{localStorage.setItem(scopeKey,JSON.stringify({auditSignature,savedAt:Date.now(),rows:[...completed.values()]}))}catch{}};
      const refresh=()=>{
       const counts={reachable:0,broken:0,server_error:0,unverified:0};for(const entry of completed.values()){if(Object.hasOwn(counts,entry.classification))counts[entry.classification]++;else counts.unverified++;}quickSummary.textContent='Checked '+completed.size+'/'+queue.length+' destinations · '+(queue.length-completed.size)+' not yet checked · '+counts.reachable+' reachable · '+counts.broken+' broken (404/410) · '+counts.server_error+' server errors (5xx) · '+counts.unverified+' inconclusive checks. '+(counts.broken?'Fix broken destinations or update their referring links. ':'')+(counts.server_error?'Investigate server failures and retry after recovery. ':'')+(counts.unverified?'Retry timeouts or blocked requests; do not assume they are broken. ':'')+'Only HTTP 404/410 counts as confirmed broken.';
       const confirmed=[...completed.values()].filter(row=>row.classification==='broken'&&(row.status===404||row.status===410));
