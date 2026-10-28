@@ -1786,3 +1786,21 @@ test('repair filter navigation focuses its task heading and honors reduced-motio
  assert.ok(html.includes("#seo-filtered-repairs h4:focus-visible"));
  assert.ok(html.includes("repairTasks.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'})"));
 });
+
+test('repair guide targets its exact finding and focuses the disclosure for keyboard users',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("details.dataset.issueCode=issue.code"));
+ assert.ok(html.includes("item.dataset.issueCode===key.slice(0,split)"));
+ assert.ok(html.includes("summary?.focus({preventScroll:true})"));
+ assert.ok(html.includes("if(guided)guided.open=true"));
+ assert.ok(html.includes("window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'"));
+ assert.ok(!html.includes("const card=matchingCard||issueCards[0]"));
+});
+
+test('repair guide explains when an issue no longer appears instead of navigating to an unrelated finding',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("issueGuideFeedback.setAttribute('role','status')"));
+ assert.ok(html.includes("issueGuideFeedback.tabIndex=-1"));
+ assert.ok(html.includes("This issue is not in the current audit results."));
+ assert.ok(html.includes("issueGuideFeedback.focus({preventScroll:true})"));
+});
