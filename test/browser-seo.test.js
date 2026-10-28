@@ -1923,3 +1923,16 @@ test('browser clipboard denial reveals a selectable, read-only developer handoff
  assert.ok(html.includes("#seo-filtered-repairs .repair-copy-manual textarea{display:block;width:100%"));
  assert.ok(html.includes("#seo-filtered-repairs .repair-copy-manual button{min-height:44px"));
 });
+
+test('production smoke test retries transient extension asset propagation without masking broken ZIP downloads',()=>{
+ const smoke=readFileSync(new URL('../scripts/smoke-test.mjs',import.meta.url),'utf8');
+ assert.ok(smoke.includes("const extensionPath='/extension/micirql-tools-extension.zip'"));
+ assert.ok(smoke.includes('const extensionRetryDelaysMs=[0,3000,6000,10000,15000]'));
+ assert.ok(smoke.includes('new Set([404,429,502,503,504])'));
+ assert.ok(smoke.includes("isExtension&&retryableExtensionStatuses.has(response.status)&&attempt<delays.length-1"));
+ assert.ok(smoke.includes("throw Error(failure)"));
+ assert.ok(smoke.includes("await verify(response)"));
+ assert.ok(smoke.includes("fetch(base+path,{signal:AbortSignal.timeout(15000),cache:'no-store'})"));
+ assert.ok(smoke.includes("try{await runCheck(path,verify)}"));
+ assert.ok(smoke.includes("if(failures)process.exitCode=1"));
+});
