@@ -18,7 +18,7 @@ jobs:
         run: npm test
       - name: Install browser QA dependencies
         run: |
-          npm ci
+          npm install --no-package-lock --no-audit --no-fund
           npx playwright install --with-deps chromium
       - name: Test SEO Studio mobile viewports
         run: node scripts/seo-mobile-qa.mjs
