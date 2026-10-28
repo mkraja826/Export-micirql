@@ -1701,3 +1701,12 @@ test('fix status persistence and immediate refresh contract supports the demo au
  const completedUrls=new Set(['https://demo.micirql.invalid/']);
  assert.equal(auditedAt>markedAt&&completedUrls.has('https://demo.micirql.invalid/'),false,'A fix marked after an audit remains awaiting verification');
 });
+
+test('repair status controls update immediately and report storage failures clearly',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("status.addEventListener('change',updateGuidedStatus)"));
+ assert.ok(html.includes("status.addEventListener('input',updateGuidedStatus)"));
+ assert.ok(html.includes("state.addEventListener('input',persist)"));
+ assert.ok(html.includes("document.dispatchEvent(new Event('seo-fix-tracker-updated'));result.textContent=saved?"));
+ assert.ok(html.includes("it may not persist after reload"));
+});
