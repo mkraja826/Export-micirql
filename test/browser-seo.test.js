@@ -1647,7 +1647,7 @@ test('SEO fix metric selection filters the matching browser-local repair tasks',
  assert.ok(html.includes("activeRepairFilter=label;for(const button of fixMetrics.querySelectorAll('button'))button.setAttribute('aria-pressed',String(button===metric));renderRepairTasks()"));
  assert.ok(html.includes("repairState(key,item)===activeRepairFilter"));
  assert.ok(html.includes("repairList.replaceChildren()"));
- assert.ok(html.includes("li.append(label,stateBadge,explanation,progress,link,instruction,guide)"));
+ assert.ok(html.includes("li.append(label,stateBadge,explanation,progress,link,instruction,guide,copyGuide,copyFeedback)"));
 });
 
 test('filtered repair tasks open the relevant guided issue and support mobile controls',()=>{
@@ -1748,7 +1748,7 @@ test('filtered repairs explain verification outcomes without claiming rankings i
  assert.ok(html.includes('Run a new, complete audit of this page'));
  assert.ok(html.includes('A later complete audit still found this issue'));
  assert.ok(html.includes('This does not guarantee improved rankings'));
- assert.ok(html.includes('li.append(label,stateBadge,explanation,progress,link,instruction,guide)'));
+ assert.ok(html.includes('li.append(label,stateBadge,explanation,progress,link,instruction,guide,copyGuide,copyFeedback)'));
 });
 
 test('repair verification guidance sends beginners to a fresh website audit without running it automatically',()=>{
