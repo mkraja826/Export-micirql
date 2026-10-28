@@ -49,6 +49,7 @@ try{
   const firstIssue=page.locator('#site-issues details.finding').first();
   await firstIssue.locator(':scope > summary').click();
   await firstIssue.locator('details.seo-guided-fix > summary').click();
+  await firstIssue.locator('details.seo-guided-fix > details > summary').click();
   await firstIssue.getByRole('button',{name:'Planning a fix'}).first().click();
   await page.getByRole('button',{name:'View planned SEO repairs'}).click();
   await page.locator('#seo-filtered-repairs .repair-guide-link').first().click();
