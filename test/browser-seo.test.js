@@ -1801,6 +1801,19 @@ test('repair guide explains when an issue no longer appears instead of navigatin
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  assert.ok(html.includes("issueGuideFeedback.setAttribute('role','status')"));
  assert.ok(html.includes("issueGuideFeedback.tabIndex=-1"));
- assert.ok(html.includes("This issue is not in the current audit results."));
+ assert.ok(html.includes("This issue was not detected on this page in the latest complete audit."));
+ assert.ok(html.includes("This page has not been checked in a complete audit here."));
  assert.ok(html.includes("issueGuideFeedback.focus({preventScroll:true})"));
+});
+
+test('tracked repair guide requires the exact issue and page occurrence',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("const card=issueOccurrences.has(key)?"));
+ assert.ok(html.includes("item.dataset.issueCode===key.slice(0,split)"));
+ assert.ok(html.includes("li.dataset.repairPage=pageUrl"));
+ assert.ok(html.includes("item.dataset.repairPage===page"));
+ assert.ok(html.includes("affectedPages.open=true"));
+ assert.ok(html.includes("selectedPage.classList.add('is-target-repair')"));
+ assert.ok(html.includes("This is your tracked page"));
+ assert.ok(html.includes("#site-issues .is-target-repair"));
 });
