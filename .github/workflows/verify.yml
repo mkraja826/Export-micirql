@@ -16,6 +16,12 @@ jobs:
           node-version: '22'
       - name: Run unit and Worker integration tests
         run: npm test
+      - name: Install browser QA dependencies
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Test SEO Studio mobile viewports
+        run: node scripts/seo-mobile-qa.mjs
       - name: Validate Worker JavaScript syntax
         run: node --check src/worker.js
       - name: Validate SEO inspector syntax
