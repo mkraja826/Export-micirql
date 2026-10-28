@@ -69,6 +69,20 @@ try{
   const handoff=await page.evaluate(()=>window.__seoCopiedHandoff||'');
   if(!handoff.includes('MiCirql SEO Studio')||!handoff.includes('Affected page: https://demo.micirql.invalid/')||!handoff.includes('Audit finding:')||!handoff.includes('Suggested correction:')||!handoff.includes('MiCirql did not modify the website.')||!handoff.includes('\n'))throw Error(width+': copied handoff lacks exact-page evidence or verification cautions');
   if(!await page.locator('#seo-filtered-repairs .repair-copy + [role=status]').first().textContent().then(value=>value.includes('copied')))throw Error(width+': copy confirmation not announced');
+  await page.evaluate(()=>{Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async()=>{throw Error('Clipboard permission denied')}}})});
+  await copyHandoff.click();
+  const manualHandoff=page.locator('#seo-filtered-repairs .repair-copy-manual').first();
+  await manualHandoff.waitFor({state:'visible'});
+  const manualText=manualHandoff.locator('textarea');
+  const manualState=await manualText.evaluate(el=>({text:el.value,focused:el===document.activeElement,selected:el.selectionStart===0&&el.selectionEnd===el.value.length,readOnly:el.readOnly,right:el.getBoundingClientRect().right}));
+  if(!manualState.focused||!manualState.selected||!manualState.readOnly||!manualState.text.includes('Suggested correction:')||manualState.right>width+2)throw Error(width+': clipboard denial did not reveal accessible, selected instructions '+JSON.stringify(manualState));
+  if(!await page.locator('#seo-filtered-repairs .repair-copy + [role=status]').first().textContent().then(value=>value.includes('Automatic copy is blocked')))throw Error(width+': clipboard failure feedback was not announced');
+  const closeHandoff=manualHandoff.getByRole('button',{name:'Close instructions'});
+  if(await closeHandoff.evaluate(el=>el.getBoundingClientRect().height)<44)throw Error(width+': dismiss manual handoff control is too small');
+  await closeHandoff.click();
+  if(await page.locator('#seo-filtered-repairs .repair-copy-manual').count()!==0||!await copyHandoff.evaluate(el=>el===document.activeElement))throw Error(width+': closing manual handoff did not restore keyboard focus');
+  await page.evaluate(()=>{Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async value=>{window.__seoCopiedHandoff=value}}})});
+
   await page.evaluate(()=>{
    const repairs={};
    for(let n=0;n<65;n++)repairs[(n%2===0?'missing_canonical':'missing_h1')+'|https://demo.micirql.invalid/repair-'+n]={status:'planned',note:'',markedAt:null};
@@ -122,7 +136,7 @@ try{
   if(!fullCsv.includes("'=HYPERLINK")||fullCsv.includes('"=HYPERLINK'))throw Error(width+': CSV export did not escape spreadsheet formula content');
 
   if(errors.length)throw Error(width+': script error '+errors.join('; '));
-  console.log('Mobile SEO QA '+width+'px passed: focus, guide fit, button target, exact issue-and-page navigation, accessible back action, 65-repair paging, issue and URL search, sorting, CSV export, handoff copy, no page errors');
+  console.log('Mobile SEO QA '+width+'px passed: focus, guide fit, button target, exact issue-and-page navigation, accessible back action, 65-repair paging, issue and URL search, sorting, CSV export, handoff copy and fallback, no page errors');
   await page.close();
  }
 }finally{await browser.close();await new Promise(resolve=>server.close(resolve))}
