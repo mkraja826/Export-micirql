@@ -1477,3 +1477,30 @@ test('resuming link checks skips already completed destinations, including saved
  completed.delete(queue[2]);
  assert.deepEqual(remaining(queue,completed),[queue[2],queue[3]],'Retrying inconclusive results should include them once');
 });
+
+test('saved link progress restores only current, status-consistent destinations',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ const expression=html.match(/const validCachedRow=row=>(.*?);const completed=new Map/s)?.[1];
+ assert.ok(expression,'Find production cached-row validator');
+ const queue=['https://example.org/a','https://example.org/b','https://example.org/c'];
+ const validCachedRow=Function('queue','return row=>'+expression)(queue);
+ const stored=[
+  {destination:queue[0],classification:'broken',status:404,referringPages:['https://example.org/old']},
+  {destination:queue[1],classification:'reachable',status:200},
+  {destination:queue[2],classification:'unverified',status:null},
+  {destination:'https://example.org/removed',classification:'broken',status:410},
+  {destination:queue[1],classification:'broken',status:200},
+  {destination:queue[0],classification:'server_error',status:404},
+  null
+ ];
+ const pending=new Map([[queue[0],['https://example.org/new','https://example.org/new']],[queue[1],['https://example.org/home']],[queue[2],[]]]);
+ const restored=new Map(stored.filter(validCachedRow).map(x=>[x.destination,{...x,referringPages:[...new Set(pending.get(x.destination)||[])]}]));
+ assert.equal(restored.size,3);
+ assert.deepEqual(restored.get(queue[0]).referringPages,['https://example.org/new']);
+ assert.equal(restored.get(queue[0]).status,404);
+ assert.equal(restored.get(queue[1]).classification,'reachable');
+ assert.equal(restored.get(queue[2]).classification,'unverified');
+ assert.deepEqual(queue.filter(destination=>!restored.has(destination)),[]);
+ restored.delete(queue[2]);
+ assert.deepEqual(queue.filter(destination=>!restored.has(destination)),[queue[2]]);
+});
