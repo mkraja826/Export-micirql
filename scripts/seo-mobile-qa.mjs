@@ -245,7 +245,8 @@ try{
   await page.locator('#site-url').press('Enter');
   await page.locator('#site-fix-dashboard').waitFor();
   if(await page.locator('#site-url').inputValue()!=='https://recheck.example.test/')throw Error(width+': entering a bare domain failed to auto-add https');
-  if(!(await page.evaluate(()=>window.__seoMockReads.length>=2)))throw Error(width+': Enter key did not automatically discover and scan the website');
+  const auditedPageCount=await page.locator('#site-page-dashboard tbody tr').count();
+  if(auditedPageCount<1||!await page.locator('#site-status').textContent().then(value=>value.includes('analyzed')))throw Error(width+': pressing Enter did not produce a completed website audit');
   await page.locator('#site-fix-dashboard').waitFor();
   const quickBefore=page.locator('#site-quick-comparison');
   await quickBefore.waitFor({state:'visible'});
