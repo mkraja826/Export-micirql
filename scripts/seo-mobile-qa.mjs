@@ -63,7 +63,13 @@ try{
   await backButton.click();
   if(!await page.locator('#seo-filtered-repairs h4').evaluate(el=>el===document.activeElement))throw Error(width+': back navigation failed to focus repair task heading');
   await page.evaluate(()=>{Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async value=>{window.__seoCopiedHandoff=value}}})});
-  const copyHandoff=page.locator('#seo-filtered-repairs .repair-copy').first();
+  const demoRecheck=page.locator('#seo-filtered-repairs .repair-recheck').first();
+  if(await demoRecheck.evaluate(el=>el.getBoundingClientRect().height)<44)throw Error(width+': re-audit button has undersized touch target');
+  await demoRecheck.click();
+  const recheckWarning=await page.locator('#seo-filtered-repairs .repair-recheck + [role=status]').first().textContent();
+  if(!recheckWarning.includes('sample audit cannot verify live fixes'))throw Error(width+': demo re-audit offered false live verification');
+  if(await page.locator('#site-url').inputValue())throw Error(width+': sample re-audit should not modify live audit URL');
+    const copyHandoff=page.locator('#seo-filtered-repairs .repair-copy').first();
   if(await copyHandoff.evaluate(el=>el.getBoundingClientRect().height)<44)throw Error(width+': developer handoff button is below mobile touch-target size');
   await copyHandoff.click();
   const handoff=await page.evaluate(()=>window.__seoCopiedHandoff||'');
@@ -197,7 +203,7 @@ try{
 
 
   if(errors.length)throw Error(width+': script error '+errors.join('; '));
-  console.log('Mobile SEO QA '+width+'px passed: focus, guide fit, button target, exact issue-and-page navigation, accessible back action, 65-repair paging, issue and URL search, sorting, CSV export, handoff copy and fallback, developer brief downloads, backup preview and confirmed restore, no page errors');
+  console.log('Mobile SEO QA '+width+'px passed: focus, guide fit, button target, exact issue-and-page navigation, accessible back action, 65-repair paging, issue and URL search, sorting, CSV export, handoff copy and fallback, developer brief downloads, backup preview and confirmed restore, re-audit safety, no page errors');
   await page.close();
  }
 }finally{await browser.close();await new Promise(resolve=>server.close(resolve))}
