@@ -2062,3 +2062,25 @@ test('automatic saved-history comparison is readable without uploading reports',
  assert.ok(html.includes('absent findings are not proof of higher rankings.'));
  assert.ok(html.includes('#site-quick-comparison button{min-height:44px}'));
 });
+
+test('SEO Studio keeps scanning architecture but defaults to read-only PDF reporting',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes('id="seo-advanced-controls"'));
+ assert.ok(html.includes('Read-only inspection: MiCirql does not edit your website.'));
+ assert.ok(html.includes('id="seo-scope-warning"'));
+ assert.ok(html.includes('Current coverage limit: up to 60 discoverable pages per scan.'));
+ assert.ok(html.includes('id="site-run">Scan website pages</button>'));
+ assert.ok(html.includes('id="site-export-pdf" disabled>Save PDF audit report</button>'));
+ assert.ok(html.includes("pdfNow.id='site-save-pdf-now'"));
+ assert.ok(html.includes("pdfNow.addEventListener('click',()=>sitePrintButton.click())"));
+ assert.ok(html.includes("selectedDiscovery.selected=new Set(selectedDiscovery.pages.slice(0,maxPages))"));
+ assert.ok(html.includes('body:not(.developer-mode) #site-fix-dashboard'));
+ assert.ok(html.includes('body:not(.developer-mode) #site-export-pages-csv'));
+ assert.ok(html.includes('body:not(.developer-mode) #benchmark-compare'));
+ assert.ok(html.includes('body:not(.developer-mode) #site-selection'));
+ assert.ok(html.includes('Read-only assessment — no changes were made to the audited website.'));
+ assert.ok(html.includes('then choose <strong>Save as PDF</strong>'));
+ assert.ok(html.includes("const pages=[...new Set((found.pages||[]).filter("));
+ assert.ok(html.includes('].slice(0,60);'));
+ assert.ok(html.includes('report.coverage?.discoveryTruncated'));
+});
