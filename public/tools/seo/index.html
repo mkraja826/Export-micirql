@@ -589,7 +589,7 @@ siteButton.addEventListener('click',async()=>{
     const comparableKey=key=>comparableUrls.has(key.slice(key.indexOf('|')+1));
     const newly=[...now].filter(key=>comparableKey(key)&&!before.has(key)),cleared=[...before].filter(key=>comparableKey(key)&&!now.has(key)),recurring=[...now].filter(key=>comparableKey(key)&&before.has(key));
     const coverageMessage=!oldUrls?'Older audit did not store complete-page evidence; page-level resolution cannot be confirmed.':sameCoverage?'Complete audited URL sets match.':'Different completed URL sets: changes only compare '+comparableUrls.size+' overlapping pages.';
-    diff.textContent='Before & after · Compared with '+new Date(previous.date).toLocaleString()+': average score change +scoreDelta+'; '+newly.length+' newly observed, '+cleared.length+' no longer observed, '+recurring.length+' recurring issue/page occurrences on comparable pages. '+coverageMessage+' Different page sets may make average score changes misleading.';
+    diff.textContent='Before & after · Compared with '+new Date(previous.date).toLocaleString()+': average score change '+scoreDelta+'; '+newly.length+' newly observed, '+cleared.length+' no longer observed, '+recurring.length+' recurring issue/page occurrences on comparable pages. '+coverageMessage+' Different page sets may make average score changes misleading.';
     const previousTracker=historyPanel.querySelector('#site-history-tracker');if(previousTracker)previousTracker.remove();
     const tracker=document.createElement('section');tracker.id='site-history-tracker';tracker.setAttribute('aria-label','Issue change summary');
     const trackerHeading=document.createElement('h4');trackerHeading.textContent='Issue tracking';tracker.append(trackerHeading);
