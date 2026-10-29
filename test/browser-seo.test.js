@@ -2084,3 +2084,36 @@ test('SEO Studio keeps scanning architecture but defaults to read-only PDF repor
  assert.ok(html.includes('].slice(0,60);'));
  assert.ok(html.includes('report.coverage?.discoveryTruncated'));
 });
+
+test('simple website entry normalizes domain and starts automatic discovery on Enter',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("document.getElementById('site-url').addEventListener('keydown',event=>"));
+ assert.ok(html.includes("if(event.key==='Enter'&&!event.isComposing)"));
+ assert.ok(html.includes("if(!siteButton.disabled)siteButton.click()"));
+ assert.ok(html.includes("input.value=raw.startsWith('//')?'https:'+raw:'https://'+raw"));
+ assert.ok(html.includes("await discoverForAudit(url)"));
+ assert.ok(html.includes("selectedDiscovery.selected=new Set(selectedDiscovery.pages.slice(0,maxPages))"));
+ assert.ok(html.includes("sitePrintButton.disabled=true;siteReport=null"));
+ assert.ok(html.includes('body:not(.developer-mode) .seo-results-jump'));
+ assert.ok(html.includes('body:not(.developer-mode) #site-export-pdf:disabled'));
+ assert.ok(html.includes("Your SEO PDF report is ready."));
+ assert.ok(html.includes('Read-only inspection: MiCirql does not edit your website.'));
+});
+
+test('printable report opens a browser print/save-to-PDF dialog and retains a manual fallback',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ const begin=html.indexOf('function printClientSeoReport(report){'),end=html.indexOf("sitePrintButton.addEventListener('click'",begin);
+ assert.ok(begin>0&&end>begin);
+ const fn=new Function('window','alert',html.slice(begin,end)+';return printClientSeoReport;');
+ let printRequested=false,printCallback,rendered='';
+ const printable={document:{open(){},write(value){rendered=value},close(){}},addEventListener(name,callback){if(name==='load')printCallback=callback},focus(){},print(){printRequested=true}};
+ const printer=fn({open:()=>printable},()=>{throw Error('Unexpected popup block')});
+ printer({website:'https://example.com',generatedAt:'2026-10-30T00:00:00Z',reports:[],pagesSelected:0,pagesAnalyzed:0,failures:[],issueCenter:[],coverage:{discovered:0},reportNotes:[]});
+ assert.match(rendered,/<title>MiCirql SEO Audit - example\.com<\/title>/);
+ assert.ok(rendered.includes('Print / Save as PDF'));
+ assert.ok(rendered.includes('Coverage and limitations'));
+ assert.equal(printRequested,false,'Wait for report to finish loading before opening print');
+ assert.equal(typeof printCallback,'function');
+ printCallback();
+ assert.equal(printRequested,true,'Open the print-to-PDF dialog on report load');
+});
