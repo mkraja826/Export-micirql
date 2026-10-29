@@ -1968,8 +1968,29 @@ test('repair backup is website-scoped, bounded, and merge-only without overwriti
  assert.ok(html.includes("parsed.origin!==url.origin"));
  assert.ok(html.includes("incoming.has(entry.key)"));
  assert.ok(html.includes("if(Object.hasOwn(restored,key)){kept++}else{restored[key]=item;added++}"));
- assert.ok(html.includes("fixTracker=previous;throw Error('Browser storage is unavailable; progress was not restored.')"));
+ assert.ok(html.includes("fixTracker=previous;backupStatus.textContent='Browser storage is unavailable; progress was not restored.'"));
  assert.ok(html.includes("document.dispatchEvent(new Event('seo-fix-tracker-updated'))"));
  assert.ok(html.includes("backupDownload.disabled=!repairBackupEntries().length"));
- assert.ok(html.includes("backupUpload.value='';backupStatus.focus({preventScroll:true})"));
+ assert.ok(html.includes("backupUpload.value=''"));
+});
+
+test('repair restore previews additions, preserves existing progress and requires explicit user confirmation',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("backupPreview.setAttribute('aria-label','Review repair backup before restoring')"));
+ assert.ok(html.includes("backupPreview.hidden=true"));
+ assert.ok(html.includes("backupConfirm.textContent='Confirm restore'"));
+ assert.ok(html.includes("backupCancel.textContent='Cancel restore'"));
+ assert.ok(html.includes("let pendingRepairRestore=null;let backupSelectionId=0"));
+ assert.ok(html.includes("if(selectionId!==backupSelectionId)return"));
+ assert.ok(html.includes("pendingRepairRestore=incoming"));
+ assert.ok(html.includes("backupConfirm.disabled=newCount===0"));
+ assert.ok(html.includes("Nothing has changed yet."));
+ assert.ok(html.includes("backupPreviewSummary.focus({preventScroll:true})"));
+ assert.ok(html.includes("backupCancel.addEventListener('click'"));
+ assert.ok(html.includes("Restore cancelled; no repairs changed."));
+ assert.ok(html.includes("backupConfirm.addEventListener('click'"));
+ assert.ok(html.includes("if(!pendingRepairRestore)return"));
+ assert.ok(html.includes("if(Object.hasOwn(restored,key)){kept++}else{restored[key]=item;added++}"));
+ assert.ok(html.includes("clearBackupPreview();document.dispatchEvent(new Event('seo-fix-tracker-updated'))"));
+ assert.ok(html.includes("#seo-filtered-repairs .repair-backup-preview[hidden]{display:none}"));
 });
