@@ -2040,3 +2040,23 @@ test('fresh single-page re-audit explains still-detected, absent and pending pub
  assert.ok(html.includes("No published repairs are tracked for this page."));
  assert.ok(html.includes("refreshProgressTracking();renderFreshAuditOutcome()"));
 });
+
+test('automatic saved-history comparison is readable without uploading reports',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("quickCompare.id='site-quick-comparison'"));
+ assert.ok(html.includes("What changed since your earlier audit?"));
+ assert.ok(html.includes('No files to upload.'));
+ assert.ok(html.includes("['No longer seen',cleared.length"));
+ assert.ok(html.includes("['Still there',recurring.length"));
+ assert.ok(html.includes("['New problems',newly.length"));
+ assert.ok(html.includes("['Need another check',unmatchedUrls.size"));
+ assert.ok(html.includes('const comparableUrls=oldUrls?new Set('));
+ assert.ok(html.includes("for(const matched of comparableUrls)unmatchedUrls.delete(matched)"));
+ assert.ok(html.includes('exactScoredCoverage=sameCoverage&&currentUrls.size===summarySnapshot.selected'));
+ assert.ok(html.includes("summarySnapshot.failed===0&&previous.failed===0"));
+ assert.ok(html.includes("quickDetails.textContent='Review detailed page changes'"));
+ assert.ok(html.includes('detail.open=true'));
+ assert.ok(html.includes("quickCompare.setAttribute('aria-live','polite')"));
+ assert.ok(html.includes('absent findings are not proof of higher rankings.'));
+ assert.ok(html.includes('#site-quick-comparison button{min-height:44px}'));
+});
