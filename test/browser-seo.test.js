@@ -1647,7 +1647,7 @@ test('SEO fix metric selection filters the matching browser-local repair tasks',
  assert.ok(html.includes("activeRepairFilter=label;for(const button of fixMetrics.querySelectorAll('button'))button.setAttribute('aria-pressed',String(button===metric));renderRepairTasks()"));
  assert.ok(html.includes("repairState(key,item)===activeRepairFilter"));
  assert.ok(html.includes("repairList.replaceChildren()"));
- assert.ok(html.includes("li.append(label,stateBadge,explanation,progress,link,instruction,guide,copyGuide,copyFeedback)"));
+ assert.ok(html.includes("li.append(label,stateBadge,explanation,progress,link,instruction,guide,recheck,recheckFeedback,copyGuide,copyFeedback)"));
 });
 
 test('filtered repair tasks open the relevant guided issue and support mobile controls',()=>{
@@ -1748,7 +1748,7 @@ test('filtered repairs explain verification outcomes without claiming rankings i
  assert.ok(html.includes('Run a new, complete audit of this page'));
  assert.ok(html.includes('A later complete audit still found this issue'));
  assert.ok(html.includes('This does not guarantee improved rankings'));
- assert.ok(html.includes('li.append(label,stateBadge,explanation,progress,link,instruction,guide,copyGuide,copyFeedback)'));
+ assert.ok(html.includes('li.append(label,stateBadge,explanation,progress,link,instruction,guide,recheck,recheckFeedback,copyGuide,copyFeedback)'));
 });
 
 test('repair verification guidance sends beginners to a fresh website audit without running it automatically',()=>{
@@ -1905,7 +1905,7 @@ test('repair handoff copies page-specific audit evidence without claiming automa
  assert.ok(html.includes("This is a handoff note; MiCirql did not modify the website."));
  assert.ok(html.includes("navigator.clipboard.writeText(handoffText)"));
  assert.ok(html.includes("Automatic copy is blocked. The instructions below are selected; use Copy on your device."));
- assert.ok(html.includes("li.append(label,stateBadge,explanation,progress,link,instruction,guide,copyGuide,copyFeedback)"));
+ assert.ok(html.includes("li.append(label,stateBadge,explanation,progress,link,instruction,guide,recheck,recheckFeedback,copyGuide,copyFeedback)"));
  assert.ok(html.includes("#seo-filtered-repairs .repair-copy{display:inline-flex;align-items:center;min-height:44px"));
 });
 
@@ -1993,4 +1993,20 @@ test('repair restore previews additions, preserves existing progress and require
  assert.ok(html.includes("if(Object.hasOwn(restored,key)){kept++}else{restored[key]=item;added++}"));
  assert.ok(html.includes("clearBackupPreview();document.dispatchEvent(new Event('seo-fix-tracker-updated'))"));
  assert.ok(html.includes("#seo-filtered-repairs .repair-backup-preview[hidden]{display:none}"));
+});
+
+test('tracked repair can prepare exact-page fresh audit without relying on stale checkpoints',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("recheck.textContent='Prepare page re-audit'"));
+ assert.ok(html.includes("recheck.setAttribute('aria-label','Prepare a fresh SEO audit of '+page)"));
+ assert.ok(html.includes("if(siteReport.demo){recheckFeedback.textContent='The sample audit cannot verify live fixes."));
+ assert.ok(html.includes("if(!extensionReady){recheckFeedback.textContent='Connect or reload the MiCirql Chrome extension"));
+ assert.ok(html.includes("selectedDiscovery={origin:url.origin,startUrl:page,pages:[page],selected:new Set([page]),discovered:{pages:[page],originalCount:1,truncated:false},forceFresh:true}"));
+ assert.ok(html.includes("retryIncompleteRequested=false;renderSelection()"));
+ assert.ok(html.includes("no cached results will be reused."));
+ assert.ok(html.includes("siteButton.focus({preventScroll:true})"));
+ assert.ok(html.includes("const checkpoint=isDemo||selectedDiscovery?.forceFresh?null:readCheckpoint(url.origin)"));
+ assert.ok(html.includes("if(selectedDiscovery?.forceFresh)return;"));
+ assert.ok(html.includes("if(!isDemo&&!selectedDiscovery?.forceFresh&&!failures.length"));
+ assert.ok(html.includes("#seo-filtered-repairs .repair-recheck{display:inline-flex;align-items:center;min-height:44px"));
 });
