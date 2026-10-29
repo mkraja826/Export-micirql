@@ -166,7 +166,7 @@ try{
   if(!storedNote?.startsWith('=HYPERLINK'))throw Error(width+': backup lost saved repair note');
   const restoredBackup=JSON.parse(JSON.stringify(backup));
   restoredBackup.repairs.find(entry=>entry.key.endsWith('/repair-64')).note='overwritten incorrectly';
-  restoredBackup.repairs.push({key:'missing_canonical|https://demo.micirql.invalid/restored-66',status:'planned',note:'restored safely',markedAt:null});
+  restoredBackup.repairs.push({key:'missing_canonical|https://demo.micirql.invalid/restored-66',status:'fixed',note:'restored safely',markedAt:'2026-01-01T00:00:00.000Z'});
   const restorePreview=pagedRepairs.getByRole('group',{name:'Review repair backup before restoring'});
   await backupUpload.setInputFiles({name:'repair-backup.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(restoredBackup))});
   await restorePreview.waitFor({state:'visible'});
@@ -186,6 +186,13 @@ try{
   const afterRestore=await page.evaluate(()=>JSON.parse(localStorage.getItem('micirql-seo-fix-tracker-v1:https://demo.micirql.invalid')));
   if(Object.keys(afterRestore).length!==66||afterRestore['missing_canonical|https://demo.micirql.invalid/repair-64'].note!==storedNote||afterRestore['missing_canonical|https://demo.micirql.invalid/restored-66'].note!=='restored safely')throw Error(width+': restore overwrote existing repairs or lost new repairs');
   if(!await pagedRepairs.locator('[role=status]').allTextContents().then(values=>values.some(value=>value.includes('Restored 1 new repairs; kept 65 existing repairs unchanged.'))))throw Error(width+': restore success not announced');
+  if(!await page.locator('#site-fix-verification').textContent().then(value=>value.includes('0 verified absent · 0 still detected · 1 awaiting verification')))throw Error(width+': verification panel did not refresh after importing a published repair');
+  if(!await page.locator('#site-progress-report').textContent().then(value=>value.includes('1 awaiting verification (1 marked fixed)')&&value.includes('Run a fresh complete audit')))throw Error(width+': client progress report still shows counts from before import');
+  const progressAfterRestore=page.waitForEvent('download');
+  await page.locator('#site-progress-report').getByRole('button',{name:'Download progress summary (JSON)'}).click();
+  const progressExport=JSON.parse(await readFile(await (await progressAfterRestore).path(),'utf8'));
+  if(progressExport.markedFixed!==1||progressExport.awaitingVerification!==1||progressExport.verifiedAbsent!==0)throw Error(width+': downloaded progress JSON retained stale repair totals');
+
   const foreignBackup={...backup,website:'https://foreign.example'};
   await backupUpload.setInputFiles({name:'wrong-website.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(foreignBackup))});
   await pagedRepairs.locator('[role=status]').filter({hasText:'not a repair backup for the current website'}).waitFor();
@@ -248,7 +255,7 @@ try{
   if(recheckReport.pagesSelected!==1||recheckReport.selectedPageUrls?.[0]!==exactPage)throw Error(width+': targeted re-audit included unrelated pages');
 
   if(errors.length)throw Error(width+': script error '+errors.join('; '));
-  console.log('Mobile SEO QA '+width+'px passed: focus, guide fit, button target, exact issue-and-page navigation, accessible back action, 65-repair paging, issue and URL search, sorting, CSV export, handoff copy and fallback, developer brief downloads, backup preview and confirmed restore, re-audit safety and fresh single-page capture, no page errors');
+  console.log('Mobile SEO QA '+width+'px passed: focus, guide fit, button target, exact issue-and-page navigation, accessible back action, 65-repair paging, issue and URL search, sorting, CSV export, handoff copy and fallback, developer brief downloads, backup preview and confirmed restore, reactive verification summary, re-audit safety and fresh single-page capture, no page errors');
   await page.close();
  }
 }finally{await browser.close();await new Promise(resolve=>server.close(resolve))}
