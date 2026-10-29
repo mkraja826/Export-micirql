@@ -219,7 +219,7 @@ try{
      window.postMessage({source:'micirql-extension',type:'MICIRQL_DISCOVER_RESULT',id,ok:true,pages:['https://recheck.example.test/','https://recheck.example.test/treatment'],originalCount:2,truncated:false},location.origin);
     }else if(type==='MICIRQL_SEO_READ'){
      window.__seoMockReads.push(url);
-     const html='<!doctype html><html lang="en"><head><title>Recheck Fixture</title><meta name="description" content="Fixture to verify a fresh repair re-audit"></head><body><h1>Recheck Fixture</h1><p>Intentional missing canonical URL for audit test.</p></body></html>';
+     const canonical=window.__seoCanonicalFixed?'<link rel="canonical" href="'+url+'">':'';const html='<!doctype html><html lang="en"><head><title>Recheck Fixture</title><meta name="description" content="Fixture to verify a fresh repair re-audit">'+canonical+'</head><body><h1>Recheck Fixture</h1><p>Intentional missing canonical URL for audit test.</p></body></html>';
      window.postMessage({source:'micirql-extension',type:'MICIRQL_SEO_RESULT',id,url,ok:true,html,partial:false},location.origin);
     }
    });
@@ -228,12 +228,14 @@ try{
   await page.locator('#site-url').fill('https://recheck.example.test/');
   await page.locator('#site-run').click();
   await page.locator('#site-fix-dashboard').waitFor();
-  const firstLiveIssue=page.locator('#site-issues details.finding').first();
+  const firstLiveIssue=page.locator('#site-issues details.finding[data-issue-code="missing_canonical"]');
   await firstLiveIssue.locator(':scope > summary').click();
   await firstLiveIssue.locator('details.seo-guided-fix > summary').click();
   await firstLiveIssue.locator('details.seo-guided-fix > details > summary').click();
   await firstLiveIssue.getByRole('button',{name:'Planning a fix'}).first().click();
-  await page.getByRole('button',{name:'View planned SEO repairs'}).click();
+  await firstLiveIssue.getByRole('button',{name:'I published a fix'}).first().click();
+  await page.evaluate(()=>{const k='micirql-seo-fix-tracker-v1:https://recheck.example.test';const repairs=JSON.parse(localStorage.getItem(k));for(const value of Object.values(repairs))if(value.status==='fixed')value.markedAt=new Date(Date.now()-60000).toISOString();localStorage.setItem(k,JSON.stringify(repairs))});
+  await page.getByRole('button',{name:'View awaiting verification SEO repairs'}).click();
   const firstLiveRepair=page.locator('#seo-filtered-repairs .repair-recheck').first();
   const targetPage=await firstLiveRepair.getAttribute('aria-label');
   const exactPage=targetPage.replace('Prepare a fresh SEO audit of ','');
@@ -253,9 +255,25 @@ try{
   await page.locator('#site-export').click();
   const recheckReport=JSON.parse(await readFile(await (await siteReportDownloadPromise).path(),'utf8'));
   if(recheckReport.pagesSelected!==1||recheckReport.selectedPageUrls?.[0]!==exactPage)throw Error(width+': targeted re-audit included unrelated pages');
+  const firstOutcome=page.locator('#seo-repair-fresh-outcome');
+  await firstOutcome.waitFor({state:'visible'});
+  if(!await firstOutcome.textContent().then(value=>value.includes('1 still detected, 0 no longer detected, 0 awaiting verification')))throw Error(width+': fresh re-audit did not explain the still-detected published fix');
+  if(!await page.locator('#site-fix-verification').textContent().then(value=>value.includes('0 verified absent · 1 still detected · 0 awaiting verification')))throw Error(width+': verification summary contradicted the still-detected re-audit');
+  await page.evaluate(()=>{window.__seoCanonicalFixed=true});
+  await page.locator('#seo-filtered-repairs .repair-recheck').first().click();
+  await page.locator('#site-run').click();
+  await page.locator('#site-fix-dashboard').waitFor();
+  const repairedOutcome=page.locator('#seo-repair-fresh-outcome');
+  await repairedOutcome.waitFor({state:'visible'});
+  if(!await repairedOutcome.textContent().then(value=>value.includes('0 still detected, 1 no longer detected, 0 awaiting verification')&&value.includes('not improved search rankings')))throw Error(width+': corrected canonical was not explained as absent in page HTML only');
+  if(!await page.locator('#site-fix-verification').textContent().then(value=>value.includes('1 verified absent · 0 still detected · 0 awaiting verification')))throw Error(width+': verification summary contradicted repaired page audit');
+  const finalProgressPromise=page.waitForEvent('download');
+  await page.locator('#site-progress-report').getByRole('button',{name:'Download progress summary (JSON)'}).click();
+  const finalProgress=JSON.parse(await readFile(await (await finalProgressPromise).path(),'utf8'));
+  if(finalProgress.verifiedAbsent!==1||finalProgress.stillDetected!==0||finalProgress.awaitingVerification!==0)throw Error(width+': exported report does not reflect successful re-audit');
 
   if(errors.length)throw Error(width+': script error '+errors.join('; '));
-  console.log('Mobile SEO QA '+width+'px passed: focus, guide fit, button target, exact issue-and-page navigation, accessible back action, 65-repair paging, issue and URL search, sorting, CSV export, handoff copy and fallback, developer brief downloads, backup preview and confirmed restore, reactive verification summary, re-audit safety and fresh single-page capture, no page errors');
+  console.log('Mobile SEO QA '+width+'px passed: focus, guide fit, button target, exact issue-and-page navigation, accessible back action, 65-repair paging, issue and URL search, sorting, CSV export, handoff copy and fallback, developer brief downloads, backup preview and confirmed restore, reactive verification summary, re-audit safety, still-detected and no-longer-detected outcomes, no page errors');
   await page.close();
  }
 }finally{await browser.close();await new Promise(resolve=>server.close(resolve))}
