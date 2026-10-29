@@ -36,3 +36,57 @@ test('browser-delivered comparison matches CLI comparison',()=>{
  const latest=audit([page(site+'/a',site+'/a',['http_noindex'],true)]);
  assert.deepEqual(browserCompare(earlier,latest),compareSeoAudits(earlier,latest));
 });
+
+test('before-and-after counts still detected, disappeared and newly found issues only for complete matching pages',()=>{
+ const url=site+'/services';
+ const old=audit([page(url,url,['missing_canonical','missing_title'],true)]);
+ const newer=audit([page(url,url,['missing_title','noindex'],true)]);
+ const result=compareSeoAudits(old,newer);
+ assert.deepEqual(result.comparablePages,[url]);
+ assert.deepEqual(result.noLongerReported,['page:'+url+'|missing_canonical']);
+ assert.deepEqual(result.remainingReported,['page:'+url+'|missing_title']);
+ assert.deepEqual(result.newlyReported,['page:'+url+'|noindex']);
+ assert.deepEqual(result.notComparedPages,[]);
+});
+test('failed or partial new pages cannot appear to have resolved old issues',()=>{
+ const url=site+'/broken';
+ const earlier=audit([page(url,url,['missing_title'])]);
+ const incomplete={...page(url,url,[]),auditStatus:'partial',partial:true};
+ const latest=audit([incomplete]);
+ const result=compareSeoAudits(earlier,latest);
+ assert.equal(result.comparablePages.length,0);
+ assert.equal(result.noLongerReported.length,0);
+ assert.deepEqual(result.notComparedPages,[url]);
+ assert.equal(result.scoreComparison,null);
+});
+test('score changes require complete identical selections with matching scored public pages',()=>{
+ const one=site+'/a',two=site+'/b';
+ const scored=(url,score)=>({...page(url,url),score,pageRole:'public'});
+ const earlier=audit([scored(one,62),scored(two,82)]);
+ const latest=audit([scored(one,78),scored(two,86)]);
+ const result=compareSeoAudits(earlier,latest);
+ assert.deepEqual(result.scoreComparison,{before:72,after:82,change:10,publicPages:2});
+ const partial=audit([scored(one,78),{...scored(two,86),auditStatus:'partial',partial:true}]);
+ assert.equal(compareSeoAudits(earlier,partial).scoreComparison,null);
+ const switched=audit([scored(one,78),scored(site+'/c',86)]);
+ assert.equal(compareSeoAudits(earlier,switched).scoreComparison,null);
+});
+test('cross-page findings cannot claim repair when selection or coverage changes',()=>{
+ const one=site+'/a',two=site+'/b';
+ const older=audit([page(one,one),page(two,two)],{siteFindings:[{code:'duplicate_title',affectedUrls:[one,two]}]});
+ const changed=audit([page(one,one)]);
+ const unsafe=compareSeoAudits(older,changed);
+ assert.equal(unsafe.noLongerReported.length,0);
+ assert.deepEqual(unsafe.notComparedPages,[two]);
+ const same=audit([page(one,one),page(two,two)]);
+ const safe=compareSeoAudits(older,same);
+ assert.deepEqual(safe.noLongerReported,['site:'+one+'|duplicate_title','site:'+two+'|duplicate_title']);
+});
+test('next check prioritizes high-severity unresolved findings, not rank predictions',()=>{
+ const one=site+'/a';
+ const earlier=audit([page(one,one)]);
+ const latest=audit([{...page(one,one),findings:[{code:'missing_title',severity:'high'},{code:'missing_alt',severity:'low'}]}]);
+ const result=compareSeoAudits(earlier,latest);
+ assert.equal(result.nextCheck.code,'missing_title');
+ assert.equal(result.nextCheck.severity,'high');
+});
