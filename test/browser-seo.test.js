@@ -2022,7 +2022,21 @@ test('repair status changes refresh verification and progress reports without st
  assert.ok(html.includes("progressFixes.textContent=progressData.verifiedAbsent+"));
  assert.ok(html.includes("progressAction.textContent='Recommended next action: '+progressData.recommendations"));
  assert.ok(html.includes("if(activeFixTrackerListener)document.removeEventListener('seo-fix-tracker-updated',activeFixTrackerListener)"));
- assert.ok(html.includes("activeFixTrackerListener=()=>{refreshFixDashboard();refreshVerification();refreshProgressTracking()}"));
+ assert.ok(html.includes("activeFixTrackerListener=()=>{refreshFixDashboard();refreshVerification();refreshProgressTracking();renderFreshAuditOutcome()}"));
  assert.ok(html.includes("document.addEventListener('seo-fix-tracker-updated',activeFixTrackerListener)"));
  assert.ok(!html.includes("document.addEventListener('seo-fix-tracker-updated',refreshFixDashboard)"));
+});
+
+test('fresh single-page re-audit explains still-detected, absent and pending published fixes',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("freshAuditOutcome.id='seo-repair-fresh-outcome'"));
+ assert.ok(html.includes("freshAuditOutcome.setAttribute('aria-live','polite')"));
+ assert.ok(html.includes("const isFreshPageAudit=!!selectedDiscovery?.forceFresh&&!siteReport.demo&&pages.length===1"));
+ assert.ok(html.includes("key.slice(key.indexOf('|')+1)===freshAuditPage"));
+ assert.ok(html.includes("const state=repairState(key,item)"));
+ assert.ok(html.includes("counts.absent++;else if(state==='Still detected')counts.detected++;else counts.pending++"));
+ assert.ok(html.includes("no longer detected, '+counts.pending+' awaiting verification"));
+ assert.ok(html.includes("No longer detected means absent in the newly audited page HTML, not improved search rankings."));
+ assert.ok(html.includes("No published repairs are tracked for this page."));
+ assert.ok(html.includes("refreshProgressTracking();renderFreshAuditOutcome()"));
 });
