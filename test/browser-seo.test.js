@@ -110,7 +110,7 @@ test('SEO audit resumes previously completed pages from a bounded local checkpoi
  assert.match(page,/Date\.now\(\)-saved\.savedAt>86400000/);
  assert.match(page,/cached\.has\(pages\[i\]\)/);
  assert.match(page,/saveCheckpoint\(url\.origin,pages,reports\)/);
- assert.match(page,/if\(!isDemo&&!failures\.length&&reports\.every\(/);
+ assert.match(page,/if\(!isDemo&&!selectedDiscovery\?\.forceFresh&&!failures\.length&&reports\.every\(/);
 });
 
 test('SEO site audit offers bounded selectable batch sizes',()=>{
@@ -182,7 +182,7 @@ test('extension prevents overlapping discovery operations across SEO Studio tabs
 
 test('partial SEO audits retain successful page checkpoints for targeted retry',()=>{
  const page=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
- assert.match(page,/if\(!isDemo&&!failures\.length&&reports\.every\(/);
+ assert.match(page,/if\(!isDemo&&!selectedDiscovery\?\.forceFresh&&!failures\.length&&reports\.every\(/);
  assert.match(page,/cached\.has\(pages\[i\]\)/);
  assert.match(page,/saveCheckpoint\(url\.origin,pages,reports\)/);
 });
@@ -338,7 +338,7 @@ test('SEO checkpoint invalidates old scoring versions without losing retry featu
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  assert.ok(html.includes("const checkpointKey='micirql-seo-checkpoint-v2'"));
  assert.ok(!html.includes("const checkpointKey='micirql-seo-checkpoint-v1'"));
- assert.ok(html.includes('const checkpoint=isDemo?null:readCheckpoint(url.origin)'));
+ assert.ok(html.includes('const checkpoint=isDemo||selectedDiscovery?.forceFresh?null:readCheckpoint(url.origin)'));
  assert.ok(html.includes('saveCheckpoint(url.origin,pages,reports)'));
 });
 
@@ -854,7 +854,7 @@ test('selective reinspection is offered only for incomplete or failed live audit
 test('selective reinspection retains checkpoint recovery and existing retry policy',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  assert.match(html,/siteButton\.click\(\)/);
- assert.match(html,/const checkpoint=isDemo\?null:readCheckpoint\(url\.origin\)/);
+ assert.match(html,/const checkpoint=isDemo\|\|selectedDiscovery\?\.forceFresh\?null:readCheckpoint\(url\.origin\)/);
  assert.match(html,/const cached=reusablePages\(\{pages,reports:reusable\},url\.origin,pages\)/);
  assert.match(html,/if\(cached\.has\(pages\[i\]\)\)/);
  assert.match(html,/for\(let attempt=1;attempt<=2;attempt\+\+\)/);
