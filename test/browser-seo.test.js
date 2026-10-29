@@ -1953,3 +1953,23 @@ test('developer repair brief exports all matching tasks with exact-page evidence
  assert.ok(html.includes("downloadReport('txt',lines.join("));
  assert.ok(html.includes("'micirql-seo-developer-brief')"));
 });
+
+test('repair backup is website-scoped, bounded, and merge-only without overwriting tracked progress',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("const backupSchema='micirql-seo-repair-tracker-v1'"));
+ assert.ok(html.includes("backupDownload.textContent='Download repair progress backup (JSON)'"));
+ assert.ok(html.includes("backupUploadLabel.textContent='Restore repair progress from backup'"));
+ assert.ok(html.includes("backupUpload.type='file'"));
+ assert.ok(html.includes("backupUpload.accept='.json,application/json'"));
+ assert.ok(html.includes("backupStatus.setAttribute('role','status')"));
+ assert.ok(html.includes("payload.website!==url.origin"));
+ assert.ok(html.includes("file.size>1024*1024"));
+ assert.ok(html.includes("payload.repairs.length>2000"));
+ assert.ok(html.includes("parsed.origin!==url.origin"));
+ assert.ok(html.includes("incoming.has(entry.key)"));
+ assert.ok(html.includes("if(Object.hasOwn(restored,key)){kept++}else{restored[key]=item;added++}"));
+ assert.ok(html.includes("fixTracker=previous;throw Error('Browser storage is unavailable; progress was not restored.')"));
+ assert.ok(html.includes("document.dispatchEvent(new Event('seo-fix-tracker-updated'))"));
+ assert.ok(html.includes("backupDownload.disabled=!repairBackupEntries().length"));
+ assert.ok(html.includes("backupUpload.value='';backupStatus.focus({preventScroll:true})"));
+});
