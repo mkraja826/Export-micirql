@@ -225,9 +225,23 @@ try{
    });
    window.postMessage({source:'micirql-extension',type:'MICIRQL_EXTENSION_READY',protocol:3,capabilities:['seo-http-evidence'],extensionVersion:'qa'},location.origin);
   });
+  // A previous complete report is saved locally; the next audit must automatically compare it.
+  const historicUrl='https://recheck.example.test/';
+  await page.evaluate(url=>{
+   const previous={date:new Date(Date.now()-120000).toISOString(),website:new URL(url).origin,selected:1,analyzed:1,failed:0,averageScore:70,auditedUrls:[url],completedUrls:[url],issues:[{code:'missing_canonical',severity:'medium',affectedUrls:[url]}]};
+   localStorage.setItem('micirql-seo-history-v1:'+new URL(url).origin,JSON.stringify([previous]));
+  },historicUrl);
   await page.locator('#site-url').fill('https://recheck.example.test/');
   await page.locator('#site-run').click();
   await page.locator('#site-fix-dashboard').waitFor();
+  const quickBefore=page.locator('#site-quick-comparison');
+  await quickBefore.waitFor({state:'visible'});
+  if(!await quickBefore.textContent().then(text=>text.includes('What changed since your earlier audit?')&&text.includes('No files to upload')&&text.includes('Still there')))throw Error(width+': saved audit comparison was not shown automatically');
+  if(await quickBefore.getByRole('button',{name:'Review detailed page changes'}).evaluate(el=>el.getBoundingClientRect().height)<44)throw Error(width+': automatic comparison action has undersized touch target');
+  await quickBefore.getByRole('button',{name:'Review detailed page changes'}).click();
+  if(!await page.locator('#site-history-issue-list').evaluate(el=>el.open&&el.querySelector('summary')===document.activeElement))throw Error(width+': automatic comparison did not open and focus detailed page changes');
+  const quickWidth=await quickBefore.evaluate(el=>({right:el.getBoundingClientRect().right,viewport:window.innerWidth}));
+  if(quickWidth.right>quickWidth.viewport+2)throw Error(width+': automatic comparison overflows viewport');
   const firstLiveIssue=page.locator('#site-issues details.finding[data-issue-code="missing_canonical"]');
   await firstLiveIssue.locator(':scope > summary').click();
   await firstLiveIssue.locator('details.seo-guided-fix > summary').click();
@@ -266,6 +280,12 @@ try{
   const repairedOutcome=page.locator('#seo-repair-fresh-outcome');
   await repairedOutcome.waitFor({state:'visible'});
   if(!await repairedOutcome.textContent().then(value=>value.includes('0 still detected, 1 no longer detected, 0 awaiting verification')&&value.includes('not improved search rankings')))throw Error(width+': corrected canonical was not explained as absent in page HTML only');
+  const automaticAfter=page.locator('#site-quick-comparison');
+  await automaticAfter.waitFor({state:'visible'});
+  const automaticCounts=await automaticAfter.locator('.quick-seo-stat strong').allTextContents();
+  if(Number(automaticCounts[0])<1)throw Error(width+': automatic comparison did not show missing canonical is no longer seen, counts: '+automaticCounts.join(','));
+  if(!await automaticAfter.textContent().then(text=>text.includes('1 exact page checked in both audits')||text.includes('1 exact pages checked in both audits')))throw Error(width+': automatic comparison lost exact-page scope');
+
   if(!await page.locator('#site-fix-verification').textContent().then(value=>value.includes('1 verified absent · 0 still detected · 0 awaiting verification')))throw Error(width+': verification summary contradicted repaired page audit');
   const finalProgressPromise=page.waitForEvent('download');
   await page.locator('#site-progress-report').getByRole('button',{name:'Download progress summary (JSON)'}).click();
@@ -295,7 +315,7 @@ try{
   if(!partialSummary.includes('Score change: not comparable')||!partialSummary.includes('Comparing 0 exact pages')||JSON.stringify(await page.locator('#benchmark-results .compare-metric strong').allTextContents())!==JSON.stringify(['0','0','0','1']))throw Error(width+': partial comparison falsely claimed a fix');
 
   if(errors.length)throw Error(width+': script error '+errors.join('; '));
-  console.log('Mobile SEO QA '+width+'px passed: focus, guide fit, button target, exact issue-and-page navigation, accessible back action, 65-repair paging, issue and URL search, sorting, CSV export, handoff copy and fallback, developer brief downloads, backup preview and confirmed restore, reactive verification summary, re-audit safety, still-detected and no-longer-detected outcomes, before-and-after comparison, no page errors');
+  console.log('Mobile SEO QA '+width+'px passed: focus, guide fit, button target, exact issue-and-page navigation, accessible back action, 65-repair paging, issue and URL search, sorting, CSV export, handoff copy and fallback, developer brief downloads, backup preview and confirmed restore, reactive verification summary, re-audit safety, still-detected and no-longer-detected outcomes, before-and-after comparison, automatic history comparison, no page errors');
   await page.close();
  }
 }finally{await browser.close();await new Promise(resolve=>server.close(resolve))}
