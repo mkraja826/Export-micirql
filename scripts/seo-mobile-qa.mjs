@@ -290,6 +290,7 @@ try{
   const partialAudit={...afterAudit,reports:[{...afterAudit.reports[0],auditStatus:'partial',partial:true}]};
   await page.locator('#benchmark-after').setInputFiles({name:'after-partial.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(partialAudit))});
   await page.locator('#benchmark-run').click();
+  await page.locator('#benchmark-results .notice').filter({hasText:'Score change: not comparable'}).waitFor();
   const partialSummary=await page.locator('#benchmark-results').textContent();
   if(!partialSummary.includes('Score change: not comparable')||!partialSummary.includes('Comparing 0 exact pages')||JSON.stringify(await page.locator('#benchmark-results .compare-metric strong').allTextContents())!==JSON.stringify(['0','0','0','1']))throw Error(width+': partial comparison falsely claimed a fix');
 
