@@ -31,6 +31,16 @@ try{
   });
   const response=await page.goto('http://127.0.0.1:'+server.address().port+'/tools/seo/');
   if(!response?.ok())throw Error(width+': SEO fixture did not load (HTTP '+response?.status()+')');
+  // Default experience is read-only: only scan, inspect and PDF.
+  for(const selector of ['#site-discover','#site-demo','#site-export','#site-export-pages-csv','#site-export-issues-csv','#site-export-text','#site-selection','#site-limit','#benchmark-compare','.report-actions']){
+   if(await page.locator(selector).isVisible())throw Error(width+': advanced control visible by default: '+selector);
+  }
+  if(!await page.locator('#site-run').isVisible()||!await page.locator('#site-export-pdf').isVisible()||!await page.locator('#site-export-pdf').isDisabled())throw Error(width+': simple scan/PDF actions are missing or enabled before a scan');
+  if(await page.locator('#site-limit').inputValue()!=='60'||!await page.locator('#seo-scope-warning').textContent().then(value=>value.includes('up to 60')))throw Error(width+': scope warning or default audit cap is incorrect');
+  await page.locator('#seo-advanced-controls > summary').click();
+  await page.locator('#developer-mode-toggle').click();
+  if(!await page.locator('#site-demo').isVisible())throw Error(width+': advanced legacy controls were removed rather than hidden');
+
   await page.locator('#site-demo').click();
   await page.locator('#site-fix-dashboard').waitFor();
   const plannedFilter=page.getByRole('button',{name:'View planned SEO repairs'});
@@ -314,8 +324,15 @@ try{
   const partialSummary=await page.locator('#benchmark-results').textContent();
   if(!partialSummary.includes('Score change: not comparable')||!partialSummary.includes('Comparing 0 exact pages')||JSON.stringify(await page.locator('#benchmark-results .compare-metric strong').allTextContents())!==JSON.stringify(['0','0','0','1']))throw Error(width+': partial comparison falsely claimed a fix');
 
+  await page.locator('#developer-mode-toggle').click();
+  const hiddenLegacy=['#site-fix-dashboard','#site-audit-history','#benchmark-compare','#site-export','#site-action-export','#site-technical-overview'];
+  for(const selector of hiddenLegacy)if(await page.locator(selector).isVisible())throw Error(width+': repair or technical UI remained visible in PDF mode: '+selector);
+  const pdfButton=page.locator('#site-export-pdf');
+  if(!await pdfButton.isVisible()||await pdfButton.isDisabled()||!await page.locator('#site-save-pdf-now').isVisible())throw Error(width+': PDF reporting actions are not available after the site scan');
+  if(!await page.locator('#site-page-dashboard').isVisible())throw Error(width+': audited page evidence disappeared from read-only view');
+
   if(errors.length)throw Error(width+': script error '+errors.join('; '));
-  console.log('Mobile SEO QA '+width+'px passed: focus, guide fit, button target, exact issue-and-page navigation, accessible back action, 65-repair paging, issue and URL search, sorting, CSV export, handoff copy and fallback, developer brief downloads, backup preview and confirmed restore, reactive verification summary, re-audit safety, still-detected and no-longer-detected outcomes, before-and-after comparison, automatic history comparison, no page errors');
+  console.log('Mobile SEO QA '+width+'px passed: focus, guide fit, button target, exact issue-and-page navigation, accessible back action, 65-repair paging, issue and URL search, sorting, CSV export, handoff copy and fallback, developer brief downloads, backup preview and confirmed restore, reactive verification summary, re-audit safety, still-detected and no-longer-detected outcomes, before-and-after comparison, automatic history comparison, report-only default, PDF completion action, no page errors');
   await page.close();
  }
 }finally{await browser.close();await new Promise(resolve=>server.close(resolve))}
