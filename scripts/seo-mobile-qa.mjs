@@ -202,8 +202,53 @@ try{
   await restorePreview.getByRole('button',{name:'Cancel restore'}).click();
 
 
+
+  await page.evaluate(()=>{
+   window.__seoMockReads=[];
+   window.addEventListener('message',event=>{
+    if(event.source!==window||event.origin!==location.origin||event.data?.source!=='micirql-web')return;
+    const {type,id,url}=event.data;
+    if(type==='MICIRQL_DISCOVER'){
+     window.postMessage({source:'micirql-extension',type:'MICIRQL_DISCOVER_RESULT',id,ok:true,pages:['https://recheck.example.test/','https://recheck.example.test/treatment'],originalCount:2,truncated:false},location.origin);
+    }else if(type==='MICIRQL_SEO_READ'){
+     window.__seoMockReads.push(url);
+     const html='<!doctype html><html lang="en"><head><title>Recheck Fixture</title><meta name="description" content="Fixture to verify a fresh repair re-audit"></head><body><h1>Recheck Fixture</h1><p>Intentional missing canonical URL for audit test.</p></body></html>';
+     window.postMessage({source:'micirql-extension',type:'MICIRQL_SEO_RESULT',id,url,ok:true,html,partial:false},location.origin);
+    }
+   });
+   window.postMessage({source:'micirql-extension',type:'MICIRQL_EXTENSION_READY',protocol:3,capabilities:['seo-http-evidence'],extensionVersion:'qa'},location.origin);
+  });
+  await page.locator('#site-url').fill('https://recheck.example.test/');
+  await page.locator('#site-run').click();
+  await page.locator('#site-fix-dashboard').waitFor();
+  const firstLiveIssue=page.locator('#site-issues details.finding').first();
+  await firstLiveIssue.locator(':scope > summary').click();
+  await firstLiveIssue.locator('details.seo-guided-fix > summary').click();
+  await firstLiveIssue.locator('details.seo-guided-fix > details > summary').click();
+  await firstLiveIssue.getByRole('button',{name:'Planning a fix'}).first().click();
+  await page.getByRole('button',{name:'View planned SEO repairs'}).click();
+  const firstLiveRepair=page.locator('#seo-filtered-repairs .repair-recheck').first();
+  const targetPage=await firstLiveRepair.getAttribute('aria-label');
+  const exactPage=targetPage.replace('Prepare a fresh SEO audit of ','');
+  const savedCheckpoint={website:'https://recheck.example.test',pages:['https://recheck.example.test/','https://recheck.example.test/treatment'],savedAt:Date.now(),reports:[]};
+  await page.evaluate(checkpoint=>localStorage.setItem('micirql-seo-checkpoint-v2',JSON.stringify(checkpoint)),savedCheckpoint);
+  const beforeFresh=await page.evaluate(()=>window.__seoMockReads.length);
+  await firstLiveRepair.click();
+  if(await page.locator('#site-url').inputValue()!==exactPage||!await page.locator('#site-run').evaluate(el=>el===document.activeElement)||!await page.locator('#site-status').textContent().then(text=>text.includes('no cached results will be reused')))throw Error(width+': page re-audit was not prepared for the exact tracked URL');
+  if(!await page.locator('#site-selected-count').textContent().then(text=>text.includes('1 selected of 1 discovered')))throw Error(width+': targeted recheck should select only one page');
+  await page.locator('#site-run').click();
+  await page.locator('#site-fix-dashboard').waitFor();
+  const afterFresh=await page.evaluate(()=>window.__seoMockReads.length);
+  if(afterFresh!==beforeFresh+1)throw Error(width+': targeted re-audit did not make exactly one fresh extension read');
+  const preserved=await page.evaluate(()=>JSON.parse(localStorage.getItem('micirql-seo-checkpoint-v2')));
+  if(JSON.stringify(preserved)!==JSON.stringify(savedCheckpoint))throw Error(width+': targeted re-audit overwrote a larger website checkpoint');
+  const siteReportDownloadPromise=page.waitForEvent('download');
+  await page.locator('#site-export').click();
+  const recheckReport=JSON.parse(await readFile(await (await siteReportDownloadPromise).path(),'utf8'));
+  if(recheckReport.pagesSelected!==1||recheckReport.selectedPageUrls?.[0]!==exactPage)throw Error(width+': targeted re-audit included unrelated pages');
+
   if(errors.length)throw Error(width+': script error '+errors.join('; '));
-  console.log('Mobile SEO QA '+width+'px passed: focus, guide fit, button target, exact issue-and-page navigation, accessible back action, 65-repair paging, issue and URL search, sorting, CSV export, handoff copy and fallback, developer brief downloads, backup preview and confirmed restore, re-audit safety, no page errors');
+  console.log('Mobile SEO QA '+width+'px passed: focus, guide fit, button target, exact issue-and-page navigation, accessible back action, 65-repair paging, issue and URL search, sorting, CSV export, handoff copy and fallback, developer brief downloads, backup preview and confirmed restore, re-audit safety and fresh single-page capture, no page errors');
   await page.close();
  }
 }finally{await browser.close();await new Promise(resolve=>server.close(resolve))}
