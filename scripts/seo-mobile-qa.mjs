@@ -162,14 +162,17 @@ try{
   restoredBackup.repairs.find(entry=>entry.key.endsWith('/repair-64')).note='overwritten incorrectly';
   restoredBackup.repairs.push({key:'missing_canonical|https://demo.micirql.invalid/restored-66',status:'planned',note:'restored safely',markedAt:null});
   await backupUpload.setInputFiles({name:'repair-backup.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(restoredBackup))});
+  await pagedRepairs.locator('[role=status]').filter({hasText:'Restored 1 new repairs; kept 65 existing repairs unchanged.'}).waitFor();
   const afterRestore=await page.evaluate(()=>JSON.parse(localStorage.getItem('micirql-seo-fix-tracker-v1:https://demo.micirql.invalid')));
   if(Object.keys(afterRestore).length!==66||afterRestore['missing_canonical|https://demo.micirql.invalid/repair-64'].note!==storedNote||afterRestore['missing_canonical|https://demo.micirql.invalid/restored-66'].note!=='restored safely')throw Error(width+': restore overwrote existing repairs or lost new repairs');
   if(!await pagedRepairs.locator('[role=status]').allTextContents().then(values=>values.some(value=>value.includes('Restored 1 new repairs; kept 65 existing repairs unchanged.'))))throw Error(width+': restore success not announced');
   const foreignBackup={...backup,website:'https://foreign.example'};
   await backupUpload.setInputFiles({name:'wrong-website.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(foreignBackup))});
+  await pagedRepairs.locator('[role=status]').filter({hasText:'not a repair backup for the current website'}).waitFor();
   if(!await pagedRepairs.locator('[role=status]').allTextContents().then(values=>values.some(value=>value.includes('not a repair backup for the current website'))))throw Error(width+': foreign website backup not rejected');
   const crossSiteBackup={...backup,repairs:[{key:'missing_canonical|https://other.example/wrong-site',status:'planned',note:'',markedAt:null}]};
   await backupUpload.setInputFiles({name:'cross-site.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(crossSiteBackup))});
+  await pagedRepairs.locator('[role=status]').filter({hasText:'different-website page'}).waitFor();
   if(!await pagedRepairs.locator('[role=status]').allTextContents().then(values=>values.some(value=>value.includes('different-website page'))))throw Error(width+': cross-site repair not rejected');
   const afterInvalid=await page.evaluate(()=>JSON.parse(localStorage.getItem('micirql-seo-fix-tracker-v1:https://demo.micirql.invalid')));
   if(Object.keys(afterInvalid).length!==66)throw Error(width+': invalid backup changed saved repairs');
