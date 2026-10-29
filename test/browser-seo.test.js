@@ -2010,3 +2010,19 @@ test('tracked repair can prepare exact-page fresh audit without relying on stale
  assert.ok(html.includes("if(!isDemo&&!selectedDiscovery?.forceFresh&&!failures.length"));
  assert.ok(html.includes("#seo-filtered-repairs .repair-recheck{display:inline-flex;align-items:center;min-height:44px"));
 });
+
+test('repair status changes refresh verification and progress reports without stale listeners',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes('let siteReport=null;let activeFixTrackerListener=null'));
+ assert.ok(html.includes("const refreshVerification=()=>{verificationRows=Object.entries(fixTracker)"));
+ assert.ok(html.includes("verificationList.replaceChildren()"));
+ assert.ok(html.includes("verificationList.hidden=!verificationRows.length"));
+ assert.ok(html.includes("const refreshProgressTracking=()=>{progressData.markedFixed=verificationRows.length"));
+ assert.ok(html.includes("progressData.awaitingVerification=verificationTotals.pending"));
+ assert.ok(html.includes("progressFixes.textContent=progressData.verifiedAbsent+"));
+ assert.ok(html.includes("progressAction.textContent='Recommended next action: '+progressData.recommendations"));
+ assert.ok(html.includes("if(activeFixTrackerListener)document.removeEventListener('seo-fix-tracker-updated',activeFixTrackerListener)"));
+ assert.ok(html.includes("activeFixTrackerListener=()=>{refreshFixDashboard();refreshVerification();refreshProgressTracking()}"));
+ assert.ok(html.includes("document.addEventListener('seo-fix-tracker-updated',activeFixTrackerListener)"));
+ assert.ok(!html.includes("document.addEventListener('seo-fix-tracker-updated',refreshFixDashboard)"));
+});
