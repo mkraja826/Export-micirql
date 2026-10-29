@@ -149,10 +149,34 @@ try{
   if(!fullBrief.includes('Tasks included: 65')||(fullBrief.match(/^Page: /gm)||[]).length!==65||!fullBrief.includes('/repair-64')||!fullBrief.includes('Saved note: =HYPERLINK'))throw Error(width+': developer brief omitted hidden repairs or saved notes');
   await repairSearch.fill('no-results-for-developer-brief');
   if(!await briefExport.isDisabled())throw Error(width+': developer brief download should be disabled when no repairs match');
+  const backupDownload=pagedRepairs.getByRole('button',{name:'Download repair progress backup (JSON)'});
+  const backupUpload=pagedRepairs.getByLabel('Restore repair progress from backup');
+  const backupDownloadPromise=page.waitForEvent('download');
+  await backupDownload.click();
+  const backupFile=await backupDownloadPromise;
+  const backup=JSON.parse(await readFile(await backupFile.path(),'utf8'));
+  if(backupFile.suggestedFilename()!=='micirql-seo-repair-backup.json'||backup.schema!=='micirql-seo-repair-tracker-v1'||backup.website!=='https://demo.micirql.invalid'||backup.repairs.length!==65)throw Error(width+': repair backup did not include all website-scoped progress');
+  const storedNote=backup.repairs.find(entry=>entry.key.endsWith('/repair-64'))?.note;
+  if(!storedNote?.startsWith('=HYPERLINK'))throw Error(width+': backup lost saved repair note');
+  const restoredBackup=JSON.parse(JSON.stringify(backup));
+  restoredBackup.repairs.find(entry=>entry.key.endsWith('/repair-64')).note='overwritten incorrectly';
+  restoredBackup.repairs.push({key:'missing_canonical|https://demo.micirql.invalid/restored-66',status:'planned',note:'restored safely',markedAt:null});
+  await backupUpload.setInputFiles({name:'repair-backup.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(restoredBackup))});
+  const afterRestore=await page.evaluate(()=>JSON.parse(localStorage.getItem('micirql-seo-fix-tracker-v1:https://demo.micirql.invalid')));
+  if(Object.keys(afterRestore).length!==66||afterRestore['missing_canonical|https://demo.micirql.invalid/repair-64'].note!==storedNote||afterRestore['missing_canonical|https://demo.micirql.invalid/restored-66'].note!=='restored safely')throw Error(width+': restore overwrote existing repairs or lost new repairs');
+  if(!await pagedRepairs.locator('[role=status]').allTextContents().then(values=>values.some(value=>value.includes('Restored 1 new repairs; kept 65 existing repairs unchanged.'))))throw Error(width+': restore success not announced');
+  const foreignBackup={...backup,website:'https://foreign.example'};
+  await backupUpload.setInputFiles({name:'wrong-website.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(foreignBackup))});
+  if(!await pagedRepairs.locator('[role=status]').allTextContents().then(values=>values.some(value=>value.includes('not a repair backup for the current website'))))throw Error(width+': foreign website backup not rejected');
+  const crossSiteBackup={...backup,repairs:[{key:'missing_canonical|https://other.example/wrong-site',status:'planned',note:'',markedAt:null}]};
+  await backupUpload.setInputFiles({name:'cross-site.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(crossSiteBackup))});
+  if(!await pagedRepairs.locator('[role=status]').allTextContents().then(values=>values.some(value=>value.includes('different-website page'))))throw Error(width+': cross-site repair not rejected');
+  const afterInvalid=await page.evaluate(()=>JSON.parse(localStorage.getItem('micirql-seo-fix-tracker-v1:https://demo.micirql.invalid')));
+  if(Object.keys(afterInvalid).length!==66)throw Error(width+': invalid backup changed saved repairs');
 
 
   if(errors.length)throw Error(width+': script error '+errors.join('; '));
-  console.log('Mobile SEO QA '+width+'px passed: focus, guide fit, button target, exact issue-and-page navigation, accessible back action, 65-repair paging, issue and URL search, sorting, CSV export, handoff copy and fallback, developer brief downloads, no page errors');
+  console.log('Mobile SEO QA '+width+'px passed: focus, guide fit, button target, exact issue-and-page navigation, accessible back action, 65-repair paging, issue and URL search, sorting, CSV export, handoff copy and fallback, developer brief downloads, backup and safe restore, no page errors');
   await page.close();
  }
 }finally{await browser.close();await new Promise(resolve=>server.close(resolve))}
