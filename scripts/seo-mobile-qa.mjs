@@ -272,8 +272,29 @@ try{
   const finalProgress=JSON.parse(await readFile(await (await finalProgressPromise).path(),'utf8'));
   if(finalProgress.verifiedAbsent!==1||finalProgress.stillDetected!==0||finalProgress.awaitingVerification!==0)throw Error(width+': exported report does not reflect successful re-audit');
 
+  // Verify beginner comparison across 375px and 768px without trusting partial HTML.
+  const comparedUrl='https://compare.example.test/';
+  const comparePage=(findings,score)=>({url:comparedUrl,requestedUrl:comparedUrl,auditStatus:'complete',partial:false,pageRole:'public',score,findings:findings.map(([code,severity])=>({code,severity}))});
+  const beforeAudit={website:'https://compare.example.test',selectedPageUrls:[comparedUrl],reports:[comparePage([['missing_canonical','high'],['missing_title','medium']],65)],siteFindings:[],failures:[]};
+  const afterAudit={...beforeAudit,reports:[comparePage([['missing_title','medium'],['missing_alt','low']],75)]};
+  await page.locator('#benchmark-before').setInputFiles({name:'before.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(beforeAudit))});
+  await page.locator('#benchmark-after').setInputFiles({name:'after.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(afterAudit))});
+  await page.locator('#benchmark-run').click();
+  await page.locator('#benchmark-results .compare-metric').first().waitFor();
+  const compareText=await page.locator('#benchmark-results').textContent();
+  if(!compareText.includes('Before & after: what changed?')||!compareText.includes('No longer detected')||!compareText.includes('Still detected')||!compareText.includes('New issues')||!compareText.includes('65/100 before, 75/100 after (+10 points'))throw Error(width+': beginner comparison omitted safe results');
+  const metrics=await page.locator('#benchmark-results .compare-metric strong').allTextContents();
+  if(JSON.stringify(metrics)!==JSON.stringify(['1','1','1','0']))throw Error(width+': before/after metric counts were incorrect '+JSON.stringify(metrics));
+  const metricFits=await page.locator('#benchmark-results .compare-metric').first().evaluate(el=>el.getBoundingClientRect().right<=window.innerWidth&&el.getBoundingClientRect().width>=100);
+  if(!metricFits)throw Error(width+': comparison metric exceeds viewport');
+  const partialAudit={...afterAudit,reports:[{...afterAudit.reports[0],auditStatus:'partial',partial:true}]};
+  await page.locator('#benchmark-after').setInputFiles({name:'after-partial.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(partialAudit))});
+  await page.locator('#benchmark-run').click();
+  const partialSummary=await page.locator('#benchmark-results').textContent();
+  if(!partialSummary.includes('Score change: not comparable')||!partialSummary.includes('Comparing 0 exact pages')||JSON.stringify(await page.locator('#benchmark-results .compare-metric strong').allTextContents())!==JSON.stringify(['0','0','0','1']))throw Error(width+': partial comparison falsely claimed a fix');
+
   if(errors.length)throw Error(width+': script error '+errors.join('; '));
-  console.log('Mobile SEO QA '+width+'px passed: focus, guide fit, button target, exact issue-and-page navigation, accessible back action, 65-repair paging, issue and URL search, sorting, CSV export, handoff copy and fallback, developer brief downloads, backup preview and confirmed restore, reactive verification summary, re-audit safety, still-detected and no-longer-detected outcomes, no page errors');
+  console.log('Mobile SEO QA '+width+'px passed: focus, guide fit, button target, exact issue-and-page navigation, accessible back action, 65-repair paging, issue and URL search, sorting, CSV export, handoff copy and fallback, developer brief downloads, backup preview and confirmed restore, reactive verification summary, re-audit safety, still-detected and no-longer-detected outcomes, before-and-after comparison, no page errors');
   await page.close();
  }
 }finally{await browser.close();await new Promise(resolve=>server.close(resolve))}
