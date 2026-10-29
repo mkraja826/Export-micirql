@@ -1627,7 +1627,7 @@ test('SEO fix dashboard uses browser tracker and refreshes after changes',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  assert.ok(html.includes("fixDashboard.id='site-fix-dashboard'"));
  for(const label of ['Planned','Addressed','Still detected','Verified absent','Awaiting verification'])assert.ok(html.includes("'"+label+"'"));
- assert.ok(html.includes("document.addEventListener('seo-fix-tracker-updated',refreshFixDashboard)"));
+ assert.ok(html.includes("document.addEventListener('seo-fix-tracker-updated',activeFixTrackerListener)"));
  assert.ok(html.includes("document.dispatchEvent(new Event('seo-fix-tracker-updated'))"));
  assert.ok(html.includes("auditedAt<=markedAt||!completedUrls.has(page)"));
  assert.ok(html.includes("not improved rankings"));
@@ -1696,7 +1696,7 @@ test('fix status persistence and immediate refresh contract supports the demo au
  reloaded[key]={status:'fixed',note:'',markedAt:now};
  assert.equal(reloaded[key].status,'fixed');
  assert.ok(html.includes("document.dispatchEvent(new Event('seo-fix-tracker-updated'))"),'Status updates dispatch an immediate refresh');
- assert.ok(html.includes("document.addEventListener('seo-fix-tracker-updated',refreshFixDashboard)"),'Dashboard subscribes to refresh events');
+ assert.ok(html.includes("document.addEventListener('seo-fix-tracker-updated',activeFixTrackerListener)"),'Dashboard subscribes to refresh events');
  const markedAt=Date.parse(now),auditedAt=Date.parse('2026-01-01T00:00:00Z');
  const completedUrls=new Set(['https://demo.micirql.invalid/']);
  assert.equal(auditedAt>markedAt&&completedUrls.has('https://demo.micirql.invalid/'),false,'A fix marked after an audit remains awaiting verification');
