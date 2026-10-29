@@ -161,8 +161,22 @@ try{
   const restoredBackup=JSON.parse(JSON.stringify(backup));
   restoredBackup.repairs.find(entry=>entry.key.endsWith('/repair-64')).note='overwritten incorrectly';
   restoredBackup.repairs.push({key:'missing_canonical|https://demo.micirql.invalid/restored-66',status:'planned',note:'restored safely',markedAt:null});
+  const restorePreview=pagedRepairs.getByRole('group',{name:'Review repair backup before restoring'});
   await backupUpload.setInputFiles({name:'repair-backup.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(restoredBackup))});
+  await restorePreview.waitFor({state:'visible'});
+  if(!await restorePreview.textContent().then(text=>text.includes('1 new repairs')&&text.includes('65 already saved repairs')))throw Error(width+': restore preview did not show accurate add/keep counts');
+  if(await page.evaluate(()=>Object.keys(JSON.parse(localStorage.getItem('micirql-seo-fix-tracker-v1:https://demo.micirql.invalid'))).length)!==65)throw Error(width+': import changed progress before confirmation');
+  const cancelRestore=restorePreview.getByRole('button',{name:'Cancel restore'});
+  if(await cancelRestore.evaluate(el=>el.getBoundingClientRect().height)<44)throw Error(width+': cancel restore target too small');
+  await cancelRestore.click();
+  if(await restorePreview.isVisible()||await page.evaluate(()=>Object.keys(JSON.parse(localStorage.getItem('micirql-seo-fix-tracker-v1:https://demo.micirql.invalid'))).length)!==65)throw Error(width+': cancelling import modified repairs');
+  await backupUpload.setInputFiles({name:'repair-backup.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(restoredBackup))});
+  await restorePreview.waitFor({state:'visible'});
+  const confirmRestore=restorePreview.getByRole('button',{name:'Confirm restore'});
+  if(await confirmRestore.evaluate(el=>el.getBoundingClientRect().height)<44||await confirmRestore.isDisabled())throw Error(width+': restore confirmation is unavailable');
+  await confirmRestore.click();
   await pagedRepairs.locator('[role=status]').filter({hasText:'Restored 1 new repairs; kept 65 existing repairs unchanged.'}).waitFor();
+  if(await restorePreview.isVisible())throw Error(width+': completed restore preview remained open');
   const afterRestore=await page.evaluate(()=>JSON.parse(localStorage.getItem('micirql-seo-fix-tracker-v1:https://demo.micirql.invalid')));
   if(Object.keys(afterRestore).length!==66||afterRestore['missing_canonical|https://demo.micirql.invalid/repair-64'].note!==storedNote||afterRestore['missing_canonical|https://demo.micirql.invalid/restored-66'].note!=='restored safely')throw Error(width+': restore overwrote existing repairs or lost new repairs');
   if(!await pagedRepairs.locator('[role=status]').allTextContents().then(values=>values.some(value=>value.includes('Restored 1 new repairs; kept 65 existing repairs unchanged.'))))throw Error(width+': restore success not announced');
@@ -176,10 +190,14 @@ try{
   if(!await pagedRepairs.locator('[role=status]').allTextContents().then(values=>values.some(value=>value.includes('different-website page'))))throw Error(width+': cross-site repair not rejected');
   const afterInvalid=await page.evaluate(()=>JSON.parse(localStorage.getItem('micirql-seo-fix-tracker-v1:https://demo.micirql.invalid')));
   if(Object.keys(afterInvalid).length!==66)throw Error(width+': invalid backup changed saved repairs');
+  await backupUpload.setInputFiles({name:'nothing-new.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(backup))});
+  await restorePreview.waitFor({state:'visible'});
+  if(!await restorePreview.getByRole('button',{name:'Confirm restore'}).isDisabled())throw Error(width+': zero-addition restore should not be confirmed');
+  await restorePreview.getByRole('button',{name:'Cancel restore'}).click();
 
 
   if(errors.length)throw Error(width+': script error '+errors.join('; '));
-  console.log('Mobile SEO QA '+width+'px passed: focus, guide fit, button target, exact issue-and-page navigation, accessible back action, 65-repair paging, issue and URL search, sorting, CSV export, handoff copy and fallback, developer brief downloads, backup and safe restore, no page errors');
+  console.log('Mobile SEO QA '+width+'px passed: focus, guide fit, button target, exact issue-and-page navigation, accessible back action, 65-repair paging, issue and URL search, sorting, CSV export, handoff copy and fallback, developer brief downloads, backup preview and confirmed restore, no page errors');
   await page.close();
  }
 }finally{await browser.close();await new Promise(resolve=>server.close(resolve))}
