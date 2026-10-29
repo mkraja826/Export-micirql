@@ -35,7 +35,7 @@ try{
   for(const selector of ['#site-discover','#site-demo','#site-export','#site-export-pages-csv','#site-export-issues-csv','#site-export-text','#site-selection','#site-limit','#benchmark-compare','.report-actions']){
    if(await page.locator(selector).isVisible())throw Error(width+': advanced control visible by default: '+selector);
   }
-  if(!await page.locator('#site-run').isVisible()||!await page.locator('#site-export-pdf').isVisible()||!await page.locator('#site-export-pdf').isDisabled())throw Error(width+': simple scan/PDF actions are missing or enabled before a scan');
+  if(!await page.locator('#site-run').isVisible()||await page.locator('#site-export-pdf').isVisible()||!await page.locator('#site-export-pdf').isDisabled())throw Error(width+': PDF action must stay hidden until scan completion');
   if(await page.locator('#site-limit').inputValue()!=='60'||!await page.locator('#seo-scope-warning').textContent().then(value=>value.includes('up to 60')))throw Error(width+': scope warning or default audit cap is incorrect');
   await page.locator('#seo-advanced-controls > summary').click();
   await page.locator('#developer-mode-toggle').click();
@@ -241,8 +241,11 @@ try{
    const previous={date:new Date(Date.now()-120000).toISOString(),website:new URL(url).origin,selected:1,analyzed:1,failed:0,averageScore:70,auditedUrls:[url],completedUrls:[url],issues:[{code:'missing_canonical',severity:'medium',affectedUrls:[url]}]};
    localStorage.setItem('micirql-seo-history-v1:'+new URL(url).origin,JSON.stringify([previous]));
   },historicUrl);
-  await page.locator('#site-url').fill('https://recheck.example.test/');
-  await page.locator('#site-run').click();
+  await page.locator('#site-url').fill('recheck.example.test/');
+  await page.locator('#site-url').press('Enter');
+  await page.locator('#site-fix-dashboard').waitFor();
+  if(await page.locator('#site-url').inputValue()!=='https://recheck.example.test/')throw Error(width+': entering a bare domain failed to auto-add https');
+  if(!(await page.evaluate(()=>window.__seoMockReads.length>=2)))throw Error(width+': Enter key did not automatically discover and scan the website');
   await page.locator('#site-fix-dashboard').waitFor();
   const quickBefore=page.locator('#site-quick-comparison');
   await quickBefore.waitFor({state:'visible'});
@@ -328,11 +331,11 @@ try{
   const hiddenLegacy=['#site-fix-dashboard','#site-audit-history','#benchmark-compare','#site-export','#site-action-export','#site-technical-overview'];
   for(const selector of hiddenLegacy)if(await page.locator(selector).isVisible())throw Error(width+': repair or technical UI remained visible in PDF mode: '+selector);
   const pdfButton=page.locator('#site-export-pdf');
-  if(!await pdfButton.isVisible()||await pdfButton.isDisabled()||!await page.locator('#site-save-pdf-now').isVisible())throw Error(width+': PDF reporting actions are not available after the site scan');
+  if(!await pdfButton.isVisible()||await pdfButton.isDisabled()||!await page.locator('#site-save-pdf-now').isVisible()||!await page.locator('#site-scan-completion').textContent().then(text=>text.includes('SEO PDF report is ready')))throw Error(width+': completed scan did not expose the downloadable PDF report flow');
   if(!await page.locator('#site-page-dashboard').isVisible())throw Error(width+': audited page evidence disappeared from read-only view');
 
   if(errors.length)throw Error(width+': script error '+errors.join('; '));
-  console.log('Mobile SEO QA '+width+'px passed: focus, guide fit, button target, exact issue-and-page navigation, accessible back action, 65-repair paging, issue and URL search, sorting, CSV export, handoff copy and fallback, developer brief downloads, backup preview and confirmed restore, reactive verification summary, re-audit safety, still-detected and no-longer-detected outcomes, before-and-after comparison, automatic history comparison, report-only default, PDF completion action, no page errors');
+  console.log('Mobile SEO QA '+width+'px passed: focus, guide fit, button target, exact issue-and-page navigation, accessible back action, 65-repair paging, issue and URL search, sorting, CSV export, handoff copy and fallback, developer brief downloads, backup preview and confirmed restore, reactive verification summary, re-audit safety, still-detected and no-longer-detected outcomes, before-and-after comparison, automatic history comparison, report-only default, PDF completion action, Enter-to-scan, domain normalization, no page errors');
   await page.close();
  }
 }finally{await browser.close();await new Promise(resolve=>server.close(resolve))}
