@@ -60,7 +60,7 @@ export function inspectSeoHtml(html,url,options={}){
  }else{
   if(h1Count===0)add('heading_count','low','No H1 was found. Review whether the page has a clear, descriptive visible heading; H1 tags are not a strict Google ranking requirement.',4,'content');
    else if(h1Count>1)add('heading_count','info','More than one H1 was found. Multiple H1 elements are allowed; check the page heading hierarchy for clarity.',0,'content');
-  if(emptyH1Matches.length)add('empty_h1','low',emptyH1Matches.length+' H1 heading(s) contain no readable text or accessible label. Add a meaningful primary heading.',4,'content');
+  if(emptyH1Matches.length)add('empty_h1','low',emptyH1Matches.length+' H1 heading(s) contain no readable text or accessible label. Add a meaningful primary heading.',0,'content');
   if(headingSkips)add('heading_hierarchy','info','Heading levels skip steps in '+headingSkips+' place(s); review readability and accessibility rather than treating this as a Google Search ranking penalty.',0,'content');
  }
  const titleTagCount=[...head.matchAll(/<title\b[^>]*>/gi)].length;
