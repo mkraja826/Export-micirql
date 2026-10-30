@@ -31,6 +31,14 @@ export function inspectSeoHtml(html,url,options={}){
  const headingEvidence=[];
  for(let i=1;i<headingMatches.length;i++)if(headingLevels[i]>headingLevels[i-1]+1)
   headingEvidence.push({element:'heading',from:'H'+headingLevels[i-1],to:'H'+headingLevels[i],previousText:headingLabel(headingMatches[i-1]),currentText:headingLabel(headingMatches[i])});
+
+ // Advisory only: low readable body text is not by itself proof of poor SEO.
+ // Exclude boilerplate and non-visible source before measuring substantive text.
+ const bodyHtml=(html.match(/<body\b[^>]*>([\s\S]*?)<\/body\s*>/i)||[])[1]||'';
+ const contentHtml=bodyHtml.replace(/<(?:script|style|svg|nav|footer|header|aside|template|noscript)\b[^>]*>[\s\S]*?<\/(?:script|style|svg|nav|footer|header|aside|template|noscript)\s*>/gi,'');
+ const contentText=decode(contentHtml.replace(/<!--[\s\S]*?-->/g,' ').replace(/<[^>]+>/g,' ').replace(/\s+/g,' '));
+ const contentWordCount=contentText?contentText.split(/\s+/).filter(Boolean).length:0;
+ const contentHasTextBlock=/<(?:main|article|p)\b/i.test(contentHtml);
  const headingSkips=headingEvidence.length;
  const findings=[];
  const add=(code,severity,message,points=0,category='technical')=>findings.push({code,severity,message,points,category});
@@ -60,6 +68,7 @@ export function inspectSeoHtml(html,url,options={}){
  }else{
   if(h1Count===0)add('heading_count','low','No H1 was found. Review whether the page has a clear, descriptive visible heading; H1 tags are not a strict Google ranking requirement.',4,'content');
    else if(h1Count>1)add('heading_count','info','More than one H1 was found. Multiple H1 elements are allowed; check the page heading hierarchy for clarity.',0,'content');
+  if(contentHasTextBlock&&contentWordCount>0&&contentWordCount<35)add('thin_content_review','info','Only '+contentWordCount+' readable word(s) were found in primary page text. Check whether the page answers its intended purpose; short pages are not automatically SEO errors.',0,'content');
   if(emptyH1Matches.length)add('empty_h1','low',emptyH1Matches.length+' H1 heading(s) contain no readable text or accessible label. Add a meaningful primary heading.',0,'content');
   if(headingSkips)add('heading_hierarchy','info','Heading levels skip steps in '+headingSkips+' place(s); review readability and accessibility rather than treating this as a Google Search ranking penalty.',0,'content');
  }
