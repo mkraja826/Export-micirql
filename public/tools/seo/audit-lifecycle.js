@@ -1,9 +1,10 @@
 // Pure audit lifecycle helpers, reusable by browser UI and deterministic stress tests.
+import {SEO_SCORING_VERSION} from './inspector.js';
 export function reusablePages(checkpoint, origin, pages) {
  if(!checkpoint || JSON.stringify(checkpoint.pages)!==JSON.stringify(pages))return new Map();
  const allowed=new Set(pages), cached=new Map();
  for(const report of checkpoint.reports||[]){
-  if(!report||report.auditStatus!=='complete'||report.partial||!Number.isFinite(report.score))continue;
+  if(!report||report.auditStatus!=='complete'||report.partial||!Number.isFinite(report.score)||report.scoringVersion!==SEO_SCORING_VERSION)continue;
   const requested=report.requestedUrl||report.url;
   if(!allowed.has(requested))continue;
   try{if(new URL(report.url).origin!==origin)continue}catch{continue}
