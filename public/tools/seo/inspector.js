@@ -1,4 +1,5 @@
 // MiCirql SEO signals: deterministic source/DOM-based checks; not a search ranking prediction.
+export const SEO_SCORING_VERSION='micirql-seo-v3.2';
 const decode=s=>String(s||'').replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&#39;|&apos;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>').trim();
 function attribute(tag,name){
  const re=new RegExp('(?:^|\\s)'+name+'\\s*=\\s*(?:"([^"]*)"|\\x27([^\\x27]*)\\x27|([^\\s>]+))','i');
@@ -43,7 +44,7 @@ export function inspectSeoHtml(html,url,options={}){
  if(options.partial===true)incompleteReasons.push('Capture reported incomplete HTML');
  const isPartial=options.partial===true||incompleteHtml;
  if(errorPage){
-  return {url,title,description,robots,canonical,lang,viewport,h1Count,findings:[{code:'error_page',severity:'high',message:'The captured page appears to be an HTTP or Cloudflare error page. Audit the actual website instead.',points:0,category:'availability'}],scope:'static_html_only',auditStatus:'invalid_error_page',score:null,maxScore:100,scoreLabel:'Not scored',partial:isPartial,scoreExplanation:'Error pages cannot receive a meaningful SEO score.'};
+  return {url,title,description,robots,canonical,lang,viewport,h1Count,findings:[{code:'error_page',severity:'high',message:'The captured page appears to be an HTTP or Cloudflare error page. Audit the actual website instead.',points:0,category:'availability'}],scope:'static_html_only',scoringVersion:SEO_SCORING_VERSION,auditStatus:'invalid_error_page',score:null,maxScore:100,scoreLabel:'Not scored',partial:isPartial,scoreExplanation:'Error pages cannot receive a meaningful SEO score.'};
  }
  if(!title)add('missing_title','high','Add a descriptive page title.',20,'metadata');
  else if(title.length<15||title.length>65)add('title_length','info','Review title clarity and usefulness; Google does not enforce a fixed character limit.',0,'metadata');
@@ -174,6 +175,6 @@ export function inspectSeoHtml(html,url,options={}){
  // Category figures are deduction summaries, not independent 0–100 scores.
  const categoryDeductions={};
  for(const finding of findings){const key=finding.category||'technical';categoryDeductions[key]=(categoryDeductions[key]||0)+(finding.points||0)}
- const scoring={method:'weighted_html_finding_deductions',startingScore:100,totalDeductions:deductions,categoryDeductions,appliedScore:score,scoreFloor:0,coverage:isPartial?'partial_html_snapshot':'provided_html_only'};
- return {url,title,description,robots,canonical,lang,viewport,h1Count,ogTitle,ogDescription,ogImage,twitterCard,imageCount:imageTags.length,imagesMissingAlt,structuredDataCount,headingSkips,linkTypes,internalLinkTargets:[...new Set(internalLinkTargets)].slice(0,500),findings,scoring,scope:'static_html_only',auditStatus:isPartial?'partial':'complete',partial:isPartial,incompleteReasons,score,maxScore:100,scoreLabel:isPartial?'Provisional score':'SEO HTML score',scoreExplanation:'Heuristic static HTML score based on weighted findings. Not Google ranking, performance, accessibility, or a full-site SEO score.'};
+ const scoring={version:SEO_SCORING_VERSION,method:'weighted_html_finding_deductions',startingScore:100,totalDeductions:deductions,categoryDeductions,appliedScore:score,scoreFloor:0,coverage:isPartial?'partial_html_snapshot':'provided_html_only'};
+ return {url,title,description,robots,canonical,lang,viewport,h1Count,ogTitle,ogDescription,ogImage,twitterCard,imageCount:imageTags.length,imagesMissingAlt,structuredDataCount,headingSkips,linkTypes,internalLinkTargets:[...new Set(internalLinkTargets)].slice(0,500),findings,scoring,scoringVersion:SEO_SCORING_VERSION,scope:'static_html_only',auditStatus:isPartial?'partial':'complete',partial:isPartial,incompleteReasons,score,maxScore:100,scoreLabel:isPartial?'Provisional score':'SEO HTML score',scoreExplanation:'Heuristic static HTML score based on weighted findings. Not Google ranking, performance, accessibility, or a full-site SEO score.'};
 }
