@@ -313,3 +313,44 @@ test('incomplete captures flag findings as provisional and require recapture',()
  assert.ok(complete.findings.length>0);
  assert.ok(complete.findings.every(f=>f.requiresRecapture!==true));
 });
+
+test('Score Accuracy V3.2: optional canonical preference is advisory and carries no deduction',()=>{
+ const html='<html lang="en"><head><title>Dental services in Hyderabad</title><meta name="description" content="Explore our dental services and clinical team."></head><body><h1>Dental services</h1></body></html>';
+ const report=inspectSeoHtml(html,'https://example.com/services');
+ const issue=report.findings.find(item=>item.code==='missing_canonical');
+ assert.equal(issue?.severity,'info');
+ assert.equal(issue?.points,0);
+ assert.equal(report.scoring.categoryDeductions.indexability,0);
+});
+test('Score Accuracy V3.2: title and description length are not Google ranking penalties',()=>{
+ const base='<html lang="en"><head><title>Very short</title><meta name="description" content="Brief."></head><body><h1>Services</h1></body></html>';
+ const long='<html lang="en"><head><title>'+('Descriptive title '.repeat(10))+'</title><meta name="description" content="'+('Descriptive information for users. '.repeat(12))+'"></head><body><h1>Services</h1></body></html>';
+ const shortReport=inspectSeoHtml(base,'https://example.com/');
+ const longReport=inspectSeoHtml(long,'https://example.com/');
+ for(const report of [shortReport,longReport]){
+  for(const code of ['title_length','description_length']){
+   const issue=report.findings.find(item=>item.code===code);
+   assert.ok(issue,code);
+   assert.equal(issue.severity,'info');
+   assert.equal(issue.points,0);
+  }
+ }
+ assert.equal(shortReport.score,longReport.score);
+});
+test('Score Accuracy V3.2: heading-level skips are advisory without penalty',()=>{
+ const html='<html lang="en"><head><title>Sample heading structure</title></head><body><h1>Services</h1><h3>Root canal care</h3></body></html>';
+ const report=inspectSeoHtml(html,'https://example.com/services');
+ const issue=report.findings.find(item=>item.code==='heading_hierarchy');
+ assert.equal(issue?.severity,'info');
+ assert.equal(issue?.points,0);
+});
+test('Score Accuracy V3.2: identical duplicate canonicals do not trigger a false conflict',()=>{
+ const html='<html lang="en"><head><title>Services provided by our team</title><link rel="canonical" href="https://example.com/services"><link rel="canonical" href="/services#top"></head><body><h1>Services</h1></body></html>';
+ const report=inspectSeoHtml(html,'https://example.com/services');
+ assert.equal(report.findings.some(item=>item.code==='multiple_canonicals'),false);
+ const repeated=report.findings.find(item=>item.code==='repeated_canonical_tags');
+ assert.equal(repeated?.severity,'info');
+ assert.equal(repeated?.points,0);
+ const conflict=inspectSeoHtml(html.replace('href="/services#top"','href="https://example.com/other"'),'https://example.com/services');
+ assert.ok(conflict.findings.some(item=>item.code==='multiple_canonicals'&&item.severity==='high'&&item.points>0));
+});
