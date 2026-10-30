@@ -235,6 +235,7 @@ try{
    });
    window.postMessage({source:'micirql-extension',type:'MICIRQL_EXTENSION_READY',protocol:3,capabilities:['seo-http-evidence'],extensionVersion:'qa'},location.origin);
   });
+  await page.locator('#extension-status[data-connected="yes"]').waitFor({state:'attached',timeout:10000});
   // A previous complete report is saved locally; the next audit must automatically compare it.
   const historicUrl='https://recheck.example.test/';
   await page.evaluate(url=>{
