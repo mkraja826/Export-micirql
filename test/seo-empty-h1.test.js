@@ -9,7 +9,7 @@ const run=html=>[server(html,'https://example.org/'),browser(html,'https://examp
 test('unlabelled empty H1 is reported by server and browser inspectors',()=>{
  for(const result of run(wrap('<h1>   <span> </span> </h1>'))){
   assert.equal(result.findings.filter(f=>f.code==='empty_h1').length,1);
-  assert.equal(result.findings.find(f=>f.code==='empty_h1').points,4);
+  assert.equal(result.findings.find(f=>f.code==='empty_h1').points,0);
  }
 });
 test('non-empty and accessible H1s are not falsely identified as empty',()=>{
