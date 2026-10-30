@@ -34,14 +34,11 @@ test('SEO Studio offers a bounded browser-first multi-page audit',()=>{
  assert.match(page,/siteExport\.disabled=false/);
 });
 
-test('multi-page SEO report records cross-page duplicate metadata without altering page scores',()=>{
+test('multi-page SEO report uses public-page metadata comparisons without altering page scores',()=>{
  const page=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
- assert.match(page,/duplicate_title/);
- assert.match(page,/duplicate_description/);
- assert.match(page,/duplicate_canonical/);
- assert.match(page,/affectedUrls:urls/);
+ assert.match(page,/siteFindings\.push\(\.\.\.crossPageMetadataFindings\(reports\)\)/);
  assert.match(page,/reports,siteFindings,/);
- assert.match(page,/report\.partial\|\|report\.auditStatus!=='complete'/);
+ assert.match(page,/crossPageMetadataFindings/);
 });
 
 test('site audit provides accessible expandable page-level findings',()=>{
@@ -225,10 +222,10 @@ test('SEO Studio inline module parses, so extension connection detection can ini
 });
 
 test('cross-page canonical grouping resolves relative URLs and ignores trailing slash',()=>{
- const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
- assert.match(html,/new URL\(report\[field\],report\.url\)/);
- assert.match(html,/c\.hash=''/);
- assert.match(html,/c\.pathname=c\.pathname\.replace/);
+ const lifecycle=readFileSync(new URL('../public/tools/seo/audit-lifecycle.js',import.meta.url),'utf8');
+ assert.match(lifecycle,/new URL\(value,base\)/);
+ assert.match(lifecycle,/c\.hash=''/);
+ assert.match(lifecycle,/c\.pathname=c\.pathname\.replace/);
 });
 
 test('SEO issue dashboard supports mobile-friendly finding and URL search',()=>{
