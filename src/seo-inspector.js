@@ -46,25 +46,29 @@ export function inspectSeoHtml(html,url,options={}){
   return {url,title,description,robots,canonical,lang,viewport,h1Count,findings:[{code:'error_page',severity:'high',message:'The captured page appears to be an HTTP or Cloudflare error page. Audit the actual website instead.',points:0,category:'availability'}],scope:'static_html_only',auditStatus:'invalid_error_page',score:null,maxScore:100,scoreLabel:'Not scored',partial:isPartial,scoreExplanation:'Error pages cannot receive a meaningful SEO score.'};
  }
  if(!title)add('missing_title','high','Add a descriptive page title.',20,'metadata');
- else if(title.length<15||title.length>65)add('title_length','low','Review title length (rough guideline: 15–65 characters).',5,'metadata');
+ else if(title.length<15||title.length>65)add('title_length','info','Review title clarity and usefulness; Google does not enforce a fixed character limit.',0,'metadata');
  // Repeated trailing brand segments usually indicate a duplicated title template.
  const titleSegments=title.split(/\s+\|\s+/).map(x=>x.trim()).filter(Boolean);
  if(titleSegments.length>=3&&titleSegments.at(-1).toLowerCase()===titleSegments.at(-2).toLowerCase())
   add('duplicate_title_brand','low','The page title repeats its final brand segment: '+titleSegments.at(-1)+'. Review title template composition.',4,'metadata');
  if(!description)add('missing_description','medium','Add a unique meta description.',12,'metadata');
- else if(description.length<70||description.length>170)add('description_length','low','Review description length (rough guideline: 70–170 characters).',4,'metadata');
+ else if(description.length<70||description.length>170)add('description_length','info','Review description relevance and clarity; Google snippets have no fixed character limit.',0,'metadata');
  if(isPartial){
   add('heading_unverified','info','Heading structure is not verified in a partial HTML capture. Reinspect the fully loaded page before recommending heading changes.',0,'content');
  }else{
   if(h1Count!==1)add('heading_count','medium','Use one clear H1 heading.',10,'content');
-  if(headingSkips)add('heading_hierarchy','low','Heading levels skip steps in '+headingSkips+' place(s).',4,'content');
+  if(headingSkips)add('heading_hierarchy','info','Heading levels skip steps in '+headingSkips+' place(s); review readability and accessibility rather than treating this as a Google Search ranking penalty.',0,'content');
  }
  const titleTagCount=[...head.matchAll(/<title\b[^>]*>/gi)].length;
  const descriptionTagCount=meta.filter(t=>attribute(t,'name').toLowerCase()==='description').length;
  if(titleTagCount>1)add('multiple_titles','medium',titleTagCount+' title tags found in the document head; use one unambiguous title.',6,'metadata');
  if(descriptionTagCount>1)add('multiple_descriptions','medium',descriptionTagCount+' meta description tags found; use one unambiguous description.',6,'metadata');
- if(canonicalTags.length>1)add('multiple_canonicals','high','Multiple canonical link elements can create conflicting indexability signals.',12,'indexability');
- if(!canonical)add('missing_canonical','medium','Declare a canonical URL.',8,'indexability');
+ if(canonicalTags.length>1){
+  const canonicalValues=canonicalTags.map(tag=>attribute(tag,'href')).map(value=>{try{const candidate=new URL(value,url);candidate.hash='';return candidate.href}catch{return value.trim()}});
+  if(new Set(canonicalValues).size>1)add('multiple_canonicals','high','Conflicting canonical link targets appear in the page head; verify which URL should represent this page.',12,'indexability');
+  else add('repeated_canonical_tags','info','Repeated identical canonical declarations were found; these are redundant but not conflicting.',0,'indexability');
+ }
+ if(!canonical)add('missing_canonical','info','No HTML canonical preference was declared. Google may choose a canonical automatically; review only if duplicate URLs are a concern.',0,'indexability');
  else{try{if(!['http:','https:'].includes(new URL(canonical,url).protocol))add('canonical_invalid','medium','Canonical URL is invalid.',7,'indexability')}catch{add('canonical_invalid','medium','Canonical URL is invalid.',7,'indexability')}}
  if(!lang)add('missing_language','medium','Add the document language attribute.',5,'technical');
  if(!viewport)add('missing_viewport','medium','Add a mobile viewport meta tag.',8,'technical');
