@@ -65,7 +65,7 @@ import {inspectSeoHtml,SEO_SCORING_VERSION} from './inspector.js';
 import {compareSeoAudits} from './benchmark-compare.js';
 import {interpretHttpEvidence,reconcileHttpSeoScore} from './http-evidence.js';
 import {seoPagesCsv,seoIssuesCsv} from './csv-export.js';
-import {reusablePages,auditCoverage,uniqueFinalPages,httpEvidenceCoverage,crossPageMetadataFindings} from './audit-lifecycle.js';
+import {reusablePages,auditCoverage,uniqueFinalPages,httpEvidenceCoverage,crossPageMetadataFindings,crossPageContentAndStructureFindings} from './audit-lifecycle.js';
 const benchmarkButton=document.getElementById('benchmark-run');
 benchmarkButton.addEventListener('click',async()=>{
  const result=document.getElementById('benchmark-results');result.replaceChildren();
@@ -260,9 +260,12 @@ siteButton.addEventListener('click',async()=>{
    let lastError=null;let partialReport=null;let failedHttpEvidence=null;
    for(let attempt=1;attempt<=2;attempt++){
     try{
+     const requestStart=performance.now();
      const response=isDemo?{ok:true,html:demoByUrl.get(pages[i]),url:pages[i],partial:false}:await extensionRequest('MICIRQL_SEO_READ','MICIRQL_SEO_RESULT',pages[i],90000);
      if(!response.ok){failedHttpEvidence=response.httpEvidence||null;throw Error(response.error||'Inspection failed');}
      const report=inspectSeoHtml(response.html,response.url||pages[i],{partial:response.partial===true});
+     report.responseElapsedMs=Math.round(performance.now()-requestStart);
+     if(!isDemo&&report.responseElapsedMs>=3000)report.findings.push({code:'slow_capture_response',severity:'info',category:'performance',points:0,message:'Browser capture required '+report.responseElapsedMs+' ms. This includes extension and rendering overhead, not verified server latency.'});
      report.requestedUrl=pages[i];report.captureEvidence={source:isDemo?'demo_html':'browser_extension_html',partialResponse:response.partial===true,htmlBytes:new TextEncoder().encode(String(response.html||'')).length,httpEvidence:response.httpEvidence||{observed:false,status:null,headers:{}}};
      const httpCheck=interpretHttpEvidence(response.httpEvidence,report.canonical,report.url);
      report.httpVerification={verified:httpCheck.verified,status:httpCheck.status??null};
@@ -300,6 +303,7 @@ siteButton.addEventListener('click',async()=>{
   // Cross-page findings are separate from individual page scores: do not
   // retroactively alter per-page scores based on a capped discovery sample.
   siteFindings.push(...crossPageMetadataFindings(reports));
+  siteFindings.push(...crossPageContentAndStructureFindings(reports,url.origin));
   // Missing from the selected crawl is NOT proof of a broken link.
   const decodeTemplate=value=>{try{return decodeURIComponent(value)}catch{return value}};
   const normalizeLink=u=>{try{const parsed=new URL(u);parsed.hash='';parsed.search='';parsed.pathname=parsed.pathname.replace(/\/+$/,'')||'/';return parsed.href}catch{return u}};
