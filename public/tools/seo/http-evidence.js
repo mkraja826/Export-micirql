@@ -48,6 +48,9 @@ export function interpretHttpEvidence(evidence, htmlCanonical='', pageUrl=''){
 export function reconcileHttpSeoScore(report,httpCheck){
  if(!report||!httpCheck?.verified||!Number.isInteger(httpCheck.status))return report;
  const status=httpCheck.status;
+ // A soft error screen can be identified from its HTML even if the server sends 200.
+ // Never turn that previously excluded screen into a perfect-scoring SEO page.
+ if(report.auditStatus==='invalid_error_page'&&status<400)return report;
  const authRoute=report.pageRole==='application'&&/(?:^|\/)(?:login|signin|signup|register|registration|forgot-password|reset-password|password-reset)(?:\/|$)/.test(new URL(report.url).pathname.toLowerCase());
  if(authRoute){
   const intentional=report.findings.filter(item=>item.code==='http_noindex');
