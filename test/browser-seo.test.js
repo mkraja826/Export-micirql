@@ -2244,3 +2244,5 @@ test('site report now records cross-page content, depth and observed redirect di
  assert.match(html,/site-save-pdf-now/);
  assert.match(html,/const issueAppendix=issues\.map\(issue=>/);
 });
+
+test('PDF gate stays disabled while link verification is pending',()=>{const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');assert.ok(html.includes('siteReport.linkVerificationPending=verificationPending'));assert.ok(html.includes('sitePrintButton.disabled=siteReport.linkVerificationPending===true'));});
