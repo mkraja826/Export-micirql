@@ -993,6 +993,12 @@ siteButton.addEventListener('click',async()=>{
       downloadReport('csv',lines.join('\r\n'),'text/csv;charset=utf-8');
      });
      details.append(statusLine,startButton,stopButton,retryButton,recheckButton,exportButton);
+     // Start the existing bounded verifier automatically once per freshly rendered audit.
+     // Preserve manual controls for retries and avoid re-triggering on issue-panel rerenders.
+     if(!siteReport.linkAutoVerificationStarted&&completed.size<queue.length){
+      siteReport.linkAutoVerificationStarted=true;
+      startButton.click();
+     }
     }
     const allObservedPages=(issue.pageEvidence||[]).filter(page=>page.observed||(page.elements||[]).length);
     const observedPages=allObservedPages.slice(0,8);
