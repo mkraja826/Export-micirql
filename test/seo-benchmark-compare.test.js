@@ -4,7 +4,7 @@ import {compareSeoAudits} from '../src/seo-benchmark-compare.js';
 import {compareSeoAudits as browserCompare} from '../public/tools/seo/benchmark-compare.js';
 const site='https://badseo.dev';
 const page=(requestedUrl,url,findings=[],httpObserved=false)=>({requestedUrl,url,auditStatus:'complete',partial:false,findings:findings.map(code=>({code})),captureEvidence:{httpEvidence:{observed:httpObserved}}});
-const audit=(reports,extras={})=>({website:site,reports,selectedPageUrls:reports.map(r=>r.requestedUrl),failures:[],siteFindings:[],...extras});
+const audit=(reports,extras={})=>({website:site,scoringVersion:'micirql-seo-v3.2',reports,selectedPageUrls:reports.map(r=>r.requestedUrl),failures:[],siteFindings:[],...extras});
 test('before and after distinguish requested inspections from unique final pages',()=>{
  const before=audit([page(site+'/',site+'/'),page(site+'/redirect/chain-1',site+'/')]);
  const after=audit([page(site+'/',site+'/'),page(site+'/redirect/chain-1',site+'/',[],true)]);
@@ -89,4 +89,39 @@ test('next check prioritizes high-severity unresolved findings, not rank predict
  const result=compareSeoAudits(earlier,latest);
  assert.equal(result.nextCheck.code,'missing_title');
  assert.equal(result.nextCheck.severity,'high');
+});
+
+test('scoring-version changes block score deltas and claimed issue resolutions',()=>{
+ const url=site+'/test';
+ const old=audit([{...page(url,url,['missing_canonical']),pageRole:'public',score:70}],{scoringVersion:'micirql-seo-v3.1'});
+ const current=audit([{...page(url,url,[]),pageRole:'public',score:100}]);
+ const result=compareSeoAudits(old,current);
+ assert.equal(result.scoringVersions.compatible,false);
+ assert.equal(result.scoreComparison,null);
+ assert.deepEqual(result.noLongerReported,[]);
+ assert.deepEqual(result.newlyReported,[]);
+ assert.deepEqual(result.comparablePages,[]);
+ assert.equal(result.nextCheck,null);
+ assert.deepEqual(result.notComparedPages,[url]);
+ assert.match(result.caution,/Scoring rules differ/);
+ assert.deepEqual(result,browserCompare(old,current));
+});
+test('legacy reports without scoring versions are never mistaken for comparable scores',()=>{
+ const url=site+'/legacy';
+ const old=audit([{...page(url,url,['missing_canonical']),score:70,pageRole:'public'}],{scoringVersion:undefined});
+ const current=audit([{...page(url,url,[]),score:100,pageRole:'public'}]);
+ const result=compareSeoAudits(old,current);
+ assert.equal(result.scoreComparison,null);
+ assert.equal(result.findingsComparable,false);
+ assert.deepEqual(result.noLongerReported,[]);
+ assert.match(result.caution,/no recorded scoring version/);
+});
+test('same-version audits with identical coverage preserve legitimate comparisons',()=>{
+ const url=site+'/healthy';
+ const before=audit([{...page(url,url,['missing_title']),score:70,pageRole:'public'}]);
+ const after=audit([{...page(url,url,[]),score:85,pageRole:'public'}]);
+ const result=compareSeoAudits(before,after);
+ assert.equal(result.scoringVersions.compatible,true);
+ assert.deepEqual(result.scoreComparison,{before:70,after:85,change:15,publicPages:1});
+ assert.deepEqual(result.noLongerReported,['page:'+url+'|missing_title']);
 });
