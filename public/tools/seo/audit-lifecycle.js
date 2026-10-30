@@ -67,3 +67,43 @@ export function httpEvidenceCoverage(reports=[]){
  }
  return {analyzed,observed,unverified:analyzed-observed,percent:analyzed?Math.round(observed/analyzed*100):0,reasons};
 }
+
+// Cross-page comparisons are advisory evidence for the PDF, never deductions
+// against the per-page score. Only compare complete, public, potentially
+// indexable final HTML pages and avoid penalizing intentional canonical copies.
+export function crossPageMetadataFindings(reports=[]){
+ const publicPages=uniqueFinalPages(reports).filter(report=>
+  (report.pageRole||'public')==='public'&&Number.isFinite(report.score)&&
+  !(report.findings||[]).some(item=>item.code==='noindex'||item.code==='http_noindex')
+ );
+ const normalizeCanonical=(value,base)=>{
+  try{const c=new URL(value,base);if(!['http:','https:'].includes(c.protocol))return null;c.hash='';c.pathname=c.pathname.replace(/\/+$/,'')||'/';return c.href}catch{return null}
+ };
+ const indexable=publicPages.filter(report=>{
+  if(!report.canonical?.trim())return true;
+  return normalizeCanonical(report.canonical,report.url)===normalizeCanonical(report.url,report.url);
+ });
+ const findings=[];
+ for(const [field,code,label,scope] of [
+  ['title','duplicate_title','page title',indexable],
+  ['description','duplicate_description','meta description',indexable],
+  ['canonical','duplicate_canonical','canonical target',publicPages]
+ ]){
+  const groups=new Map();
+  for(const report of scope){
+   if(!report[field]?.trim())continue;
+   const key=field==='canonical'?normalizeCanonical(report[field],report.url):report[field].trim().replace(/\s+/g,' ').toLocaleLowerCase();
+   if(!key)continue;
+   if(!groups.has(key))groups.set(key,[]);
+   groups.get(key).push(report.url);
+  }
+  for(const urls of groups.values()){
+   if(urls.length<2)continue;
+   const isCanonical=field==='canonical';
+   findings.push({code,severity:isCanonical?'info':'medium',category:isCanonical?'indexability':'metadata',
+    message:isCanonical?'Shared canonical target found on '+urls.length+' inspected public pages. This can be intentional for near-duplicate content; review rather than assuming an error.':'Same '+label+' found on '+urls.length+' independently indexable public pages. Review whether these pages have distinct search intent.',
+    affectedUrls:urls});
+  }
+ }
+ return findings;
+}
