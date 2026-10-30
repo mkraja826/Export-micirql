@@ -239,7 +239,7 @@ try{
   // A previous complete report is saved locally; the next audit must automatically compare it.
   const historicUrl='https://recheck.example.test/';
   await page.evaluate(url=>{
-   const previous={date:new Date(Date.now()-120000).toISOString(),website:new URL(url).origin,selected:1,analyzed:1,failed:0,averageScore:70,auditedUrls:[url],completedUrls:[url],issues:[{code:'missing_canonical',severity:'medium',affectedUrls:[url]}]};
+   const previous={scoringVersion:'micirql-seo-v3.2',date:new Date(Date.now()-120000).toISOString(),website:new URL(url).origin,selected:1,analyzed:1,failed:0,averageScore:70,auditedUrls:[url],completedUrls:[url],issues:[{code:'missing_canonical',severity:'medium',affectedUrls:[url]}]};
    localStorage.setItem('micirql-seo-history-v1:'+new URL(url).origin,JSON.stringify([previous]));
   },historicUrl);
   await page.locator('#site-url').fill('recheck.example.test/');
