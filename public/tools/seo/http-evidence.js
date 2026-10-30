@@ -42,3 +42,42 @@ export function interpretHttpEvidence(evidence, htmlCanonical='', pageUrl=''){
  }
  return {verified:true,status,redirects:chain,findings:[...findings,...redirectFindings]};
 }
+
+// Reconcile browser-confirmed HTTP facts with the HTML-only score. This is a
+// read-only calculation; unobserved headers/status never become deductions.
+export function reconcileHttpSeoScore(report,httpCheck){
+ if(!report||!httpCheck?.verified||!Number.isInteger(httpCheck.status))return report;
+ const status=httpCheck.status;
+ const authRoute=report.pageRole==='application'&&/(?:^|\/)(?:login|signin|signup|register|registration|forgot-password|reset-password|password-reset)(?:\/|$)/.test(new URL(report.url).pathname.toLowerCase());
+ if(authRoute){
+  const intentional=report.findings.filter(item=>item.code==='http_noindex');
+  if(intentional.length){
+   report.contextualFindings=[...(report.contextualFindings||[]),...intentional.map(item=>({...item,reason:'Authentication page: HTTP noindex is an expected exclusion from public search.'}))];
+   report.findings=report.findings.filter(item=>item.code!=='http_noindex');
+  }
+ }
+ // A page returning an observed error code does not have a meaningful HTML
+ // search-readiness score, even if its custom error template has good metadata.
+ if(status>=400&&status<=599){
+  report.score=null;
+  report.scoreLabel='Not scored';
+  report.auditStatus='invalid_http_status';
+  report.scoreExplanation='Not scored: browser-confirmed HTTP '+status+' response. The HTML belongs to an error/unavailable response, not an indexable page assessment.';
+  report.scoring={...(report.scoring||{}),appliedScore:null,excludedReason:'verified_http_'+status,coverage:'verified_http_error'};
+  return report;
+ }
+ // HTTP noindex and HTML meta noindex carry the same indexability signal.
+ // Preserve both findings, but never deduct twice for the same restriction.
+ const hasHtmlNoindex=report.findings.some(item=>item.code==='noindex');
+ for(const item of report.findings){
+  if(item.code==='http_noindex')item.points=hasHtmlNoindex?0:25;
+  else if(item.code==='http_canonical_conflict')item.points=12;
+ }
+ const deductions=report.findings.reduce((sum,item)=>sum+(item.points||0),0);
+ const categoryDeductions={};
+ for(const item of report.findings){const category=item.category||'technical';categoryDeductions[category]=(categoryDeductions[category]||0)+(item.points||0);}
+ report.score=Math.max(0,100-deductions);
+ report.scoring={...(report.scoring||{}),startingScore:100,totalDeductions:deductions,categoryDeductions,appliedScore:report.score,scoreFloor:0,method:'weighted_html_and_verified_http_deductions',coverage:report.partial?'partial_html_plus_verified_http':'html_plus_verified_http'};
+ report.scoreExplanation='Heuristic HTML score with observed HTTP indexability signals. Not a Google ranking, performance, accessibility or full-site SEO score.';
+ return report;
+}
