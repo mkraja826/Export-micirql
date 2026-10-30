@@ -2226,3 +2226,11 @@ test('scoring methodology provenance guards the legacy progress PDF and public-o
  assert.ok(html.includes('bar.title=new Date(run.date).toLocaleDateString()'));
  assert.ok(html.includes("run.scoringVersion||'legacy / unknown'"));
 });
+
+test('link verification starts automatically once per audit without inventing broken links',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/if\(!siteReport\.linkAutoVerificationStarted&&completed\.size<queue\.length\)/);
+ assert.match(html,/siteReport\.linkAutoVerificationStarted=true;\s*startButton\.click\(\)/);
+ assert.match(html,/row\.classification=row\.status===404\|\|row\.status===410\?'broken'/);
+ assert.match(html,/row\.status===404\|\|row\.status===410\?'broken':Number\.isInteger\(row\.status\)/);
+});
