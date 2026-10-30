@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {inspectSeoHtml} from '../src/seo-inspector.js';
+import {inspectSeoHtml,SEO_SCORING_VERSION} from '../src/seo-inspector.js';
 
 test('well formed page has no basic findings',()=>{
  const html='<html lang="en"><head><title>Example Business</title><meta name="description" content="An example business"><meta name="viewport" content="width=device-width"><link rel="canonical" href="https://example.com/"></head><body><h1>Welcome</h1></body></html>';
@@ -353,4 +353,15 @@ test('Score Accuracy V3.2: identical duplicate canonicals do not trigger a false
  assert.equal(repeated?.points,0);
  const conflict=inspectSeoHtml(html.replace('href="/services#top"','href="https://example.com/other"'),'https://example.com/services');
  assert.ok(conflict.findings.some(item=>item.code==='multiple_canonicals'&&item.severity==='high'&&item.points>0));
+});
+
+test('scoring methodology is explicitly versioned for valid, partial and error-page audits',()=>{
+ const healthy=inspectSeoHtml('<html><head><title>Example service page title</title></head><body><h1>Welcome</h1></body></html>','https://example.com/');
+ const partial=inspectSeoHtml('<html><head><title>Example service page title</title></head><body><h1>Welcome</h1></body></html>','https://example.com/',{partial:true});
+ const error=inspectSeoHtml('<html><head><title>404 not found</title></head></html>','https://example.com/missing');
+ assert.equal(SEO_SCORING_VERSION,'micirql-seo-v3.2');
+ for(const item of [healthy,partial,error])assert.equal(item.scoringVersion,SEO_SCORING_VERSION);
+ assert.equal(healthy.scoring.version,SEO_SCORING_VERSION);
+ assert.equal(partial.scoring.version,SEO_SCORING_VERSION);
+ assert.equal(error.score,null);
 });
