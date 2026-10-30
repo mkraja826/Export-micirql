@@ -944,6 +944,10 @@ siteButton.addEventListener('click',async()=>{
       siteReport.issueCenter=issues.map(issue=>({...issue}));
       siteReport.linkVerification=[...completed.values()];
       // Do not call renderIssues() here: constructing link controls invokes refresh() and would recurse.
+      // The client PDF must not silently omit verification still in progress.
+      const verificationPending=running||completed.size<queue.length;
+      sitePrintButton.disabled=verificationPending;
+      const quickPdf=document.getElementById('site-save-pdf-now');if(quickPdf){quickPdf.disabled=verificationPending;quickPdf.textContent=verificationPending?'Checking internal links before PDF…':'Save PDF report';}
       quickProgress.value=completed.size;quickState.textContent=running?(stop?'Pausing after active checks finish…':'Checking link destinations in Chrome…'):completed.size===queue.length?'All selected destinations checked. Review unverified outcomes before drawing conclusions.':completed.size?'Verification paused or incomplete. Resume checking remaining destinations.':'Not started: link destination responses have not been checked.';
       quickStart.disabled=running||completed.size===queue.length;
       const checked=completed.size, broken=[...completed.values()].filter(x=>x.classification==='broken').length;
