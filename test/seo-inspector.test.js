@@ -359,7 +359,7 @@ test('scoring methodology is explicitly versioned for valid, partial and error-p
  const healthy=inspectSeoHtml('<html><head><title>Example service page title</title></head><body><h1>Welcome</h1></body></html>','https://example.com/');
  const partial=inspectSeoHtml('<html><head><title>Example service page title</title></head><body><h1>Welcome</h1></body></html>','https://example.com/',{partial:true});
  const error=inspectSeoHtml('<html><head><title>404 not found</title></head></html>','https://example.com/missing');
- assert.equal(SEO_SCORING_VERSION,'micirql-seo-v3.2');
+ assert.equal(SEO_SCORING_VERSION,'micirql-seo-v3.3');
  for(const item of [healthy,partial,error])assert.equal(item.scoringVersion,SEO_SCORING_VERSION);
  assert.equal(healthy.scoring.version,SEO_SCORING_VERSION);
  assert.equal(partial.scoring.version,SEO_SCORING_VERSION);
