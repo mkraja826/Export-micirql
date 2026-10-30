@@ -88,11 +88,11 @@ benchmarkButton.addEventListener('click',async()=>{
   const scope=document.createElement('p');scope.className='hint small';scope.textContent='Comparing '+comparison.comparablePages.length+' exact pages with complete inspections in both reports. '+comparison.caution;result.append(scope);
   const score=document.createElement('p');score.className='notice';
   if(comparison.scoreComparison){const s=comparison.scoreComparison;score.textContent='Public-page HTML score: '+s.before+'/100 before, '+s.after+'/100 after ('+(s.change>0?'+':'')+s.change+' points across '+s.publicPages+' matching public pages). This is not a Google ranking score.';}
-  else score.textContent='Score change: not comparable. Both audits need the same fully checked pages and public-page scores to show a trustworthy difference.';
+  else score.textContent='Score change: not comparable. '+comparison.caution+' Both audits need matching scoring methodology and fully checked public pages to show a trustworthy difference.';
   result.append(score);
   const next=document.createElement('p');next.className='notice';
   if(comparison.nextCheck){const issue=comparison.nextCheck;next.textContent='Recommended next check: '+issue.code.replaceAll('_',' ')+' on '+issue.url+' ('+issue.severity+' priority). Inspect the page and re-audit after any published change.';}
-  else next.textContent=comparison.notComparedPages.length?'Recommended next check: re-audit the pages not compared before treating missing findings as repairs.':'No outstanding finding was detected on the comparable pages. This does not guarantee perfect SEO.';
+  else next.textContent=!comparison.findingsComparable?'Scoring methodology differs or is unrecorded. Re-audit under the current rules before interpreting score or finding changes.':comparison.notComparedPages.length?'Recommended next check: re-audit the pages not compared before treating missing findings as repairs.':'No outstanding finding was detected on the comparable pages. This does not guarantee perfect SEO.';
   result.append(next);
   const friendly=key=>{const separator=key.indexOf('|'),raw=key.slice(separator+1),split=raw.lastIndexOf('|');return{url:split===-1?raw:raw.slice(0,split),code:split===-1?'finding':raw.slice(split+1)};};
   const changes=document.createElement('div');changes.className='compare-changes';
@@ -598,22 +598,24 @@ siteButton.addEventListener('click',async()=>{
    const quickCompare=document.createElement('section');quickCompare.id='site-quick-comparison';quickCompare.setAttribute('aria-label','Automatic before and after comparison');quickCompare.setAttribute('aria-live','polite');quickCompare.className='quick-seo-compare';historyPanel.insertBefore(quickCompare,chart);
    const compareHistory=()=>{
     const previous=auditHistory[Number(historySelect.value)];if(!previous)return;
+    const scoreVersionMatches=Boolean(previous.scoringVersion&&previous.scoringVersion===summarySnapshot.scoringVersion);
+    const versionCaution=scoreVersionMatches?'':' Scoring methodology differs or is unknown (earlier: '+(previous.scoringVersion||'unrecorded')+', current: '+summarySnapshot.scoringVersion+'). Score movement and disappeared findings cannot be interpreted as website fixes.';
     const currentUrls=new Set(summarySnapshot.completedUrls);
     const oldUrls=Array.isArray(previous.completedUrls)?new Set(previous.completedUrls):null;
     const sameCoverage=oldUrls!==null&&oldUrls.size===currentUrls.size&&[...currentUrls].every(page=>oldUrls.has(page));
     const exactScoredCoverage=sameCoverage&&currentUrls.size===summarySnapshot.selected&&oldUrls.size===previous.selected&&summarySnapshot.failed===0&&previous.failed===0&&summarySnapshot.analyzed===summarySnapshot.selected&&previous.analyzed===previous.selected;
-    const scoreDelta=!exactScoredCoverage||summarySnapshot.averageScore===null||!Number.isFinite(previous.averageScore)?'Not comparable (different, incomplete or unknown page coverage)':(summarySnapshot.averageScore-previous.averageScore>0?'+':'')+(summarySnapshot.averageScore-previous.averageScore)+' points';
+    const scoreDelta=!scoreVersionMatches?'Not comparable (scoring methodology changed or unknown)':!exactScoredCoverage||summarySnapshot.averageScore===null||!Number.isFinite(previous.averageScore)?'Not comparable (different, incomplete or unknown page coverage)':(summarySnapshot.averageScore-previous.averageScore>0?'+':'')+(summarySnapshot.averageScore-previous.averageScore)+' points';
     const keys=snapshot=>new Set(snapshot.issues.flatMap(issue=>issue.affectedUrls.map(page=>issue.code+'|'+page)));
     const now=keys(summarySnapshot),before=keys(previous);
     const comparableUrls=oldUrls?new Set([...currentUrls].filter(page=>oldUrls.has(page))):new Set();
     const comparableKey=key=>comparableUrls.has(key.slice(key.indexOf('|')+1));
-    const newly=[...now].filter(key=>comparableKey(key)&&!before.has(key)),cleared=[...before].filter(key=>comparableKey(key)&&!now.has(key)),recurring=[...now].filter(key=>comparableKey(key)&&before.has(key));
+    const newly=scoreVersionMatches?[...now].filter(key=>comparableKey(key)&&!before.has(key)):[],cleared=scoreVersionMatches?[...before].filter(key=>comparableKey(key)&&!now.has(key)):[],recurring=scoreVersionMatches?[...now].filter(key=>comparableKey(key)&&before.has(key)):[];
     const coverageMessage=!oldUrls?'Older audit did not store complete-page evidence; page-level resolution cannot be confirmed.':sameCoverage?'Complete audited URL sets match.':'Different completed URL sets: changes only compare '+comparableUrls.size+' overlapping pages.';
-    diff.textContent='Before & after · Compared with '+new Date(previous.date).toLocaleString()+': average score change '+scoreDelta+'; '+newly.length+' newly observed, '+cleared.length+' no longer observed, '+recurring.length+' recurring issue/page occurrences on comparable pages. '+coverageMessage+' Different page sets may make average score changes misleading.';
+    diff.textContent='Before & after · Compared with '+new Date(previous.date).toLocaleString()+': average score change '+scoreDelta+'; '+newly.length+' newly observed, '+cleared.length+' no longer observed, '+recurring.length+' recurring issue/page occurrences on comparable pages. '+coverageMessage+versionCaution+' Different page sets may make average score changes misleading.';
     quickCompare.replaceChildren();
     const quickTitle=document.createElement('h4');quickTitle.textContent='What changed since your earlier audit?';quickCompare.append(quickTitle);
     const quickExplanation=document.createElement('p');quickExplanation.className='hint small';quickExplanation.textContent='Automatically compared with the selected earlier audit saved in this browser. No files to upload. Only fully checked pages in both runs count; absent findings are not proof of higher rankings.';quickCompare.append(quickExplanation);
-    const unmatchedUrls=new Set([...(previous.auditedUrls||[]),...(summarySnapshot.auditedUrls||[]),...(oldUrls||[]),...currentUrls]);for(const matched of comparableUrls)unmatchedUrls.delete(matched);
+    const unmatchedUrls=new Set([...(previous.auditedUrls||[]),...(summarySnapshot.auditedUrls||[]),...(oldUrls||[]),...currentUrls]);if(scoreVersionMatches)for(const matched of comparableUrls)unmatchedUrls.delete(matched);
     const quickGrid=document.createElement('div');quickGrid.className='quick-seo-grid';
     for(const [label,count,help] of [
      ['No longer seen',cleared.length,'Found earlier but absent from the newer HTML on the same checked page'],
@@ -622,8 +624,8 @@ siteButton.addEventListener('click',async()=>{
      ['Need another check',unmatchedUrls.size,'Pages without complete, comparable results in both audits']
     ]){const metric=document.createElement('div');metric.className='quick-seo-stat';const number=document.createElement('strong');number.textContent=String(count);const title=document.createElement('span');title.textContent=label;const note=document.createElement('small');note.textContent=help;metric.append(number,title,note);quickGrid.append(metric)}
     quickCompare.append(quickGrid);
-    const quickScope=document.createElement('p');quickScope.className='hint small';quickScope.textContent=comparableUrls.size+' exact page'+(comparableUrls.size===1?'':'s')+' checked in both audits. HTML score difference: '+scoreDelta+'. '+coverageMessage;quickCompare.append(quickScope);
-    const quickNext=document.createElement('p');quickNext.className='notice';quickNext.textContent=unmatchedUrls.size?'Recommended next action: rerun a complete audit for pages needing another check before interpreting missing issues as repairs.':recurring.length?'Recommended next action: review a problem still present, publish your correction and run a fresh page audit.':newly.length?'Recommended next action: review newly detected findings before making more changes.':'No matching-page problems were observed across both audits. Review the full results; this does not guarantee perfect SEO.';quickCompare.append(quickNext);
+    const quickScope=document.createElement('p');quickScope.className='hint small';quickScope.textContent=comparableUrls.size+' exact page'+(comparableUrls.size===1?'':'s')+' checked in both audits. HTML score difference: '+scoreDelta+'. '+coverageMessage+versionCaution;quickCompare.append(quickScope);
+    const quickNext=document.createElement('p');quickNext.className='notice';quickNext.textContent=!scoreVersionMatches?'Scoring methodology changed or is unknown. Run a fresh audit using the current scoring version before making before-and-after claims.':unmatchedUrls.size?'Recommended next action: rerun a complete audit for pages needing another check before interpreting missing issues as repairs.':recurring.length?'Recommended next action: review a problem still present, publish your correction and run a fresh page audit.':newly.length?'Recommended next action: review newly detected findings before making more changes.':'No matching-page problems were observed across both audits. Review the full results; this does not guarantee perfect SEO.';quickCompare.append(quickNext);
     const quickDetails=document.createElement('button');quickDetails.type='button';quickDetails.textContent='Review detailed page changes';quickDetails.addEventListener('click',()=>{const detail=historyPanel.querySelector('#site-history-issue-list');if(!detail)return;detail.open=true;detail.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});const summary=detail.querySelector('summary');summary?.focus({preventScroll:true})});quickCompare.append(quickDetails);
     const previousTracker=historyPanel.querySelector('#site-history-tracker');if(previousTracker)previousTracker.remove();
     const tracker=document.createElement('section');tracker.id='site-history-tracker';tracker.setAttribute('aria-label','Issue change summary');
@@ -633,7 +635,7 @@ siteButton.addEventListener('click',async()=>{
      const metric=document.createElement('div');metric.className='tracker-metric';const total=document.createElement('strong');total.textContent=String(items.length);const name=document.createElement('span');name.textContent=label;metric.append(total,name);trackerGrid.append(metric);
     }
     tracker.append(trackerGrid);
-    const trackerHint=document.createElement('p');trackerHint.className='hint small';trackerHint.textContent='Changes reflect issue/page occurrences only on pages audited in both runs. They are not verified search traffic improvements.';tracker.append(trackerHint);
+    const trackerHint=document.createElement('p');trackerHint.className='hint small';trackerHint.textContent='Changes reflect issue/page occurrences only on pages audited in both runs using the same scoring methodology. '+(scoreVersionMatches?'They are not verified search traffic improvements.':versionCaution);tracker.append(trackerHint);
     historyPanel.append(tracker);
     const previousList=historyPanel.querySelector('#site-history-issue-list');if(previousList)previousList.remove();
     const list=document.createElement('details');list.id='site-history-issue-list';const summary=document.createElement('summary');summary.textContent='View page-level changes';list.append(summary);
