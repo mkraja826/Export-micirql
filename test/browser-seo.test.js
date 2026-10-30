@@ -566,7 +566,7 @@ test('SEO Studio V2.6 issue tracker presents counts from comparable pages only',
  assert.ok(html.includes("['Newly observed',newly],['Recurring',recurring],['No longer observed',cleared]"));
  assert.ok(html.includes("previousTracker.remove()"));
  assert.ok(html.includes("trackerGrid.className='tracker-grid'"));
- assert.ok(html.includes('Changes reflect issue/page occurrences only on pages audited in both runs.'));
+ assert.ok(html.includes('Changes reflect issue/page occurrences only on pages audited in both runs using the same scoring methodology.'));
 });
 
 
