@@ -289,7 +289,7 @@ siteButton.addEventListener('click',async()=>{
     }
    }
    if(lastError&&partialReport){partialReport.attempts=2;partialReport.recoveryError=lastError.message||'Retry failed';reports.push(partialReport);if(!isDemo)saveCheckpoint(url.origin,pages,reports);lastError=null;}
-   if(lastError&&previousRetryReport?.website===url.origin){const preserved=(previousRetryReport.reports||[]).find(page=>(page.requestedUrl||page.url)===pages[i]&&(page.partial||page.auditStatus==='partial'));if(preserved){reports.push({...preserved,recoveryError:lastError.message||'Reinspection failed',reinspectionAttempts:2});saveCheckpoint(url.origin,pages,reports);lastError=null;}}
+   if(lastError&&previousRetryReport?.website===url.origin){const preserved=(previousRetryReport.reports||[]).find(page=>(page.requestedUrl||page.url)===pages[i]&&(page.partial||page.auditStatus==='partial'));if(preserved&&preserved.scoringVersion===SEO_SCORING_VERSION){reports.push({...preserved,recoveryError:lastError.message||'Reinspection failed',reinspectionAttempts:2});saveCheckpoint(url.origin,pages,reports);lastError=null;}}
    if(lastError){const message=lastError.message||'Inspection failed';const category=/timed?\s*out|timeout|stopped responding/i.test(message)?'timeout':/extension|chrome|not connected|not installed/i.test(message)?'extension':/incomplete|partial|truncat/i.test(message)?'incomplete_html':'capture_error';failures.push({url:pages[i],error:message,category,attempts:2,httpEvidence:failedHttpEvidence});}
    siteProgress.value=i+1;updateSiteProgress();
   }
