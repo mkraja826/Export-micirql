@@ -2197,7 +2197,7 @@ test('scoring provenance is exported with audit data and printed in client PDF',
  const start=html.indexOf('function printClientSeoReport(report){'),end=html.indexOf('sitePrintButton.addEventListener',start);
  let printed='';
  const print=new Function('window','alert',html.slice(start,end)+';return printClientSeoReport;')({open:()=>({document:{open(){},write(value){printed=value},close(){}}})},()=>{});
- print({website:'https://example.com',generatedAt:'2026-10-30',scoringVersion:'micirql-seo-v3.2',reports:[],pagesSelected:0,pagesAnalyzed:0,failures:[],issueCenter:[],coverage:{discovered:0},reportNotes:[]});
+ print({website:'https://example.com',generatedAt:'2026-10-30',scoringVersion:'micirql-seo-v3.3',reports:[],pagesSelected:0,pagesAnalyzed:0,failures:[],issueCenter:[],coverage:{discovered:0},reportNotes:[]});
  assert.match(printed,/Scoring methodology: micirql-seo-v3\.2/);
  assert.match(printed,/Scores from different or unknown methodology versions are not directly comparable/);
 });
