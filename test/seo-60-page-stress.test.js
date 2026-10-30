@@ -1,9 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {inspectBatch,reusablePages,auditCoverage} from '../public/tools/seo/audit-lifecycle.js';
+import {SEO_SCORING_VERSION} from '../public/tools/seo/inspector.js';
 const origin='https://example.com';
 const pages=Array.from({length:60},(_,i)=>origin+'/page-'+i);
-const complete=url=>({url,score:82,auditStatus:'complete',partial:false,findings:[]});
+const complete=url=>({url,score:82,scoringVersion:SEO_SCORING_VERSION,auditStatus:'complete',partial:false,findings:[]});
 test('60-page stress fixture retries transient errors and accounts for all pages',async()=>{
  const calls=new Map(),progress=[];
  const result=await inspectBatch({origin,pages,inspect:async url=>{
@@ -93,4 +94,10 @@ test('partial HTML evidence survives an exception on the second attempt',async()
  assert.equal(result.reports[0].attempts,2);
  assert.equal(result.failures.length,0);
  assert.equal(result.coverage.partial,1);
+});
+
+test('checkpoint resumes only pages scored by the current methodology',()=>{
+ const records=[complete(pages[0]),{...complete(pages[1]),scoringVersion:'micirql-seo-v3.1'},{...complete(pages[2]),scoringVersion:undefined}];
+ const keys=[...reusablePages({pages,reports:records},origin,pages).keys()];
+ assert.deepEqual(keys,[pages[0]]);
 });
