@@ -108,3 +108,38 @@ export function crossPageMetadataFindings(reports=[]){
  }
  return findings;
 }
+
+
+/** Bounded cross-page diagnostics. Only evidence from completed, public pages is used.
+ * These findings never change individual HTML scores.
+ */
+export function crossPageContentAndStructureFindings(reports=[],origin=''){
+ const pages=uniqueFinalPages(reports).filter(r=>(r.pageRole||'public')==='public'&&Number.isFinite(r.score)&&!(r.findings||[]).some(f=>['noindex','http_noindex'].includes(f.code)));
+ const findings=[],groups=new Map();
+ for(const page of pages){
+  const text=String(page.mainContentText||'').trim().toLowerCase().replace(/\s+/g,' ');
+  // Exact match is defensible; hashes or similarity guesses are not proof.
+  if(text.split(/\s+/).length<40)continue;
+  if(!groups.has(text))groups.set(text,[]);
+  groups.get(text).push(page.url);
+ }
+ for(const urls of groups.values())if(urls.length>=2)findings.push({code:'duplicate_page_content',severity:'medium',category:'content',message:'Identical substantive page text was observed on '+urls.length+' separately inspected pages; confirm whether this duplication is intentional.',affectedUrls:urls});
+ // Click depth uses only discovered internal links, not URL path segments.
+ const graph=new Map(pages.map(p=>[p.url,new Set((p.internalLinkTargets||[]).map(u=>{try{const x=new URL(u);x.hash='';return x.href}catch{return ''}}))]));
+ let root=origin;
+ try{root=new URL('/',origin).href}catch{}
+ if(!graph.has(root))return findings;
+ const distance=new Map([[root,0]]),queue=[root];
+ for(let i=0;i<queue.length;i++){
+  const from=queue[i],depth=distance.get(from);
+  for(const to of graph.get(from)||[]){
+   if(!graph.has(to)||distance.has(to))continue;
+   distance.set(to,depth+1);queue.push(to);
+  }
+ }
+ const deep=pages.filter(p=>(distance.get(p.url)??0)>3).map(p=>p.url);
+ if(deep.length)findings.push({code:'deep_click_path',severity:'info',category:'structure',message:deep.length+' inspected pages require more than three internal-link clicks from the audited homepage. This is a navigation review, not a search ranking penalty.',affectedUrls:deep});
+ const unreachable=pages.filter(p=>p.url!==root&&!distance.has(p.url)).map(p=>p.url);
+ if(unreachable.length)findings.push({code:'unreachable_in_sample',severity:'info',category:'structure',message:unreachable.length+' inspected pages were not connected to the homepage by links recorded in this audit sample; hidden navigation or partial discovery may explain this.',affectedUrls:unreachable});
+ return findings;
+}
