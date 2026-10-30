@@ -239,7 +239,7 @@ try{
   // A previous complete report is saved locally; the next audit must automatically compare it.
   const historicUrl='https://recheck.example.test/';
   await page.evaluate(url=>{
-   const previous={scoringVersion:'micirql-seo-v3.2',date:new Date(Date.now()-120000).toISOString(),website:new URL(url).origin,selected:1,analyzed:1,failed:0,averageScore:70,auditedUrls:[url],completedUrls:[url],issues:[{code:'missing_canonical',severity:'medium',affectedUrls:[url]}]};
+   const previous={scoringVersion:'micirql-seo-v3.3',date:new Date(Date.now()-120000).toISOString(),website:new URL(url).origin,selected:1,analyzed:1,failed:0,averageScore:70,auditedUrls:[url],completedUrls:[url],issues:[{code:'missing_canonical',severity:'medium',affectedUrls:[url]}]};
    localStorage.setItem('micirql-seo-history-v1:'+new URL(url).origin,JSON.stringify([previous]));
   },historicUrl);
   await page.locator('#site-url').fill('recheck.example.test/');
@@ -312,7 +312,7 @@ try{
   // Verify beginner comparison across 375px and 768px without trusting partial HTML.
   const comparedUrl='https://compare.example.test/';
   const comparePage=(findings,score)=>({url:comparedUrl,requestedUrl:comparedUrl,auditStatus:'complete',partial:false,pageRole:'public',score,findings:findings.map(([code,severity])=>({code,severity}))});
-  const beforeAudit={website:'https://compare.example.test',scoringVersion:'micirql-seo-v3.2',selectedPageUrls:[comparedUrl],reports:[comparePage([['missing_canonical','high'],['missing_title','medium']],65)],siteFindings:[],failures:[]};
+  const beforeAudit={website:'https://compare.example.test',scoringVersion:'micirql-seo-v3.3',selectedPageUrls:[comparedUrl],reports:[comparePage([['missing_canonical','high'],['missing_title','medium']],65)],siteFindings:[],failures:[]};
   const afterAudit={...beforeAudit,reports:[comparePage([['missing_title','medium'],['missing_alt','low']],75)]};
   await page.locator('#benchmark-before').setInputFiles({name:'before.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(beforeAudit))});
   await page.locator('#benchmark-after').setInputFiles({name:'after.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(afterAudit))});
