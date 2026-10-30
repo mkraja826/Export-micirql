@@ -25,6 +25,7 @@ export function inspectSeoHtml(html,url,options={}){
  const imagesMissingAlt=missingAltTags.length;
  const structuredDataCount=[...html.matchAll(/<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>/gi)].length;
  const headingMatches=[...html.matchAll(/<h([1-6])\b[^>]*>([\s\S]*?)<\/h\1\s*>/gi)];
+ const emptyH1Matches=headingMatches.filter(m=>Number(m[1])===1&&!decode(m[2].replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,' ').replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi,' ').replace(/<[^>]*>/g,' ').replace(/\s+/g,' '))&&!/\b(?:aria-label|aria-labelledby)\s*=/i.test(m[0].split('>')[0]));
  const headingLevels=headingMatches.map(m=>Number(m[1]));
  const headingLabel=m=>decode(m[2].replace(/<[^>]*>/g,' ').replace(/\s+/g,' ')).slice(0,140);
  const headingEvidence=[];
@@ -59,6 +60,7 @@ export function inspectSeoHtml(html,url,options={}){
  }else{
   if(h1Count===0)add('heading_count','low','No H1 was found. Review whether the page has a clear, descriptive visible heading; H1 tags are not a strict Google ranking requirement.',4,'content');
    else if(h1Count>1)add('heading_count','info','More than one H1 was found. Multiple H1 elements are allowed; check the page heading hierarchy for clarity.',0,'content');
+  if(emptyH1Matches.length)add('empty_h1','low',emptyH1Matches.length+' H1 heading(s) contain no readable text or accessible label. Add a meaningful primary heading.',4,'content');
   if(headingSkips)add('heading_hierarchy','info','Heading levels skip steps in '+headingSkips+' place(s); review readability and accessibility rather than treating this as a Google Search ranking penalty.',0,'content');
  }
  const titleTagCount=[...head.matchAll(/<title\b[^>]*>/gi)].length;
