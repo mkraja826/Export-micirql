@@ -247,7 +247,7 @@ try{
   if(await page.locator('#site-url').inputValue()!=='https://recheck.example.test/')throw Error(width+': entering a bare domain failed to auto-add https');
   await page.locator('#site-page-dashboard tbody tr').first().waitFor({state:'attached',timeout:15000});
   const auditedPageCount=await page.locator('#site-page-dashboard tbody tr').count();
-  if(auditedPageCount<1||!await page.locator('#site-status').textContent().then(value=>value.includes('analyzed')))throw Error(width+': pressing Enter did not produce a completed website audit');
+  if(auditedPageCount<1||!await page.locator('#site-scan-completion').textContent().then(value=>value.includes('SEO PDF report is ready')))throw Error(width+': pressing Enter did not produce a completed website audit and PDF-ready state');
   await page.locator('#site-fix-dashboard').waitFor();
   const quickBefore=page.locator('#site-quick-comparison');
   await quickBefore.waitFor({state:'visible'});
