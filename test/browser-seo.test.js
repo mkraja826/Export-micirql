@@ -2234,3 +2234,13 @@ test('link verification starts automatically once per audit without inventing br
  assert.match(html,/row\.classification=row\.status===404\|\|row\.status===410\?'broken'/);
  assert.match(html,/row\.status===404\|\|row\.status===410\?'broken':Number\.isInteger\(row\.status\)/);
 });
+
+test('site report now records cross-page content, depth and observed redirect diagnostics',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/crossPageContentAndStructureFindings\(reports,url\.origin\)/);
+ assert.match(html,/observed_page_redirect/);
+ assert.match(html,/responseElapsedMs/);
+ assert.match(html,/sitePrintButton\.disabled=verificationPending/);
+ assert.match(html,/site-save-pdf-now/);
+ assert.match(html,/const issueAppendix=issues\.map\(issue=>/);
+});
