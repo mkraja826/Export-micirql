@@ -312,7 +312,7 @@ try{
   // Verify beginner comparison across 375px and 768px without trusting partial HTML.
   const comparedUrl='https://compare.example.test/';
   const comparePage=(findings,score)=>({url:comparedUrl,requestedUrl:comparedUrl,auditStatus:'complete',partial:false,pageRole:'public',score,findings:findings.map(([code,severity])=>({code,severity}))});
-  const beforeAudit={website:'https://compare.example.test',selectedPageUrls:[comparedUrl],reports:[comparePage([['missing_canonical','high'],['missing_title','medium']],65)],siteFindings:[],failures:[]};
+  const beforeAudit={website:'https://compare.example.test',scoringVersion:'micirql-seo-v3.2',selectedPageUrls:[comparedUrl],reports:[comparePage([['missing_canonical','high'],['missing_title','medium']],65)],siteFindings:[],failures:[]};
   const afterAudit={...beforeAudit,reports:[comparePage([['missing_title','medium'],['missing_alt','low']],75)]};
   await page.locator('#benchmark-before').setInputFiles({name:'before.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(beforeAudit))});
   await page.locator('#benchmark-after').setInputFiles({name:'after.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(afterAudit))});
