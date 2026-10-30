@@ -4,7 +4,7 @@ import {compareSeoAudits} from '../src/seo-benchmark-compare.js';
 import {compareSeoAudits as browserCompare} from '../public/tools/seo/benchmark-compare.js';
 const site='https://badseo.dev';
 const page=(requestedUrl,url,findings=[],httpObserved=false)=>({requestedUrl,url,auditStatus:'complete',partial:false,findings:findings.map(code=>({code})),captureEvidence:{httpEvidence:{observed:httpObserved}}});
-const audit=(reports,extras={})=>({website:site,scoringVersion:'micirql-seo-v3.2',reports,selectedPageUrls:reports.map(r=>r.requestedUrl),failures:[],siteFindings:[],...extras});
+const audit=(reports,extras={})=>({website:site,scoringVersion:'micirql-seo-v3.3',reports,selectedPageUrls:reports.map(r=>r.requestedUrl),failures:[],siteFindings:[],...extras});
 test('before and after distinguish requested inspections from unique final pages',()=>{
  const before=audit([page(site+'/',site+'/'),page(site+'/redirect/chain-1',site+'/')]);
  const after=audit([page(site+'/',site+'/'),page(site+'/redirect/chain-1',site+'/',[],true)]);
