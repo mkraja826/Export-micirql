@@ -2180,3 +2180,13 @@ test('V3: PDF average covers eligible public pages and discloses HTTP exclusions
  assert.match(output,/1<\/strong>Confirmed HTTP error pages — not scored/);
  assert.match(output,/1 eligible public page\(s\) out of 3 unique inspection records/);
 });
+
+test('V3: soft HTTP 200 error page remains unscored when HTML is a known error template',()=>{
+ const url='https://example.com/missing';
+ const report=serverInspector('<html><head><title>404 not found</title></head><body><h1>Error</h1></body></html>',url);
+ assert.equal(report.auditStatus,'invalid_error_page');
+ const evidence=interpretHttpEvidence({observed:true,status:200,headers:{}},report.canonical,url);
+ reconcileHttpSeoScore(report,evidence);
+ assert.equal(report.score,null);
+ assert.equal(report.auditStatus,'invalid_error_page');
+});
