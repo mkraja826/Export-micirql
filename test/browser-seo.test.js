@@ -620,10 +620,10 @@ test('SEO progress PDF report escapes content and includes verification caveats'
  assert.ok(html.includes("printProgress.textContent='Print progress report / Save PDF'"));
  assert.ok(html.includes("issueRows=topIssues.map(issue=>"));
  assert.ok(html.includes("fixes=verificationRows.slice(0,30).map(item=>"));
- assert.ok(html.includes("const scoreChange=previous&&Number.isFinite(previous.averageScore)"));
+ assert.ok(html.includes("const scoreChange=sameProgressRules&&sameProgressPublic&&sameProgressCoverage&&Number.isFinite(previous.averageScore)"));
  assert.ok(html.includes("const esc=value=>String(value??'').replace("));
  assert.ok(html.includes("win.document.write(html)"));
- assert.ok(html.includes("Different audited page sets can make average scores misleading."));
+ assert.ok(html.includes("Different audited page sets, eligible public pages or scoring methodologies can make averages misleading."));
 });
 
 
@@ -1106,11 +1106,11 @@ test('printable SEO action plan labels affected audited URLs without a misleadin
 test('audit history only compares average scores for identical completed URL coverage',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  assert.ok(html.includes("const sameCoverage=oldUrls!==null&&oldUrls.size===currentUrls.size&&[...currentUrls].every(page=>oldUrls.has(page))"));
- assert.ok(html.includes('const exactScoredCoverage=sameCoverage&&currentUrls.size===summarySnapshot.selected&&oldUrls.size===previous.selected'));
+ assert.ok(html.includes('const exactScoredCoverage=identicalPublicScope&&sameCoverage&&currentUrls.size===summarySnapshot.selected&&oldUrls.size===previous.selected'));
  assert.ok(html.includes('summarySnapshot.failed===0&&previous.failed===0&&summarySnapshot.analyzed===summarySnapshot.selected'));
  assert.ok(html.includes("const scoreDelta=!scoreVersionMatches?'Not comparable (scoring methodology changed or unknown)'"));
  assert.ok(html.includes("const comparableUrls=oldUrls?new Set([...currentUrls].filter(page=>oldUrls.has(page))):new Set()"));
- assert.ok(html.includes("const newly=[...now].filter(key=>comparableKey(key)&&!before.has(key)),cleared=[...before].filter(key=>comparableKey(key)&&!now.has(key)),recurring=[...now].filter(key=>comparableKey(key)&&before.has(key))"));
+ assert.ok(html.includes("const newly=scoreVersionMatches?[...now].filter(key=>comparableKey(key)&&!before.has(key)):[],cleared=scoreVersionMatches?[...before].filter(key=>comparableKey(key)&&!now.has(key)):[],recurring=scoreVersionMatches?[...now].filter(key=>comparableKey(key)&&before.has(key)):[]"));
 });
 
 test('printable SEO report formats issue codes for nontechnical readers',()=>{
@@ -2052,7 +2052,7 @@ test('automatic saved-history comparison is readable without uploading reports',
  assert.ok(html.includes("['Need another check',unmatchedUrls.size"));
  assert.ok(html.includes('const comparableUrls=oldUrls?new Set('));
  assert.ok(html.includes("for(const matched of comparableUrls)unmatchedUrls.delete(matched)"));
- assert.ok(html.includes('exactScoredCoverage=sameCoverage&&currentUrls.size===summarySnapshot.selected'));
+ assert.ok(html.includes('exactScoredCoverage=identicalPublicScope&&sameCoverage&&currentUrls.size===summarySnapshot.selected'));
  assert.ok(html.includes("summarySnapshot.failed===0&&previous.failed===0"));
  assert.ok(html.includes("quickDetails.textContent='Review detailed page changes'"));
  assert.ok(html.includes('detail.open=true'));
@@ -2211,4 +2211,18 @@ test('automatic history comparison blocks unversioned and different methodology 
  assert.ok(html.includes("Scoring methodology differs or is unknown"));
  assert.ok(html.includes("if(scoreVersionMatches)for(const matched of comparableUrls)"));
  assert.ok(html.includes("comparison.findingsComparable"));
+});
+
+test('scoring methodology provenance guards the legacy progress PDF and public-only historical comparisons',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes('scoringVersion:siteReport.scoringVersion'));
+ assert.ok(html.includes('scoredPublicUrls:eligiblePublicScores.map(page=>page.url).sort()'));
+ assert.ok(html.includes('const identicalPublicScope=oldPublic!==null'));
+ assert.ok(html.includes('const sameProgressRules=Boolean(previous?.scoringVersion&&previous.scoringVersion===progressData.scoringVersion)'));
+ assert.ok(html.includes('const sameProgressPublic=previousPublic!==null'));
+ assert.ok(html.includes('const sameProgressCoverage=Array.isArray(previous?.completedUrls)'));
+ assert.ok(html.includes('const scoreChange=sameProgressRules&&sameProgressPublic&&sameProgressCoverage'));
+ assert.ok(html.includes("Scoring version: '+esc(progressData.scoringVersion)+'."));
+ assert.ok(html.includes('bar.title=new Date(run.date).toLocaleDateString()'));
+ assert.ok(html.includes("run.scoringVersion||'legacy / unknown'"));
 });
