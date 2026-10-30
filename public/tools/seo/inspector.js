@@ -1,5 +1,5 @@
 // MiCirql SEO signals: deterministic source/DOM-based checks; not a search ranking prediction.
-export const SEO_SCORING_VERSION='micirql-seo-v3.2';
+export const SEO_SCORING_VERSION='micirql-seo-v3.3';
 const decode=s=>String(s||'').replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&#39;|&apos;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>').trim();
 function attribute(tag,name){
  const re=new RegExp('(?:^|\\s)'+name+'\\s*=\\s*(?:"([^"]*)"|\\x27([^\\x27]*)\\x27|([^\\s>]+))','i');
@@ -52,12 +52,13 @@ export function inspectSeoHtml(html,url,options={}){
  const titleSegments=title.split(/\s+\|\s+/).map(x=>x.trim()).filter(Boolean);
  if(titleSegments.length>=3&&titleSegments.at(-1).toLowerCase()===titleSegments.at(-2).toLowerCase())
   add('duplicate_title_brand','low','The page title repeats its final brand segment: '+titleSegments.at(-1)+'. Review title template composition.',4,'metadata');
- if(!description)add('missing_description','medium','Add a unique meta description.',12,'metadata');
+ if(!description)add('missing_description','low','Consider a concise, page-specific meta description. Google may generate the search snippet from visible page content instead.',4,'metadata');
  else if(description.length<70||description.length>170)add('description_length','info','Review description relevance and clarity; Google snippets have no fixed character limit.',0,'metadata');
  if(isPartial){
   add('heading_unverified','info','Heading structure is not verified in a partial HTML capture. Reinspect the fully loaded page before recommending heading changes.',0,'content');
  }else{
-  if(h1Count!==1)add('heading_count','medium','Use one clear H1 heading.',10,'content');
+  if(h1Count===0)add('heading_count','low','No H1 was found. Review whether the page has a clear, descriptive visible heading; H1 tags are not a strict Google ranking requirement.',4,'content');
+   else if(h1Count>1)add('heading_count','info','More than one H1 was found. Multiple H1 elements are allowed; check the page heading hierarchy for clarity.',0,'content');
   if(headingSkips)add('heading_hierarchy','info','Heading levels skip steps in '+headingSkips+' place(s); review readability and accessibility rather than treating this as a Google Search ranking penalty.',0,'content');
  }
  const titleTagCount=[...head.matchAll(/<title\b[^>]*>/gi)].length;
