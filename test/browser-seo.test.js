@@ -1108,7 +1108,7 @@ test('audit history only compares average scores for identical completed URL cov
  assert.ok(html.includes("const sameCoverage=oldUrls!==null&&oldUrls.size===currentUrls.size&&[...currentUrls].every(page=>oldUrls.has(page))"));
  assert.ok(html.includes('const exactScoredCoverage=sameCoverage&&currentUrls.size===summarySnapshot.selected&&oldUrls.size===previous.selected'));
  assert.ok(html.includes('summarySnapshot.failed===0&&previous.failed===0&&summarySnapshot.analyzed===summarySnapshot.selected'));
- assert.ok(html.includes("const scoreDelta=!exactScoredCoverage||summarySnapshot.averageScore===null||!Number.isFinite(previous.averageScore)?'Not comparable (different, incomplete or unknown page coverage)'"));
+ assert.ok(html.includes("const scoreDelta=!scoreVersionMatches?'Not comparable (scoring methodology changed or unknown)'"));
  assert.ok(html.includes("const comparableUrls=oldUrls?new Set([...currentUrls].filter(page=>oldUrls.has(page))):new Set()"));
  assert.ok(html.includes("const newly=[...now].filter(key=>comparableKey(key)&&!before.has(key)),cleared=[...before].filter(key=>comparableKey(key)&&!now.has(key)),recurring=[...now].filter(key=>comparableKey(key)&&before.has(key))"));
 });
@@ -2186,4 +2186,29 @@ test('V3: soft HTTP 200 error page remains unscored when HTML is a known error t
  reconcileHttpSeoScore(report,evidence);
  assert.equal(report.score,null);
  assert.equal(report.auditStatus,'invalid_error_page');
+});
+
+test('scoring provenance is exported with audit data and printed in client PDF',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/import \{inspectSeoHtml,SEO_SCORING_VERSION\}/);
+ assert.match(html,/siteReport=\{schemaVersion:1,scoringVersion:SEO_SCORING_VERSION/);
+ assert.match(html,/const summarySnapshot=\{scoringVersion:siteReport\.scoringVersion/);
+ assert.match(html,/lastReport=\{schemaVersion:1,tool:'seo',scoringVersion:SEO_SCORING_VERSION/);
+ const start=html.indexOf('function printClientSeoReport(report){'),end=html.indexOf('sitePrintButton.addEventListener',start);
+ let printed='';
+ const print=new Function('window','alert',html.slice(start,end)+';return printClientSeoReport;')({open:()=>({document:{open(){},write(value){printed=value},close(){}}})},()=>{});
+ print({website:'https://example.com',generatedAt:'2026-10-30',scoringVersion:'micirql-seo-v3.2',reports:[],pagesSelected:0,pagesAnalyzed:0,failures:[],issueCenter:[],coverage:{discovered:0},reportNotes:[]});
+ assert.match(printed,/Scoring methodology: micirql-seo-v3\.2/);
+ assert.match(printed,/Scores from different or unknown methodology versions are not directly comparable/);
+});
+test('automatic history comparison blocks unversioned and different methodology deltas',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.ok(html.includes("const scoreVersionMatches=Boolean(previous.scoringVersion&&previous.scoringVersion===summarySnapshot.scoringVersion)"));
+ assert.ok(html.includes("const scoreDelta=!scoreVersionMatches?'Not comparable (scoring methodology changed or unknown)'"));
+ assert.ok(html.includes('const newly=scoreVersionMatches?'));
+ assert.ok(html.includes('cleared=scoreVersionMatches?'));
+ assert.ok(html.includes('recurring=scoreVersionMatches?'));
+ assert.ok(html.includes("Scoring methodology differs or is unknown"));
+ assert.ok(html.includes("if(scoreVersionMatches)for(const matched of comparableUrls)"));
+ assert.ok(html.includes("comparison.findingsComparable"));
 });
