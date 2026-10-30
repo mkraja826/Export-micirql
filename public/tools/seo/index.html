@@ -66,6 +66,7 @@ import {compareSeoAudits} from './benchmark-compare.js';
 import {interpretHttpEvidence,reconcileHttpSeoScore} from './http-evidence.js';
 import {seoPagesCsv,seoIssuesCsv} from './csv-export.js';
 import {reusablePages,auditCoverage,uniqueFinalPages,httpEvidenceCoverage,crossPageMetadataFindings,crossPageContentAndStructureFindings} from './audit-lifecycle.js';
+import {analyzeRedirectEvidence} from './redirect-evidence.js';
 const benchmarkButton=document.getElementById('benchmark-run');
 benchmarkButton.addEventListener('click',async()=>{
  const result=document.getElementById('benchmark-results');result.replaceChildren();
@@ -267,6 +268,7 @@ siteButton.addEventListener('click',async()=>{
      report.responseElapsedMs=Math.round(performance.now()-requestStart);
      if(!isDemo&&report.responseElapsedMs>=3000)report.findings.push({code:'slow_capture_response',severity:'info',category:'performance',points:0,message:'Browser capture required '+report.responseElapsedMs+' ms. This includes extension and rendering overhead, not verified server latency.'});
      if(!isDemo&&response.url&&response.url!==pages[i])report.findings.push({code:'observed_page_redirect',severity:'info',category:'technical',points:0,message:'The inspected final URL differs from the requested URL. Review the redirect destination; a single capture cannot establish a redirect chain or loop.'});
+     report.findings.push(...analyzeRedirectEvidence(response.httpEvidence));
      report.requestedUrl=pages[i];report.captureEvidence={source:isDemo?'demo_html':'browser_extension_html',partialResponse:response.partial===true,htmlBytes:new TextEncoder().encode(String(response.html||'')).length,httpEvidence:response.httpEvidence||{observed:false,status:null,headers:{}}};
      const httpCheck=interpretHttpEvidence(response.httpEvidence,report.canonical,report.url);
      report.httpVerification={verified:httpCheck.verified,status:httpCheck.status??null};
