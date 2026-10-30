@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {inspectSeoHtml as serverInspector} from '../src/seo-inspector.js';
 import {inspectSeoHtml as browserInspector} from '../public/tools/seo/inspector.js';
+import {interpretHttpEvidence,reconcileHttpSeoScore} from '../public/tools/seo/http-evidence.js';
 
 test('browser and server inspectors remain identical',()=>{
  const source=readFileSync(new URL('../src/seo-inspector.js',import.meta.url),'utf8');
@@ -493,7 +494,7 @@ test('SEO Studio V2.4 offers a printable client summary without changing audit s
  assert.ok(html.includes('window.open(\'\',\'_blank\')'));
  assert.ok(html.includes('escapeHTML(issue.recommendation)'));
  assert.ok(html.includes('report.coverage?.discoveryTruncated'));
- assert.ok(html.includes("The average includes '+escapeHTML(valid.length)+' eligible page(s) out of '+escapeHTML(inspectedUniqueCount)+' unique inspection records"));
+ assert.ok(html.includes("The average includes '+escapeHTML(valid.length)+' eligible public page(s) out of '+escapeHTML(inspectedUniqueCount)+' unique inspection records"));
 });
 
 
@@ -1127,8 +1128,8 @@ test('printable SEO report discloses score-average eligibility and exclusions',(
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  const pdfMarkup=html.slice(html.indexOf('function printClientSeoReport(report)'));
  assert.ok(pdfMarkup.includes("The average includes '+escapeHTML(valid.length)+' eligible page(s) out of '+escapeHTML(inspectedUniqueCount)+' unique inspection records"));
- assert.ok(pdfMarkup.includes("'+escapeHTML(inspectedUniqueCount-valid.length)+' record(s) were excluded because they were incomplete or unscored."));
- assert.ok(pdfMarkup.includes("const valid=uniqueReports.filter(page=>Number.isFinite(page.score)&&!page.partial&&page.auditStatus==='complete')"));
+ assert.ok(pdfMarkup.includes("'+escapeHTML(inspectedUniqueCount-valid.length)+' record(s) were excluded because they were private/application/legal, incomplete or unscored."));
+ assert.ok(pdfMarkup.includes("const valid=uniqueReports.filter(page=>(page.pageRole||'public')==='public'&&Number.isFinite(page.score)&&!page.partial&&page.auditStatus==='complete')"));
 });
 
 test('printable SEO report keeps A4 tables readable across page breaks',()=>{
@@ -2116,4 +2117,66 @@ test('printable report opens a browser print/save-to-PDF dialog and retains a ma
  assert.equal(typeof printCallback,'function');
  printCallback();
  assert.equal(printRequested,true,'Open the print-to-PDF dialog on report load');
+});
+
+test('V3: HTTP 404 410 429 500 503 are not given an ordinary HTML SEO score',()=>{
+ for(const status of [404,410,429,500,503]){
+  const url='https://badseo.dev/status/not-found';
+  const page=serverInspector('<html lang="en"><head><title>Fully formatted error page</title></head><body><h1>Not found</h1></body></html>',url);
+  page.pageRole='public';
+  const evidence=interpretHttpEvidence({observed:true,status,headers:{}},page.canonical,url);
+  page.findings.push(...evidence.findings);
+  reconcileHttpSeoScore(page,evidence);
+  assert.equal(page.score,null);assert.equal(page.auditStatus,'invalid_http_status');assert.equal(page.scoring.appliedScore,null);
+  assert.equal(page.scoring.excludedReason,'verified_http_'+status);
+ }
+});
+test('V3: HTML-only results remain unchanged without observed HTTP evidence',()=>{
+ const url='https://example.com/';
+ const page=serverInspector('<html lang="en"><head><title>Sample website homepage</title></head><body><h1>Welcome</h1></body></html>',url);
+ const before=page.score;
+ reconcileHttpSeoScore(page,interpretHttpEvidence(null,page.canonical,url));
+ assert.equal(page.score,before);assert.equal(page.auditStatus,'complete');
+});
+test('V3: verified X-Robots-Tag noindex counts once and auth noindex is contextual',()=>{
+ const url='https://example.com/services';
+ const html='<html lang="en"><head><title>Professional service catalogue</title><meta name="description" content="Read our services and understand what our team can offer to customers at this location."></head><body><h1>Services</h1></body></html>';
+ const make=(body=html,target=url,role='public')=>{const report=serverInspector(body,target);report.pageRole=role;return report;};
+ const baseline=make().score;
+ const evidenceData={observed:true,status:200,headers:{'x-robots-tag':'noindex'}};
+ const page=make(),http=interpretHttpEvidence(evidenceData,page.canonical,url);
+ page.findings.push(...http.findings);reconcileHttpSeoScore(page,http);
+ assert.equal(page.score,Math.max(0,baseline-25));
+ assert.equal(page.findings.find(x=>x.code==='http_noindex').points,25);
+ const both=make(html.replace('</head>','<meta name="robots" content="noindex"></head>'));
+ const bothHttp=interpretHttpEvidence(evidenceData,both.canonical,url);
+ both.findings.push(...bothHttp.findings);reconcileHttpSeoScore(both,bothHttp);
+ assert.equal(both.score,Math.max(0,baseline-25));
+ assert.equal(both.findings.find(x=>x.code==='http_noindex').points,0);
+ const authUrl='https://example.com/patient/login',auth=make(html,authUrl,'application'),authBefore=auth.score;
+ const authHttp=interpretHttpEvidence(evidenceData,auth.canonical,authUrl);
+ auth.findings.push(...authHttp.findings);reconcileHttpSeoScore(auth,authHttp);
+ assert.equal(auth.score,authBefore);assert.equal(auth.findings.some(x=>x.code==='http_noindex'),false);
+ assert.ok(auth.contextualFindings.some(x=>x.code==='http_noindex'));
+});
+test('V3: verified HTTP canonical conflict has a consistent score deduction',()=>{
+ const url='https://example.com/page';
+ const html='<html lang="en"><head><title>Page about professional services</title><link rel="canonical" href="https://example.com/page"></head><body><h1>Services</h1></body></html>';
+ const report=serverInspector(html,url),initial=report.score;report.pageRole='public';
+ const http=interpretHttpEvidence({observed:true,status:200,headers:{link:'<https://example.com/other>; rel="canonical"'}},report.canonical,url);
+ report.findings.push(...http.findings);reconcileHttpSeoScore(report,http);
+ assert.equal(report.score,Math.max(0,initial-12));
+ assert.equal(report.scoring.categoryDeductions.http,12);
+ assert.equal(report.scoring.totalDeductions,report.findings.reduce((n,x)=>n+(x.points||0),0));
+});
+test('V3: PDF average covers eligible public pages and discloses HTTP exclusions',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ const a=html.indexOf('function printClientSeoReport(report){'),b=html.indexOf('sitePrintButton.addEventListener',a);
+ let output='';
+ const fn=new Function('window','alert',html.slice(a,b)+';return printClientSeoReport;')({open:()=>({document:{open(){},write(content){output=content},close(){}}})},()=>{});
+ const pages=[{url:'https://example.com/',score:71,pageRole:'public',auditStatus:'complete',findings:[]},{url:'https://example.com/login',score:100,pageRole:'application',auditStatus:'complete',findings:[]},{url:'https://example.com/missing',score:null,pageRole:'public',auditStatus:'invalid_http_status',findings:[]}];
+ fn({website:'https://example.com',generatedAt:'2026-10-30',reports:pages,pagesSelected:3,pagesAnalyzed:3,failures:[],issueCenter:[],coverage:{discovered:3},reportNotes:[]});
+ assert.match(output,/71\/100<\/strong>Average public-page HTML score/);
+ assert.match(output,/1<\/strong>Confirmed HTTP error pages — not scored/);
+ assert.match(output,/1 eligible public page\(s\) out of 3 unique inspection records/);
 });
