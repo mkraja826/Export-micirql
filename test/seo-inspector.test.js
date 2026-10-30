@@ -365,3 +365,38 @@ test('scoring methodology is explicitly versioned for valid, partial and error-p
  assert.equal(partial.scoring.version,SEO_SCORING_VERSION);
  assert.equal(error.score,null);
 });
+
+test('Score Accuracy V3.3: multiple H1 headings are advisory, not scored search defects',()=>{
+ const head='<html lang="en"><head><title>Reliable dental clinic information for patients</title><meta name="description" content="Explore our clinic treatments and contact the team for information about care, access and available appointments."><meta name="viewport" content="width=device-width"></head><body>';
+ const tail='</body></html>';
+ const one=inspectSeoHtml(head+'<h1>Treatments</h1>'+tail,'https://example.com/treatments');
+ const multiple=inspectSeoHtml(head+'<h1>Treatments</h1><h1>Appointment information</h1>'+tail,'https://example.com/treatments');
+ const finding=multiple.findings.find(item=>item.code==='heading_count');
+ assert.equal(multiple.h1Count,2);
+ assert.equal(finding?.severity,'info');
+ assert.equal(finding?.points,0);
+ assert.match(finding.message,/Multiple H1 elements are allowed/);
+ assert.equal(multiple.score,one.score,'Valid additional H1 must not lower the SEO score');
+ assert.equal(multiple.scoring.totalDeductions,one.scoring.totalDeductions);
+});
+test('Score Accuracy V3.3: missing H1 gets a modest structural recommendation, not a 10-point penalty',()=>{
+ const head='<html lang="en"><head><title>Clinical information and available services</title></head><body>';
+ const tail='</body></html>',url='https://example.com/about';
+ const withH1=inspectSeoHtml(head+'<h1>Care options</h1>'+tail,url);
+ const noH1=inspectSeoHtml(head+'<p>Care options</p>'+tail,url);
+ const issue=noH1.findings.find(item=>item.code==='heading_count');
+ assert.equal(issue?.severity,'low');
+ assert.equal(issue?.points,4);
+ assert.equal(noH1.score,withH1.score-4);
+});
+test('Score Accuracy V3.3: absent meta descriptions are a 4-point snippet opportunity, not a high penalty',()=>{
+ const prefix='<html lang="en"><head><title>Care and consultation information for patients</title>';
+ const suffix='</head><body><h1>Care information</h1></body></html>',url='https://example.com/care';
+ const full=inspectSeoHtml(prefix+'<meta name="description" content="Read information about our care, consultation options and patient guidance, including how to book and contact the team.">'+suffix,url);
+ const absent=inspectSeoHtml(prefix+suffix,url);
+ const finding=absent.findings.find(item=>item.code==='missing_description');
+ assert.equal(finding?.severity,'low');
+ assert.equal(finding?.points,4);
+ assert.match(finding.message,/visible page content/);
+ assert.equal(absent.score,full.score-4);
+});
