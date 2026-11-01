@@ -248,7 +248,7 @@ try{
   if(await page.locator('#site-url').inputValue()!=='https://recheck.example.test/')throw Error(width+': entering a bare domain failed to auto-add https');
   await page.locator('#site-page-dashboard tbody tr').first().waitFor({state:'attached',timeout:15000});
   const auditedPageCount=await page.locator('#site-page-dashboard tbody tr').count();
-  if(auditedPageCount<1||!await page.locator('#site-scan-completion').textContent().then(value=>value.includes('SEO PDF report is ready')))throw Error(width+': pressing Enter did not produce a completed website audit and PDF-ready state');
+  if(auditedPageCount<1||!await page.locator('#site-scan-completion').textContent().then(value=>value.includes('Your PDF is ready')))throw Error(width+': pressing Enter did not produce a completed website audit and PDF-ready state');
   await page.locator('#site-fix-dashboard').waitFor();
   const quickBefore=page.locator('#site-quick-comparison');
   await quickBefore.waitFor({state:'attached',timeout:15000}).catch(async error=>{const detail=await page.evaluate(()=>({mode:document.body.classList.contains('developer-mode'),history:document.querySelector('#site-audit-history')?.outerHTML.slice(0,400),status:document.querySelector('#site-status')?.textContent,historyKey:localStorage.getItem('micirql-seo-history-v1:https://recheck.example.test')?.slice(0,400),completion:document.querySelector('#site-scan-completion')?.textContent}));throw Error(width+': history missing: '+JSON.stringify(detail)+' '+error.message)});
@@ -335,8 +335,9 @@ try{
   const hiddenLegacy=['#site-fix-dashboard','#site-audit-history','#benchmark-compare','#site-export','#site-action-export','#site-technical-overview'];
   for(const selector of hiddenLegacy)if(await page.locator(selector).isVisible())throw Error(width+': repair or technical UI remained visible in PDF mode: '+selector);
   const pdfButton=page.locator('#site-export-pdf');
-  if(!await pdfButton.isVisible()||await pdfButton.isDisabled()||!await page.locator('#site-save-pdf-now').isVisible()||!await page.locator('#site-scan-completion').textContent().then(text=>text.includes('SEO PDF report is ready')))throw Error(width+': completed scan did not expose the downloadable PDF report flow');
-  if(!await page.locator('#site-page-dashboard').isVisible())throw Error(width+': audited page evidence disappeared from read-only view');
+  if(!await pdfButton.isVisible()||await pdfButton.isDisabled()||!await page.locator('#site-save-pdf-now').isVisible()||!await page.locator('#site-scan-completion').textContent().then(text=>text.includes('Your PDF is ready')))throw Error(width+': completed scan did not expose the downloadable PDF report flow');
+  if(await page.locator('#site-page-dashboard').isVisible()||await page.locator('#site-issues').isVisible())throw Error(width+': detailed page evidence should remain hidden in beginner mode');
+  if(!await page.locator('#site-audit-overview').isVisible()||!await page.locator('#site-fix-first').isVisible())throw Error(width+': beginner summary or priority recommendations are not visible');
 
   if(errors.length)throw Error(width+': script error '+errors.join('; '));
   console.log('Mobile SEO QA '+width+'px passed: focus, guide fit, button target, exact issue-and-page navigation, accessible back action, 65-repair paging, issue and URL search, sorting, CSV export, handoff copy and fallback, developer brief downloads, backup preview and confirmed restore, reactive verification summary, re-audit safety, still-detected and no-longer-detected outcomes, before-and-after comparison, automatic history comparison, report-only default, PDF completion action, Enter-to-scan, domain normalization, no page errors');
