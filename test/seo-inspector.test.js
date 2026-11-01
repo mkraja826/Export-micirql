@@ -359,7 +359,7 @@ test('scoring methodology is explicitly versioned for valid, partial and error-p
  const healthy=inspectSeoHtml('<html><head><title>Example service page title</title></head><body><h1>Welcome</h1></body></html>','https://example.com/');
  const partial=inspectSeoHtml('<html><head><title>Example service page title</title></head><body><h1>Welcome</h1></body></html>','https://example.com/',{partial:true});
  const error=inspectSeoHtml('<html><head><title>404 not found</title></head></html>','https://example.com/missing');
- assert.equal(SEO_SCORING_VERSION,'micirql-seo-v3.4');
+ assert.equal(SEO_SCORING_VERSION,'micirql-seo-v3.5');
  for(const item of [healthy,partial,error])assert.equal(item.scoringVersion,SEO_SCORING_VERSION);
  assert.equal(healthy.scoring.version,SEO_SCORING_VERSION);
  assert.equal(partial.scoring.version,SEO_SCORING_VERSION);
@@ -440,4 +440,39 @@ test('only visible links and images affect score, but actual JSON-LD remains ins
  assert.deepEqual(result.internalLinkTargets,['https://testingurl.dev/contact']);
  assert.ok(result.findings.some(x=>x.code==='images_missing_alt'));
  assert.ok(!result.findings.some(x=>x.code==='invalid_json_ld'));
+});
+
+
+test('Open Graph sharing metadata remains advisory and cannot reduce Google-oriented SEO score',()=>{
+ const url='https://example.com/services';
+ const base='<html lang="en"><head><title>Example Website Services and Treatment Information</title>'
+  +'<meta name="description" content="Discover treatments and services available at this example website.">'
+  +'<meta name="viewport" content="width=device-width">'
+  +'<link rel="canonical" href="'+url+'"></head>'
+  +'<body><main><h1>Services</h1><p>Learn about the services provided by our team.</p></main></body></html>';
+ const withOg=base.replace('</head>', '<meta property="og:title" content="Services">'
+  +'<meta property="og:description" content="Services and treatments">'
+  +'<meta property="og:image" content="https://example.com/social.jpg"></head>');
+ const without=inspectSeoHtml(base,url),withSharing=inspectSeoHtml(withOg,url);
+ assert.equal(without.score,withSharing.score);
+ assert.equal(without.scoringVersion,'micirql-seo-v3.5');
+ assert.equal(without.scoring.categoryDeductions.social,0);
+ assert.equal(without.scoring.totalDeductions,withSharing.scoring.totalDeductions);
+ for(const code of ['missing_og_title','missing_og_description','missing_og_image']){
+  const advisory=without.findings.find(f=>f.code===code);
+  assert.ok(advisory,code);
+  assert.equal(advisory.severity,'info');
+  assert.equal(advisory.points,0);
+  assert.equal(withSharing.findings.some(f=>f.code===code),false);
+ }
+});
+
+test('important page-title and robots noindex penalties remain after social-scoring correction',()=>{
+ const url='https://example.com/';
+ const html='<html lang="en"><head><meta name="robots" content="noindex">'
+  +'<meta name="viewport" content="width=device-width"></head><body><h1>Welcome</h1></body></html>';
+ const report=inspectSeoHtml(html,url);
+ assert.ok(report.findings.some(f=>f.code==='missing_title'&&f.points>=15));
+ assert.ok(report.findings.some(f=>f.code==='noindex'&&f.points>=20));
+ assert.ok(report.score<=55);
 });
