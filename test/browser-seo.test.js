@@ -2272,8 +2272,9 @@ test('beginner SEO setup explains the real extension prerequisite and remains ac
 
 test('beginner PDF readiness follows link verification rather than page scan alone',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
- assert.match(html,/linkVerification:\[\],linkVerificationPending:true,retryPolicy:/);
- assert.match(html,/pdfNow.disabled=true/);
+ assert.match(html,/linkVerification:\[\],linkVerificationPending:pending.size>0,retryPolicy:/);
+ assert.match(html,/pdfNow.disabled=siteReport.linkVerificationPending/);
+ assert.match(html,/siteReport.linkVerificationPending\?'Finalizing report…':'Report ready to save'/);
  assert.match(html,/sitePrintButton.disabled=siteReport.linkVerificationPending===true/);
  assert.match(html,/sitePrintButton.disabled=verificationPending/);
  assert.match(html,/completion.textContent=verificationPending\?/);
