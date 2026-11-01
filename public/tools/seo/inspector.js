@@ -1,5 +1,5 @@
 // MiCirql SEO signals: deterministic source/DOM-based checks; not a search ranking prediction.
-export const SEO_SCORING_VERSION='micirql-seo-v3.3';
+export const SEO_SCORING_VERSION='micirql-seo-v3.4';
 const decode=s=>String(s||'').replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&#39;|&apos;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>').trim();
 function attribute(tag,name){
  const re=new RegExp('(?:^|\\s)'+name+'\\s*=\\s*(?:"([^"]*)"|\\x27([^\\x27]*)\\x27|([^\\s>]+))','i');
@@ -7,7 +7,13 @@ function attribute(tag,name){
 }
 export function inspectSeoHtml(html,url,options={}){
  if(typeof html!=='string'||html.length>1000000)throw Error('HTML must be a string under 1 MB');
- const head=(html.match(/<head\b[^>]*>([\s\S]*?)<\/head\s*>/i)||[])[1]||html.slice(0,100000);
+ // Only inspect document elements, not escaped examples, source comments,
+ // inert template markup or script/style contents. Keep real JSON-LD scripts
+ // separately for structured-data checks.
+ const activeHtml=html.replace(/<!--[\s\S]*?-->/g,' ')
+  .replace(/<(?:template|noscript)\b[^>]*>[\s\S]*?<\/(?:template|noscript)\s*>/gi,' ');
+ const inspectableHtml=activeHtml.replace(/<(?:script|style)\b[^>]*>[\s\S]*?<\/(?:script|style)\s*>/gi,' ');
+ const head=(inspectableHtml.match(/<head\b[^>]*>([\s\S]*?)<\/head\s*>/i)||[])[1]||inspectableHtml.slice(0,100000);
  const title=decode((head.match(/<title\b[^>]*>([\s\S]*?)<\/title\s*>/i)||[])[1]||'');
  const meta=[...head.matchAll(/<meta\b[^>]*>/gi)].map(m=>m[0]);
  const links=[...head.matchAll(/<link\b[^>]*>/gi)].map(m=>m[0]);
@@ -16,15 +22,15 @@ export function inspectSeoHtml(html,url,options={}){
  const canonicalTags=links.filter(t=>attribute(t,'rel').toLowerCase().split(/\s+/).includes('canonical'));
  const canonicalTag=canonicalTags[0];
  const canonical=canonicalTag?attribute(canonicalTag,'href'):'';
- const htmlTag=(html.match(/<html\b[^>]*>/i)||[])[0]||'';
- const lang=attribute(htmlTag,'lang'),h1Count=[...html.matchAll(/<h1(?:\s|>)/gi)].length;
+ const htmlTag=(inspectableHtml.match(/<html\b[^>]*>/i)||[])[0]||'';
+ const lang=attribute(htmlTag,'lang'),h1Count=[...inspectableHtml.matchAll(/<h1(?:\s|>)/gi)].length;
  const ogTitle=findMeta('property','og:title'),ogDescription=findMeta('property','og:description'),ogImage=findMeta('property','og:image');
  const twitterCard=findMeta('name','twitter:card');
- const imageTags=[...html.matchAll(/<img\b[^>]*>/gi)].map(m=>m[0]);
+ const imageTags=[...inspectableHtml.matchAll(/<img\b[^>]*>/gi)].map(m=>m[0]);
  const missingAltTags=imageTags.filter(t=>!/\salt\s*=/i.test(t));
  const imagesMissingAlt=missingAltTags.length;
- const structuredDataCount=[...html.matchAll(/<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>/gi)].length;
- const headingMatches=[...html.matchAll(/<h([1-6])\b[^>]*>([\s\S]*?)<\/h\1\s*>/gi)];
+ const structuredDataCount=[...activeHtml.matchAll(/<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>/gi)].length;
+ const headingMatches=[...inspectableHtml.matchAll(/<h([1-6])\b[^>]*>([\s\S]*?)<\/h\1\s*>/gi)];
  const emptyH1Matches=headingMatches.filter(m=>Number(m[1])===1&&!decode(m[2].replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,' ').replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi,' ').replace(/<[^>]*>/g,' ').replace(/\s+/g,' '))&&!/\b(?:aria-label|aria-labelledby)\s*=/i.test(m[0].split('>')[0]));
  const headingLevels=headingMatches.map(m=>Number(m[1]));
  const headingLabel=m=>decode(m[2].replace(/<[^>]*>/g,' ').replace(/\s+/g,' ')).slice(0,140);
@@ -34,7 +40,7 @@ export function inspectSeoHtml(html,url,options={}){
 
  // Advisory only: low readable body text is not by itself proof of poor SEO.
  // Exclude boilerplate and non-visible source before measuring substantive text.
- const bodyHtml=(html.match(/<body\b[^>]*>([\s\S]*?)<\/body\s*>/i)||[])[1]||'';
+ const bodyHtml=(inspectableHtml.match(/<body\b[^>]*>([\s\S]*?)<\/body\s*>/i)||[])[1]||'';
  const contentHtml=bodyHtml.replace(/<(?:script|style|svg|nav|footer|header|aside|template|noscript)\b[^>]*>[\s\S]*?<\/(?:script|style|svg|nav|footer|header|aside|template|noscript)\s*>/gi,'');
  const contentText=decode(contentHtml.replace(/<!--[\s\S]*?-->/g,' ').replace(/<[^>]+>/g,' ').replace(/\s+/g,' '));
  const contentWordCount=contentText?contentText.split(/\s+/).filter(Boolean).length:0;
@@ -42,7 +48,7 @@ export function inspectSeoHtml(html,url,options={}){
  const headingSkips=headingEvidence.length;
  const findings=[];
  const add=(code,severity,message,points=0,category='technical')=>findings.push({code,severity,message,points,category});
- const errorPage=/\b(?:cloudflare|connection timed out)\b/i.test(title)&&/\b(?:5(?:0[0-9]|2[0-9])|4(?:0[34]|2[9]))\b/.test(title)||/<title[^>]*>[^<]*(?:403 forbidden|404 not found|502 bad gateway|503 service unavailable|504 gateway timeout|522 connection timed out)[^<]*<\/title>/i.test(head)||/cf-error-code|cf-error-details|cloudflare-error-500s/i.test(html.slice(0,120000));
+ const errorPage=/\b(?:cloudflare|connection timed out)\b/i.test(title)&&/\b(?:5(?:0[0-9]|2[0-9])|4(?:0[34]|2[9]))\b/.test(title)||/<title[^>]*>[^<]*(?:403 forbidden|404 not found|502 bad gateway|503 service unavailable|504 gateway timeout|522 connection timed out)[^<]*<\/title>/i.test(head)||/cf-error-code|cf-error-details|cloudflare-error-500s/i.test(inspectableHtml.slice(0,120000));
  const tail=html.trimEnd();
  // Detect clearly interrupted captures without assuming optional HTML closing tags are mandatory.
  const incompleteHtml=/<(?:[a-z][\w:-]*)(?:\s[^<>]*)?$/i.test(tail)||(tail.lastIndexOf('<!--')>tail.lastIndexOf('-->'))||(/<script\b/i.test(tail)&&tail.search(/<script\b/i)>-1&&tail.toLowerCase().lastIndexOf('<script')>tail.toLowerCase().lastIndexOf('</script'));
@@ -92,7 +98,7 @@ export function inspectSeoHtml(html,url,options={}){
  if(!ogImage)add('missing_og_image','low','Add Open Graph image.',3,'social');
  if(!twitterCard)add('missing_twitter_card','info','Consider adding a Twitter/X card tag.',0,'social');
  if(imagesMissingAlt)add('images_missing_alt','medium',imagesMissingAlt+' image(s) lack an alt attribute.',Math.min(10,imagesMissingAlt*2),'content');
- const anchorTags=[...html.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a\s*>/gi)];
+ const anchorTags=[...inspectableHtml.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a\s*>/gi)];
  const linkIssues=[];
  for(const match of anchorTags){
   const tag='<a '+match[1]+'>';
@@ -151,7 +157,7 @@ export function inspectSeoHtml(html,url,options={}){
  }else if(linkIssues.length)add('links_unverified','info','Partial HTML capture: link findings require complete-page verification.',0,'links');
  if(!structuredDataCount)add('no_structured_data','info','Consider relevant JSON-LD structured data where applicable.',0,'structured_data');
 
- const jsonLdScripts=[...html.matchAll(/<script\b(?=[^>]*\btype\s*=\s*["']application\/ld\+json["'])[^>]*>([\s\S]*?)<\/script\s*>/gi)];
+ const jsonLdScripts=[...activeHtml.matchAll(/<script\b(?=[^>]*\btype\s*=\s*["']application\/ld\+json["'])[^>]*>([\s\S]*?)<\/script\s*>/gi)];
  let invalidJsonLd=0,untypedJsonLd=0;
  const hasSchemaType=value=>Array.isArray(value)?value.some(hasSchemaType):Boolean(value&&typeof value==='object'&&(value['@type']||(Array.isArray(value['@graph'])&&value['@graph'].some(hasSchemaType))));
  for(const script of jsonLdScripts){
