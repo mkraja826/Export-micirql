@@ -321,11 +321,27 @@ async function readQaLayout(rawUrl){
      const docWidth=Math.max(root?.scrollWidth||0,body?.scrollWidth||0);
      const controls=[...document.querySelectorAll('input:not([type=hidden]),select,textarea')].filter(el=>el.getClientRects().length>0).slice(0,600);
      const labelled=el=>Boolean(el.getAttribute('aria-label')?.trim()||el.getAttribute('aria-labelledby')||el.labels?.length||el.getAttribute('title')?.trim());
-     const navLinks=[...document.querySelectorAll('nav a[href],[role=navigation] a[href]')].slice(0,500);
-     const linksWithoutNames=navLinks.filter(el=>!el.textContent?.trim()&&!el.getAttribute('aria-label')&&!el.getAttribute('aria-labelledby')&&!el.getAttribute('title')&&!el.querySelector('img[alt]:not([alt=""])'));
+     // Read-only DOM evidence: do not click, follow links, edit fields, validate or submit forms.
+     // Return aggregate counts only; no URL destinations, field values or private page text.
+     const navLinks=[...document.querySelectorAll('nav a,[role="navigation"] a')].filter(el=>el.getClientRects().length>0).slice(0,500);
+     const linksWithoutNames=navLinks.filter(el=>!el.textContent?.trim()&&!el.getAttribute('aria-label')&&!el.getAttribute('aria-labelledby')&&!el.getAttribute('title')&&!el.querySelector('img[alt]:not([alt=""]),svg title'));
+     const navHref=el=>String(el.getAttribute('href')||'').trim();
+     const placeholderNavLinks=navLinks.filter(el=>!navHref(el)||navHref(el)==='#').length;
+     const scriptedNavLinks=navLinks.filter(el=>/^(?:javascript|data|vbscript):/i.test(navHref(el))).length;
+     const missingFragmentTargets=navLinks.filter(el=>{
+      const href=navHref(el);
+      if(!href.startsWith('#')||href==='#')return false;
+      let fragment=href.slice(1);
+      try{fragment=decodeURIComponent(fragment)}catch{return false}
+      return Boolean(fragment&&!document.getElementById(fragment));
+     }).length;
+     const implicitSubmitButtons=[...document.forms].slice(0,100).reduce((sum,form)=>
+      sum+[...form.querySelectorAll('button:not([type])')].filter(el=>el.getClientRects().length>0).length,0);
      return {observedWidth:viewportWidth,documentWidth:docWidth,horizontalOverflowPx:Math.max(0,docWidth-viewportWidth),
       formCount:document.forms.length,visibleFormControls:controls.length,unlabelledVisibleFields:controls.filter(el=>!labelled(el)).length,
-      requiredVisibleFields:controls.filter(el=>el.required).length,navigationLinks:navLinks.length,unnamedNavigationLinks:linksWithoutNames.length};
+      requiredVisibleFields:controls.filter(el=>el.required).length,navigationLinks:navLinks.length,unnamedNavigationLinks:linksWithoutNames.length,
+      placeholderNavigationLinks:placeholderNavLinks,scriptedNavigationLinks:scriptedNavLinks,missingNavigationFragmentTargets:missingFragmentTargets,
+      implicitSubmitButtons};
     }});
     const metrics=results?.[0]?.result;
     if(!metrics||!Number.isFinite(metrics.observedWidth)||Math.abs(metrics.observedWidth-width)>4)throw Error('Chrome did not confirm the requested viewport');
