@@ -25,6 +25,16 @@ export function inspectQaHtml(html,url,options={}){
  if(headingJumps)add('heading_jump','low',headingJumps+' heading transition(s) skip levels. Review reading order.');
  const ids=new Set([...cleaned.matchAll(/<[a-z][^>]*\bid\s*=\s*(?:"([^"]+)"|'([^']+)')[^>]*>/gi)].map(match=>match[1]||match[2]));
  const labelMatches=[...cleaned.matchAll(/<label\b[^>]*>[\s\S]*?<\/label\s*>/gi)];
+
+ // Identify duplicate IDs, which can break labels and in-page navigation.
+ const idValues=[...cleaned.matchAll(/<[a-z][^>]*\bid\s*=\s*(?:"([^"]+)"|'([^']+)')[^>]*>/gi)].map(match=>match[1]||match[2]);
+ const repeated=[...new Set(idValues.filter((id,index)=>idValues.indexOf(id)!==index))];
+ for(const id of repeated.slice(0,20))add('duplicate_id','medium','Multiple elements share the same ID, which can confuse navigation and assistive technology.',id);
+ // Detect basic link naming and target problems without attempting to follow links.
+ for(const match of cleaned.matchAll(/<a\b[^>]*>/gi)){
+  const tag=match[0],target=attr(tag,'target').toLowerCase(),rel=attr(tag,'rel').toLowerCase();
+  if(target==='_blank'&&!/\bnoopener\b/.test(rel))add('new_tab_without_noopener','info','A new-tab link does not explicitly include noopener. Modern browsers generally protect these links.','a');
+ }
  const labels=new Set(labelMatches.map(match=>attr(match[0].split('>')[0]+'>','for')).filter(Boolean));
  const wrappedControlPositions=labelMatches.map(match=>({from:match.index,to:match.index+match[0].length}));
  const controls=[...cleaned.matchAll(/<(input|select|textarea)\b[^>]*>/gi)];
