@@ -1,5 +1,5 @@
 // MiCirql SEO signals: deterministic source/DOM-based checks; not a search ranking prediction.
-export const SEO_SCORING_VERSION='micirql-seo-v3.5';
+export const SEO_SCORING_VERSION='micirql-seo-v3.6';
 const decode=s=>String(s||'').replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&#39;|&apos;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>').trim();
 function attribute(tag,name){
  const re=new RegExp('(?:^|\\s)'+name+'\\s*=\\s*(?:"([^"]*)"|\\x27([^\\x27]*)\\x27|([^\\s>]+))','i');
@@ -118,7 +118,8 @@ export function inspectSeoHtml(html,url,options={}){
   if(href.startsWith('#')){linkTypes.fragment++;continue}
   if(/^mailto:/i.test(href)){linkTypes.email++;continue}
   if(/^tel:/i.test(href)){linkTypes.telephone++;continue}
-  if(/^(?:javascript|data|vbscript):/i.test(href)){linkTypes.invalid++;invalidLinkExamples.push(href);continue}
+  if(/^javascript:/i.test(href)){linkTypes.invalid++;continue} // Report once as an uncrawlable JavaScript destination.
+  if(/^(?:data|vbscript):/i.test(href)){linkTypes.invalid++;invalidLinkExamples.push(href);continue}
   try{
    const resolved=new URL(href,url);
    if(!['http:','https:'].includes(resolved.protocol)){linkTypes.other++;continue}
@@ -152,7 +153,7 @@ export function inspectSeoHtml(html,url,options={}){
  const javascriptLinks=linkIssues.filter(x=>x.code==='link_javascript');
  if(!isPartial){
   if(linksMissingName.length)add('links_missing_name','medium',linksMissingName.length+' link(s) lack discernible text, aria-label, title or image alt. Examples: '+linksMissingName.slice(0,3).map(x=>x.href).join(', ')+'.',Math.min(8,linksMissingName.length*2),'links');
-  if(insecureLinks.length)add('links_http','low',insecureLinks.length+' link(s) use HTTP; confirm HTTPS alternatives exist. Examples: '+insecureLinks.slice(0,3).map(x=>x.href).join(', ')+'.',3,'links');
+  if(insecureLinks.length)add('links_http','info',insecureLinks.length+' link(s) use HTTP. Review whether HTTPS alternatives are available; outbound HTTP links alone are not evidence of an SEO ranking penalty. Examples: '+insecureLinks.slice(0,3).map(x=>x.href).join(', ')+'.',0,'links');
   if(javascriptLinks.length)add('links_javascript','medium',javascriptLinks.length+' link(s) use javascript: URLs rather than crawlable destinations.',4,'links');
  }else if(linkIssues.length)add('links_unverified','info','Partial HTML capture: link findings require complete-page verification.',0,'links');
  if(!structuredDataCount)add('no_structured_data','info','Consider relevant JSON-LD structured data where applicable.',0,'structured_data');
