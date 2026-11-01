@@ -2,7 +2,7 @@
 const ORIGIN=location.origin;
 const TRUSTED=new Set(['https://export.micirql.com','https://tools.micirql.com']);
 const reply=(type,id,result)=>window.postMessage({source:'micirql-extension',type,id,...result},ORIGIN);
-const announce=()=>reply('MICIRQL_EXTENSION_READY',null,{protocol:3,extensionVersion:chrome.runtime.getManifest?.()?.version||'unknown',capabilities:['discover','capture','bulk','progress','seo-http-evidence']});
+const announce=()=>reply('MICIRQL_EXTENSION_READY',null,{protocol:3,extensionVersion:chrome.runtime.getManifest?.()?.version||'unknown',capabilities:['discover','capture','bulk','progress','seo-http-evidence','qa-layout']});
 window.addEventListener('message',async event=>{
  if(event.source!==window||event.origin!==ORIGIN||!TRUSTED.has(ORIGIN)||event.data?.source!=='micirql-web')return;
  const {type,id}=event.data;
@@ -38,6 +38,12 @@ window.addEventListener('message',async event=>{
   }catch(error){result={ok:false,error:error.message||'Extension capture failed'}}
   finally{if(listener)chrome.storage.onChanged.removeListener(listener)}
   reply('MICIRQL_CAPTURE_RESULT',id,{...(result||{ok:false,error:'No capture response'}),zip:!!zip});
+ }
+ if(type==='MICIRQL_QA_LAYOUT'){
+  let result;
+  try{result=await chrome.runtime.sendMessage({type:'READ_QA_LAYOUT',url:event.data.url})}
+  catch(error){result={ok:false,error:error.message||'Read-only layout observation failed'}}
+  reply('MICIRQL_QA_LAYOUT_RESULT',id,result||{ok:false,error:'No QA layout response'});
  }
  if(type==='MICIRQL_SEO_LINK_CHECK'){
   let result;
