@@ -114,7 +114,7 @@ test('read-only QA observations report bounded navigation and form counts, with 
  const app=readFileSync(new URL('../public/tools/qa/app.js',import.meta.url),'utf8');
  const source=readFileSync(new URL('../extension/background.js',import.meta.url),'utf8');
  const manifest=JSON.parse(readFileSync(new URL('../extension/manifest.json',import.meta.url),'utf8'));
- assert.equal(manifest.version,'0.3.15');
+ assert.equal(manifest.version,'0.3.16');
  for(const field of ['placeholderNavigationLinks','scriptedNavigationLinks','missingNavigationFragmentTargets','implicitSubmitButtons']){
   assert.ok(source.includes(field),'Extension must provide '+field);
   assert.ok(app.includes(field),'Report must show '+field);
@@ -124,4 +124,20 @@ test('read-only QA observations report bounded navigation and form counts, with 
  assert.match(source,/do not click, follow links, edit fields, validate or submit forms/);
  assert.match(source,/Return aggregate counts only/);
  assert.doesNotMatch(source.slice(source.indexOf('async function readQaLayout('),source.indexOf('async function checkSeoLinkStatus(')),/\.submit\(|\.click\(|\.dispatchEvent\(|\.value\s*=/);
+});
+
+
+test('QA Lab reports read-only keyboard, named-button and touch-target observations without false WCAG verdicts',()=>{
+ const app=readFileSync(new URL('../public/tools/qa/app.js',import.meta.url),'utf8');
+ const background=readFileSync(new URL('../extension/background.js',import.meta.url),'utf8');
+ const fields=['visibleButtons','buttonsWithoutNames','customInteractiveControls','customControlsWithoutTabFocus','navigationWithoutTabFocus','smallNavigationTargets','requiredFieldsWithoutLabels'];
+ for(const field of fields)assert.ok(background.includes(field),'Chrome observation is missing '+field);
+ for(const field of ['buttonsWithoutNames','customControlsWithoutTabFocus','navigationWithoutTabFocus','smallNavigationTargets','requiredFieldsWithoutLabels'])assert.ok(app.includes(field),'Printable report is missing '+field);
+ assert.match(app,/Number\.isFinite\(item\.buttonsWithoutNames\)/,'Old extensions must not show invented zero counts');
+ assert.match(app,/not confirmed accessibility failures/);
+ assert.match(app,/Spacing, inline-text and other exceptions were not evaluated/);
+ assert.match(background,/Return aggregate counts only/);
+ assert.match(background,/getBoundingClientRect/);
+ const observer=background.slice(background.indexOf('async function readQaLayout('),background.indexOf('async function checkSeoLinkStatus('));
+ assert.doesNotMatch(observer,/\.submit\(|\.click\(|\.dispatchEvent\(|\.value\s*=|\.focus\(/);
 });
