@@ -1,5 +1,5 @@
 // MiCirql SEO signals: deterministic source/DOM-based checks; not a search ranking prediction.
-export const SEO_SCORING_VERSION='micirql-seo-v3.4';
+export const SEO_SCORING_VERSION='micirql-seo-v3.5';
 const decode=s=>String(s||'').replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&#39;|&apos;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>').trim();
 function attribute(tag,name){
  const re=new RegExp('(?:^|\\s)'+name+'\\s*=\\s*(?:"([^"]*)"|\\x27([^\\x27]*)\\x27|([^\\s>]+))','i');
@@ -93,9 +93,9 @@ export function inspectSeoHtml(html,url,options={}){
  if(!viewport)add('missing_viewport','medium','Add a mobile viewport meta tag.',8,'technical');
  const googlebotRobots=findMeta('name','googlebot');
  if(/\bnoindex\b/i.test(robots)||/\bnoindex\b/i.test(googlebotRobots))add('noindex','high','This page requests noindex for search crawlers; confirm it should be excluded from search.',25,'indexability');
- if(!ogTitle)add('missing_og_title','low','Add Open Graph title for social sharing.',3,'social');
- if(!ogDescription)add('missing_og_description','low','Add Open Graph description.',3,'social');
- if(!ogImage)add('missing_og_image','low','Add Open Graph image.',3,'social');
+ if(!ogTitle)add('missing_og_title','info','Consider an Open Graph title for social sharing and as an optional Google title-link source.',0,'social');
+ if(!ogDescription)add('missing_og_description','info','Consider an Open Graph description for social sharing.',0,'social');
+ if(!ogImage)add('missing_og_image','info','Consider an Open Graph image for social sharing.',0,'social');
  if(!twitterCard)add('missing_twitter_card','info','Consider adding a Twitter/X card tag.',0,'social');
  if(imagesMissingAlt)add('images_missing_alt','medium',imagesMissingAlt+' image(s) lack an alt attribute.',Math.min(10,imagesMissingAlt*2),'content');
  const anchorTags=[...inspectableHtml.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a\s*>/gi)];
