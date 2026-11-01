@@ -3,7 +3,7 @@ import {inspectQaHtml,QA_INSPECTOR_VERSION} from './inspector.js';
 const $=id=>document.getElementById(id);
 const urlInput=$('url'),run=$('run'),manual=$('manual'),download=$('download'),print=$('print');
 const status=$('extension-status'),setup=$('setup'),progressWrap=$('progress-wrap'),results=$('results');
-let connected=false,busy=false,currentReport=null;
+let connected=false,layoutSupported=false,busy=false,currentReport=null;
 const preset=new URLSearchParams(location.search).get('url');
 if(preset)urlInput.value=preset;
 function normalize(raw){
@@ -19,7 +19,9 @@ function message(text,error=false){
 function ping(){window.postMessage({source:'micirql-web',type:'MICIRQL_EXTENSION_PING'},location.origin)}
 window.addEventListener('message',event=>{
  if(event.source!==window||event.origin!==location.origin||event.data?.source!=='micirql-extension'||event.data.type!=='MICIRQL_EXTENSION_READY')return;
- connected=true;setup.hidden=true;message('MiCirql Chrome extension connected. Ready for a live website inspection.');
+ connected=true;layoutSupported=Array.isArray(event.data.capabilities)&&event.data.capabilities.includes('qa-layout');
+ setup.hidden=true;message('MiCirql Chrome extension connected. '+(layoutSupported?'Responsive layout evidence available.':'Update the extension to include responsive layout checks.'));
+
 });
 ping();
 setTimeout(()=>{if(!connected){setup.hidden=false;message('Chrome extension not detected. Install it to inspect live pages.',true)}},1800);
@@ -80,6 +82,28 @@ function render(report){
   report.pagesAnalyzed+' of '+report.pagesSelected+' selected page(s) verified'+
   (report.truncated?' · Discovery was limited to 60 pages':'')+
   (report.partialPages?' · '+report.partialPages+' incomplete capture(s)':'')+'.';
+ const layoutSummary=$('layout-summary'),layoutDetails=$('layout-details');
+ layoutDetails.replaceChildren();
+ const evidence=report.layoutInspection;
+ if(!evidence){
+  layoutSummary.textContent='Not checked. No browser layout observations are available for this report.';
+ }else if(!evidence.ok){
+  layoutSummary.textContent='Responsive layout could not be verified: '+(evidence.error||'Chrome did not return evidence.');
+ }else{
+  const observed=Array.isArray(evidence.observations)?evidence.observations:[];
+  const verified=observed.filter(item=>item.verified===true);
+  layoutSummary.textContent='Read-only browser observation for one page ('+evidence.url+'). Verified '+verified.length+' of 3 viewport widths. This is not functional testing.';
+  for(const item of observed){
+   const panel=node('div',undefined,'finding');
+   const title=item.width+'px '+(item.verified?'· verified viewport':'· unverified viewport');
+   panel.append(node('strong',title));
+   if(item.verified){
+    panel.append(node('p','Document width: '+item.documentWidth+'px · Horizontal overflow: '+item.horizontalOverflowPx+'px · Visible form fields: '+item.visibleFormControls+' · Unlabelled fields: '+item.unlabelledVisibleFields+' · Navigation links without names: '+item.unnamedNavigationLinks));
+    if(item.horizontalOverflowPx>8)panel.dataset.severity='medium';
+   }else panel.append(node('p',item.reason||'The viewport could not be measured.'));
+   layoutDetails.append(panel);
+  }
+ }
  const pages=$('pages');pages.replaceChildren();
  for(const page of report.reports){
   const details=node('details');
@@ -129,10 +153,21 @@ async function scan(url){
   updateProgress(i+1,pages.length,'Checked '+(i+1)+' of '+pages.length+' selected pages');
  }
  const partialPages=reports.filter(page=>page.partial).length;
+ // Read-only layout observation samples the requested entry page. It does not
+ // click buttons, submit forms or imply that other pages were viewport-tested.
+ let layoutInspection=null;
+ if(layoutSupported){
+  updateProgress(pages.length,pages.length,'Checking homepage layout at 375, 768 and 1440px…');
+  try{
+   const layout=await extensionRequest('MICIRQL_QA_LAYOUT','MICIRQL_QA_LAYOUT_RESULT',url.href,90000);
+   layoutInspection=layout.ok?{ok:true,url:layout.url||url.href,observations:Array.isArray(layout.observations)?layout.observations:[]}
+    :{ok:false,error:layout.error||'Browser layout inspection failed'};
+  }catch(error){layoutInspection={ok:false,error:error.message||'Browser layout inspection timed out'};}
+ }
  return {schemaVersion:1,tool:'qa-lab',inspectorVersion:QA_INSPECTOR_VERSION,generatedAt:new Date().toISOString(),
   website:url.origin,pagesDiscovered:discovered.originalCount??entries.length,pagesSelected:pages.length,
   pagesAnalyzed:reports.length-partialPages,partialPages,truncated:Boolean(discovered.truncated||entries.length>60),
-  reports,failures,totalFindings:reports.reduce((n,page)=>n+page.findings.length,0),
+  reports,failures,layoutInspection,totalFindings:reports.reduce((n,page)=>n+page.findings.length,0),
   scope:'browser_captured_static_html',limitations:['No functional form or navigation checks','No verified external link status','Incomplete captures remain provisional']};
 }
 async function runScan(event){
