@@ -11,7 +11,7 @@ export function inspectSeoHtml(html,url,options={}){
  // inert template markup or script/style contents. Keep real JSON-LD scripts
  // separately for structured-data checks.
  const activeHtml=html.replace(/<!--[\s\S]*?-->/g,' ')
-  .replace(/<(?:template|noscript)\b[^>]*>[\s\S]*?<\/(?:template|noscript)\s*>/gi,' ');
+  .replace(/<(?:template|noscript|textarea|xmp)\b[^>]*>[\s\S]*?<\/(?:template|noscript|textarea|xmp)\s*>/gi,' ');
  const inspectableHtml=activeHtml.replace(/<(?:script|style)\b[^>]*>[\s\S]*?<\/(?:script|style)\s*>/gi,' ');
  const head=(inspectableHtml.match(/<head\b[^>]*>([\s\S]*?)<\/head\s*>/i)||[])[1]||inspectableHtml.slice(0,100000);
  const title=decode((head.match(/<title\b[^>]*>([\s\S]*?)<\/title\s*>/i)||[])[1]||'');
