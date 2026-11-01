@@ -535,3 +535,33 @@ test('genuinely malformed or non-HTTP data destinations remain independently det
  assert.equal(invalid.points,4);
  assert.equal(result.findings.some(x=>x.code==='links_javascript'),false);
 });
+
+
+test('decorative images and one-pixel beacons never reduce SEO scores for missing alt text',()=>{
+ const url='https://example.com/';
+ const head='<html lang="en"><head><title>Example Website Content and Details</title><meta name="viewport" content="width=device-width"></head><body><h1>Welcome</h1>';
+ const base=inspectSeoHtml(head+'</body></html>',url);
+ const decoration=head
+  +'<img src="/decoration.svg" role="presentation">'
+  +'<img src="/separator.svg" role="none">'
+  +'<img src="/icon.svg" aria-hidden="true">'
+  +'<img src="/tracker.gif" width="1" height="1">'
+  +'<img src="/decoration-alt.svg" alt="">'
+  +'</body></html>';
+ const decorated=inspectSeoHtml(decoration,url);
+ assert.equal(decorated.imageCount,5);
+ assert.equal(decorated.imagesMissingAlt,0);
+ assert.equal(decorated.findings.some(x=>x.code==='images_missing_alt'),false);
+ assert.equal(decorated.score,base.score);
+});
+
+test('informative images still require alt and preserve exact image evidence',()=>{
+ const url='https://example.com/';
+ const html='<html lang="en"><head><title>Example Business Services and Information</title><meta name="viewport" content="width=device-width"></head>'
+  +'<body><h1>Our Work</h1><img src="/service.jpg"><img src="/hero.jpg" loading="lazy"></body></html>';
+ const result=inspectSeoHtml(html,url);
+ assert.equal(result.imagesMissingAlt,2);
+ const issue=result.findings.find(x=>x.code==='images_missing_alt');
+ assert.ok(issue&&issue.points===4);
+ assert.deepEqual(issue.evidence.map(entry=>entry.value),['/service.jpg','/hero.jpg']);
+});
