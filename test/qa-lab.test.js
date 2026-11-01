@@ -101,10 +101,27 @@ test('QA Lab collects one read-only viewport sample without claiming interactive
  assert.match(app,/MICIRQL_QA_LAYOUT_RESULT/);
  assert.match(app,/layoutInspection/);
  assert.match(app,/Checking homepage layout at 375, 768 and 1440px/);
- assert.match(app,/This is not functional testing/);
+ assert.match(app,/not proof of successful navigation, form submission/);
  assert.match(page,/read-only Chrome layout observation/);
  assert.match(page,/does not establish functional or multi-page responsive correctness/);
  assert.match(page,/id="layout-summary"/);
  assert.match(page,/id="layout-details"/);
  assert.doesNotMatch(app,/\.click\(\)\s*;\s*\/\/.*form submission/);
+});
+
+
+test('read-only QA observations report bounded navigation and form counts, with old-extension fallback',()=>{
+ const app=readFileSync(new URL('../public/tools/qa/app.js',import.meta.url),'utf8');
+ const source=readFileSync(new URL('../extension/background.js',import.meta.url),'utf8');
+ const manifest=JSON.parse(readFileSync(new URL('../extension/manifest.json',import.meta.url),'utf8'));
+ assert.equal(manifest.version,'0.3.15');
+ for(const field of ['placeholderNavigationLinks','scriptedNavigationLinks','missingNavigationFragmentTargets','implicitSubmitButtons']){
+  assert.ok(source.includes(field),'Extension must provide '+field);
+  assert.ok(app.includes(field),'Report must show '+field);
+ }
+ assert.match(app,/Number\.isFinite\(item\.placeholderNavigationLinks\)/);
+ assert.match(app,/Update the extension for these read-only observations/);
+ assert.match(source,/do not click, follow links, edit fields, validate or submit forms/);
+ assert.match(source,/Return aggregate counts only/);
+ assert.doesNotMatch(source.slice(source.indexOf('async function readQaLayout('),source.indexOf('async function checkSeoLinkStatus(')),/\.submit\(|\.click\(|\.dispatchEvent\(|\.value\s*=/);
 });
