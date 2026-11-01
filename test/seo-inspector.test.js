@@ -476,3 +476,22 @@ test('important page-title and robots noindex penalties remain after social-scor
  assert.ok(report.findings.some(f=>f.code==='noindex'&&f.points>=20));
  assert.ok(report.score<=55);
 });
+
+
+test('missing HTML lang remains an accessibility advisory, not an automatic Google Search penalty',()=>{
+ const url='https://example.com/services';
+ const source='<html><head><title>Services and Clinic Information for Visitors</title>'
+  +'<meta name="description" content="Information about our services and the team.">'
+  +'<meta name="viewport" content="width=device-width">'
+  +'<link rel="canonical" href="'+url+'"></head><body><h1>Services</h1><p>Our services for visitors.</p></body></html>';
+ const withLanguage=inspectSeoHtml(source.replace('<html>','<html lang="en">'),url);
+ const withoutLanguage=inspectSeoHtml(source,url);
+ assert.equal(withLanguage.score,withoutLanguage.score);
+ assert.equal(withLanguage.findings.some(f=>f.code==='missing_language'),false);
+ const advisory=withoutLanguage.findings.find(f=>f.code==='missing_language');
+ assert.ok(advisory);
+ assert.equal(advisory.points,0);
+ assert.equal(advisory.severity,'info');
+ assert.match(advisory.message,/accessibility/);
+ assert.equal(withoutLanguage.scoringVersion,'micirql-seo-v3.5');
+});
