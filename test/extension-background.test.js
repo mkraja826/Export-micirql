@@ -350,8 +350,9 @@ test('real navigation event sequence captures redirect hops but keeps final head
 test('read-only QA checks navigation wiring and form controls without clicks, typing or submissions',async()=>{
  let listener,removed=0,detached=0,opened=0,mutations=0,viewport=375;
  const nav=(href,name,visible=true)=>({
-  textContent:name,getAttribute(key){return key==='href'?href:null},
+  textContent:name,tabIndex:href===''?-1:0,getAttribute(key){return key==='href'?href:null},
   getClientRects(){return visible?[{}]:[]},
+  getBoundingClientRect(){return {width:href.startsWith('javascript:')?18:80,height:href.startsWith('javascript:')?20:32}},
   querySelector(){return null},
   click(){mutations++}
  });
@@ -369,11 +370,20 @@ test('read-only QA checks navigation wiring and form controls without clicks, ty
   assert.equal(selector,'button:not([type])');
   return [{getClientRects:()=>[{}]},{getClientRects:()=>[]}];
  },submit(){mutations++}}];
+ const button=(name,disabled=false)=>({textContent:name,disabled,getClientRects(){return [{}]},
+  getAttribute(){return null},querySelector(){return null},click(){mutations++}});
+ const buttons=[button(''),button('Submit'),button('Disabled',true)];
+ const customControls=[
+  {tabIndex:-1,getClientRects(){return [{}]},getAttribute(){return null}},
+  {tabIndex:0,getClientRects(){return [{}]},getAttribute(){return null}}
+ ];
  const document={
   documentElement:{scrollWidth:1100},body:{scrollWidth:1050},forms,
   querySelectorAll(selector){
    if(selector==='nav a,[role="navigation"] a')return navigation;
    if(selector==='input:not([type=hidden]),select,textarea')return [field('name',true),field('',false)];
+   if(selector==='button')return buttons;
+   if(selector==='[role="button"],[role="link"]')return customControls;
    throw Error('Unexpected query: '+selector);
   },
   getElementById(id){return id==='present'?{}:null}
@@ -412,6 +422,13 @@ test('read-only QA checks navigation wiring and form controls without clicks, ty
   assert.equal(item.unlabelledVisibleFields,1);
   assert.equal(item.requiredVisibleFields,1);
   assert.equal(item.implicitSubmitButtons,1);
+  assert.equal(item.visibleButtons,2);
+  assert.equal(item.buttonsWithoutNames,1);
+  assert.equal(item.customInteractiveControls,2);
+  assert.equal(item.customControlsWithoutTabFocus,1);
+  assert.equal(item.navigationWithoutTabFocus,1);
+  assert.equal(item.smallNavigationTargets,1);
+  assert.equal(item.requiredFieldsWithoutLabels,0);
   assert.equal(Object.values(item).some(value=>typeof value==='string'&&value.includes('PROTECTED_FIELD_VALUE')),false);
  }
  assert.equal(answer.observations[0].horizontalOverflowPx,725);
