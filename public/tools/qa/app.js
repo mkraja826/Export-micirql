@@ -92,13 +92,17 @@ function render(report){
  }else{
   const observed=Array.isArray(evidence.observations)?evidence.observations:[];
   const verified=observed.filter(item=>item.verified===true);
-  layoutSummary.textContent='Read-only browser observation for one page ('+evidence.url+'). Verified '+verified.length+' of 3 viewport widths. This is not functional testing.';
+  layoutSummary.textContent='Read-only DOM observations for one page ('+evidence.url+'). Verified '+verified.length+' of 3 viewport widths. Findings below are element/target evidence, not proof of successful navigation, form submission, or accessibility conformance.';
   for(const item of observed){
    const panel=node('div',undefined,'finding');
    const title=item.width+'px '+(item.verified?'· verified viewport':'· unverified viewport');
    panel.append(node('strong',title));
    if(item.verified){
     panel.append(node('p','Document width: '+item.documentWidth+'px · Horizontal overflow: '+item.horizontalOverflowPx+'px · Visible form fields: '+item.visibleFormControls+' · Unlabelled fields: '+item.unlabelledVisibleFields+' · Navigation links without names: '+item.unnamedNavigationLinks));
+    if(Number.isFinite(item.placeholderNavigationLinks)){
+     panel.append(node('p','Navigation targets: '+item.navigationLinks+' visible links · '+item.placeholderNavigationLinks+' empty or placeholder destinations · '+item.scriptedNavigationLinks+' script/data destinations · '+item.missingNavigationFragmentTargets+' in-page fragments without matching IDs.'));
+     panel.append(node('p','Form controls: '+item.requiredVisibleFields+' visible required fields · '+item.implicitSubmitButtons+' buttons without an explicit type inside forms (may submit when activated).'));
+    }else panel.append(node('p','Navigation target and form-button checks unavailable in this extension version. Update the extension for these read-only observations.'));
     if(item.horizontalOverflowPx>8)panel.dataset.severity='medium';
    }else panel.append(node('p',item.reason||'The viewport could not be measured.'));
    layoutDetails.append(panel);
