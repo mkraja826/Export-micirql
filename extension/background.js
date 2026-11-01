@@ -3,6 +3,7 @@ const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 let captureBusy=false;
 let seoBusy=false;
 let discoveryBusy=false;
+let qaLayoutBusy=false;
 async function progress(done,total,state='capturing',message=''){await chrome.storage.local.set({captureProgress:{percent:state==='complete'?100:Math.round(done/Math.max(1,total)*95),done,total,state,message}})}
 async function zipMessage(action,extra={}){const response=await chrome.runtime.sendMessage({target:'ZIP_OFFSCREEN',action,...extra});if(!response?.ok)throw Error(response?.error||'ZIP operation failed');return response}
 async function ensureZipDocument(){const url=chrome.runtime.getURL('offscreen.html');const contexts=await chrome.runtime.getContexts({contextTypes:['OFFSCREEN_DOCUMENT'],documentUrls:[url]});if(!contexts.length)await chrome.offscreen.createDocument({url:'offscreen.html',reasons:['BLOBS'],justification:'Create screenshot ZIP files entirely on the user device.'})}
@@ -296,6 +297,50 @@ async function readWebsiteHtml(url){
   return {ok:false,error:detail,classification:/timed out|timeout/i.test(detail)?'navigation_timeout':'navigation_failed',httpEvidence:{...httpEvidence,requestedUrl:parsed.href,finalUrl:null}};
  }finally{if(observe)chrome.webRequest.onHeadersReceived.removeListener(onHeaders);try{await chrome.tabs.remove(tab.id)}catch{}}
 }
+// Browser-observed, read-only layout QA: no clicking, form submission or input values.
+async function readQaLayout(rawUrl){
+ const parsed=new URL(rawUrl);
+ if(!['http:','https:'].includes(parsed.protocol)||parsed.username||parsed.password)throw Error('Invalid public website URL');
+ const tab=await chrome.tabs.create({url:parsed.href,active:false});
+ const target={tabId:tab.id};
+ let attached=false;
+ try{
+  await waitForUsableTab(tab.id,parsed.href,30000);
+  const loaded=await chrome.tabs.get(tab.id);
+  const finalUrl=new URL(loaded.url||'');
+  if(!['http:','https:'].includes(finalUrl.protocol)||finalUrl.origin!==parsed.origin)throw Error('QA layout page redirected outside the selected website');
+  await chrome.debugger.attach(target,'1.3');attached=true;
+  const widths=[375,768,1440],observations=[];
+  for(const width of widths){
+   try{
+    await cdp(target,'Emulation.setDeviceMetricsOverride',{width,height:PRESETS[width],deviceScaleFactor:1,mobile:width===375});
+    await wait(320);
+    const results=await chrome.scripting.executeScript({target:{tabId:tab.id},func:()=>{
+     const root=document.documentElement,body=document.body;
+     const viewportWidth=window.innerWidth;
+     const docWidth=Math.max(root?.scrollWidth||0,body?.scrollWidth||0);
+     const controls=[...document.querySelectorAll('input:not([type=hidden]),select,textarea')].filter(el=>el.getClientRects().length>0).slice(0,600);
+     const labelled=el=>Boolean(el.getAttribute('aria-label')?.trim()||el.getAttribute('aria-labelledby')||el.labels?.length||el.getAttribute('title')?.trim());
+     const navLinks=[...document.querySelectorAll('nav a[href],[role=navigation] a[href]')].slice(0,500);
+     const linksWithoutNames=navLinks.filter(el=>!el.textContent?.trim()&&!el.getAttribute('aria-label')&&!el.getAttribute('aria-labelledby')&&!el.getAttribute('title')&&!el.querySelector('img[alt]:not([alt=""])'));
+     return {observedWidth:viewportWidth,documentWidth:docWidth,horizontalOverflowPx:Math.max(0,docWidth-viewportWidth),
+      formCount:document.forms.length,visibleFormControls:controls.length,unlabelledVisibleFields:controls.filter(el=>!labelled(el)).length,
+      requiredVisibleFields:controls.filter(el=>el.required).length,navigationLinks:navLinks.length,unnamedNavigationLinks:linksWithoutNames.length};
+    }});
+    const metrics=results?.[0]?.result;
+    if(!metrics||!Number.isFinite(metrics.observedWidth)||Math.abs(metrics.observedWidth-width)>4)throw Error('Chrome did not confirm the requested viewport');
+    observations.push({width,verified:true,...metrics});
+   }catch(error){
+    observations.push({width,verified:false,reason:String(error?.message||'Viewport observation failed').slice(0,170)});
+   }
+  }
+  return {ok:true,url:finalUrl.href,scope:'one_page_three_viewports',interactionTesting:false,observations};
+ }catch(error){return {ok:false,error:String(error?.message||'Browser layout observation failed')}}
+ finally{
+  if(attached){try{await cdp(target,'Emulation.clearDeviceMetricsOverride')}catch{}try{await chrome.debugger.detach(target)}catch{}}
+  try{await chrome.tabs.remove(tab.id)}catch{}
+ }
+}
 async function checkSeoLinkStatus(rawUrl){
  const target=new URL(rawUrl);
  if(!['https:','http:'].includes(target.protocol))throw Error('Only HTTP(S) URLs may be checked');
@@ -319,6 +364,12 @@ chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
   if(discoveryBusy){sendResponse({ok:false,error:'Another page discovery is already running. Finish it before starting a new one.'});return false;}
   discoveryBusy=true;
   discoverLocalSubpage(message.url).then(sendResponse).catch(error=>sendResponse({ok:false,error:error.message||'Discovery failed'})).finally(()=>{discoveryBusy=false});
+  return true;
+ }
+ if(message?.type==='READ_QA_LAYOUT'){
+  if(qaLayoutBusy){sendResponse({ok:false,error:'Another browser QA layout scan is already running.'});return false;}
+  qaLayoutBusy=true;
+  readQaLayout(message.url).then(sendResponse).catch(error=>sendResponse({ok:false,error:String(error?.message||'Layout inspection failed')})).finally(()=>{qaLayoutBusy=false});
   return true;
  }
  if(message?.type==='CHECK_SEO_LINK'){
