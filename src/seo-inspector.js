@@ -89,7 +89,7 @@ export function inspectSeoHtml(html,url,options={}){
  }
  if(!canonical)add('missing_canonical','info','No HTML canonical preference was declared. Google may choose a canonical automatically; review only if duplicate URLs are a concern.',0,'indexability');
  else{try{if(!['http:','https:'].includes(new URL(canonical,url).protocol))add('canonical_invalid','medium','Canonical URL is invalid.',7,'indexability')}catch{add('canonical_invalid','medium','Canonical URL is invalid.',7,'indexability')}}
- if(!lang)add('missing_language','medium','Add the document language attribute.',5,'technical');
+ if(!lang)add('missing_language','info','Declare the document language for accessibility and browser behavior. Google Search detects language from page content rather than the HTML lang attribute.',0,'technical');
  if(!viewport)add('missing_viewport','medium','Add a mobile viewport meta tag.',8,'technical');
  const googlebotRobots=findMeta('name','googlebot');
  if(/\bnoindex\b/i.test(robots)||/\bnoindex\b/i.test(googlebotRobots))add('noindex','high','This page requests noindex for search crawlers; confirm it should be excluded from search.',25,'indexability');
