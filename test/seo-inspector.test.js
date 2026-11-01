@@ -359,7 +359,7 @@ test('scoring methodology is explicitly versioned for valid, partial and error-p
  const healthy=inspectSeoHtml('<html><head><title>Example service page title</title></head><body><h1>Welcome</h1></body></html>','https://example.com/');
  const partial=inspectSeoHtml('<html><head><title>Example service page title</title></head><body><h1>Welcome</h1></body></html>','https://example.com/',{partial:true});
  const error=inspectSeoHtml('<html><head><title>404 not found</title></head></html>','https://example.com/missing');
- assert.equal(SEO_SCORING_VERSION,'micirql-seo-v3.3');
+ assert.equal(SEO_SCORING_VERSION,'micirql-seo-v3.4');
  for(const item of [healthy,partial,error])assert.equal(item.scoringVersion,SEO_SCORING_VERSION);
  assert.equal(healthy.scoring.version,SEO_SCORING_VERSION);
  assert.equal(partial.scoring.version,SEO_SCORING_VERSION);
@@ -399,4 +399,43 @@ test('Score Accuracy V3.3: absent meta descriptions are a 4-point snippet opport
  assert.equal(finding?.points,4);
  assert.match(finding.message,/visible page content/);
  assert.equal(absent.score,full.score-4);
+});
+
+
+test('inert markup in scripts, templates and comments cannot fabricate scored SEO findings',()=>{
+ const url='https://badseo.dev/seo-score-fixture';
+ const head='<head><title>Example Website SEO Baseline Page</title><meta name="description" content="Useful example description about the inspected page and its services."/><meta name="viewport" content="width=device-width"/><link rel="canonical" href="'+url+'"></head>';
+ const baseline='<html lang="en">'+head+'<body><main><h1>Visible heading</h1><p>Useful visible information about the website and its services.</p><a href="/about">About</a><img src="/photo.jpg" alt="Photo"></main></body></html>';
+ const inert='<!-- <h1>fake comment</h1><img src="/fake-comment.png"><a href="javascript:alert(1)">Fake</a><meta name="robots" content="noindex"><script type="application/ld+json">{"@type": }</script> -->'
+  +'<script>const fake = "<h1>fake script</h1><img src=/fake-script.png><a href=/fake-script>Fake</a>";</script>'
+  +'<style>/* <h1>fake CSS</h1><img src="/fake-css.png"> */</style>'
+  +'<template><h1>fake template</h1><img src="/fake-template.png"><a href="/fake-template">Fake</a><script type="application/ld+json">{"@type": }</script></template>'
+  +'<noscript><h1>inactive heading</h1><img src="/fake-noscript.png"><a href="/fake-noscript">Fake</a></noscript>';
+ const decorated=baseline.replace('</body>',inert+'</body>').replace('</head>','<!-- <title>Comment title</title><meta name="description" content="Comment"> --></head>');
+ const first=inspectSeoHtml(baseline,url);
+ const actual=inspectSeoHtml(decorated,url);
+ assert.equal(actual.scoringVersion,SEO_SCORING_VERSION);
+ assert.equal(actual.score,first.score);
+ assert.equal(actual.h1Count,1);
+ assert.equal(actual.imageCount,1);
+ assert.equal(actual.imagesMissingAlt,0);
+ assert.deepEqual(actual.internalLinkTargets,first.internalLinkTargets);
+ assert.deepEqual(actual.findings.map(x=>[x.code,x.points]),first.findings.map(x=>[x.code,x.points]));
+ assert.equal(actual.structuredDataCount,0);
+ assert.equal(actual.findings.some(x=>['noindex','multiple_titles','multiple_descriptions','invalid_json_ld','unresolved_link_template','links_javascript'].includes(x.code)),false);
+});
+
+test('only visible links and images affect score, but actual JSON-LD remains inspected',()=>{
+ const url='https://testingurl.dev/check';
+ const html='<html lang="en"><head><title>Visible Elements Inspection Page</title><meta name="description" content="Description of a simple page with genuine on-page links, images and structured data."><meta name="viewport" content="width=device-width"></head><body>'
+  +'<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage"}</script>'
+  +'<script>const fake="<a href=/fake>Bad</a><img src=/fake.png>";</script>'
+  +'<h1>Real heading</h1><a href="/contact">Contact</a><img src="/genuine.png"></body></html>';
+ const result=inspectSeoHtml(html,url);
+ assert.equal(result.structuredDataCount,1);
+ assert.equal(result.imageCount,1);
+ assert.equal(result.imagesMissingAlt,1);
+ assert.deepEqual(result.internalLinkTargets,['https://testingurl.dev/contact']);
+ assert.ok(result.findings.some(x=>x.code==='images_missing_alt'));
+ assert.ok(!result.findings.some(x=>x.code==='invalid_json_ld'));
 });
