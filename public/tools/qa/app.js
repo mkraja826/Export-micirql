@@ -103,6 +103,10 @@ function render(report){
      panel.append(node('p','Navigation targets: '+item.navigationLinks+' visible links · '+item.placeholderNavigationLinks+' empty or placeholder destinations · '+item.scriptedNavigationLinks+' script/data destinations · '+item.missingNavigationFragmentTargets+' in-page fragments without matching IDs.'));
      panel.append(node('p','Form controls: '+item.requiredVisibleFields+' visible required fields · '+item.implicitSubmitButtons+' buttons without an explicit type inside forms (may submit when activated).'));
     }else panel.append(node('p','Navigation target and form-button checks unavailable in this extension version. Update the extension for these read-only observations.'));
+    if(Number.isFinite(item.buttonsWithoutNames)){
+     panel.append(node('p','Keyboard and form review: '+item.buttonsWithoutNames+' visible buttons without detectable names · '+item.customControlsWithoutTabFocus+' custom button/link roles with negative tab order · '+item.navigationWithoutTabFocus+' navigation links with negative tab order · '+item.requiredFieldsWithoutLabels+' required fields without detected labels.'));
+     panel.append(node('p','Target-size review: '+item.smallNavigationTargets+' visible navigation targets smaller than 24px in at least one dimension. Spacing, inline-text and other exceptions were not evaluated; these are not confirmed accessibility failures.'));
+    }else panel.append(node('p','Keyboard, button-name and target-size observations unavailable in this extension version. Update the extension for these review counts.'));
     if(item.horizontalOverflowPx>8)panel.dataset.severity='medium';
    }else panel.append(node('p',item.reason||'The viewport could not be measured.'));
    layoutDetails.append(panel);
