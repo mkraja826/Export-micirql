@@ -359,7 +359,7 @@ test('scoring methodology is explicitly versioned for valid, partial and error-p
  const healthy=inspectSeoHtml('<html><head><title>Example service page title</title></head><body><h1>Welcome</h1></body></html>','https://example.com/');
  const partial=inspectSeoHtml('<html><head><title>Example service page title</title></head><body><h1>Welcome</h1></body></html>','https://example.com/',{partial:true});
  const error=inspectSeoHtml('<html><head><title>404 not found</title></head></html>','https://example.com/missing');
- assert.equal(SEO_SCORING_VERSION,'micirql-seo-v3.5');
+ assert.equal(SEO_SCORING_VERSION,'micirql-seo-v3.6');
  for(const item of [healthy,partial,error])assert.equal(item.scoringVersion,SEO_SCORING_VERSION);
  assert.equal(healthy.scoring.version,SEO_SCORING_VERSION);
  assert.equal(partial.scoring.version,SEO_SCORING_VERSION);
@@ -455,7 +455,7 @@ test('Open Graph sharing metadata remains advisory and cannot reduce Google-orie
   +'<meta property="og:image" content="https://example.com/social.jpg"></head>');
  const without=inspectSeoHtml(base,url),withSharing=inspectSeoHtml(withOg,url);
  assert.equal(without.score,withSharing.score);
- assert.equal(without.scoringVersion,'micirql-seo-v3.5');
+ assert.equal(without.scoringVersion,'micirql-seo-v3.6');
  assert.equal(without.scoring.categoryDeductions.social,0);
  assert.equal(without.scoring.totalDeductions,withSharing.scoring.totalDeductions);
  for(const code of ['missing_og_title','missing_og_description','missing_og_image']){
@@ -493,5 +493,45 @@ test('missing HTML lang remains an accessibility advisory, not an automatic Goog
  assert.equal(advisory.points,0);
  assert.equal(advisory.severity,'info');
  assert.match(advisory.message,/accessibility/);
- assert.equal(withoutLanguage.scoringVersion,'micirql-seo-v3.5');
+ assert.equal(withoutLanguage.scoringVersion,'micirql-seo-v3.6');
+});
+
+
+test('javascript destinations trigger one crawlability deduction, not a duplicate invalid-link penalty',()=>{
+ const url='https://example.com/';
+ const base='<html lang="en"><head><title>Example Business Home Page and Services</title><meta name="description" content="Business services.">'
+  +'<meta name="viewport" content="width=device-width"></head><body><h1>Example</h1></body></html>';
+ const baseline=inspectSeoHtml(base,url);
+ const js=inspectSeoHtml(base.replace('</body>','<a href="javascript:openMenu()">Open Menu</a></body>'),url);
+ assert.equal(js.linkTypes.invalid,1);
+ assert.ok(js.findings.some(x=>x.code==='links_javascript'&&x.points===4));
+ assert.ok(!js.findings.some(x=>x.code==='invalid_link_urls'));
+ assert.equal(js.score,baseline.score-4);
+});
+
+test('outbound HTTP link remains an advisory, not a standalone ranking deduction',()=>{
+ const url='https://example.com/';
+ const base='<html lang="en"><head><title>Example Business Home Page and Services</title><meta name="description" content="Business services.">'
+  +'<meta name="viewport" content="width=device-width"></head><body><h1>Example</h1></body></html>';
+ const baseline=inspectSeoHtml(base,url);
+ const outbound=inspectSeoHtml(base.replace('</body>','<a href="http://example.org/old">Read external article</a></body>'),url);
+ const finding=outbound.findings.find(x=>x.code==='links_http');
+ assert.ok(finding);
+ assert.equal(finding.severity,'info');
+ assert.equal(finding.points,0);
+ assert.equal(outbound.score,baseline.score);
+ assert.equal(outbound.findings.some(x=>x.code==='invalid_link_urls'),false);
+});
+
+test('genuinely malformed or non-HTTP data destinations remain independently detectable',()=>{
+ const url='https://example.com/';
+ const html='<html lang="en"><head><title>Example Business and Contact Details</title>'
+  +'<meta name="viewport" content="width=device-width"></head><body><h1>Contact</h1>'
+  +'<a href="data:text/html,not-a-page">Raw data URL</a><a href="http://[bad">Malformed destination</a></body></html>';
+ const result=inspectSeoHtml(html,url);
+ assert.equal(result.linkTypes.invalid,2);
+ const invalid=result.findings.find(x=>x.code==='invalid_link_urls');
+ assert.ok(invalid);
+ assert.equal(invalid.points,4);
+ assert.equal(result.findings.some(x=>x.code==='links_javascript'),false);
 });
