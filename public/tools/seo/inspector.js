@@ -27,7 +27,14 @@ export function inspectSeoHtml(html,url,options={}){
  const ogTitle=findMeta('property','og:title'),ogDescription=findMeta('property','og:description'),ogImage=findMeta('property','og:image');
  const twitterCard=findMeta('name','twitter:card');
  const imageTags=[...inspectableHtml.matchAll(/<img\b[^>]*>/gi)].map(m=>m[0]);
- const missingAltTags=imageTags.filter(t=>!/\salt\s*=/i.test(t));
+ const missingAltTags=imageTags.filter(tag=>{
+  if(/\salt\s*=/i.test(tag))return false; // Explicit alt="" is allowed for decorative images.
+  if(/^(?:presentation|none)$/i.test(attribute(tag,'role')))return false;
+  if(attribute(tag,'aria-hidden').toLowerCase()==='true')return false;
+  const width=Number(attribute(tag,'width')),height=Number(attribute(tag,'height'));
+  if(width===1&&height===1)return false; // Tracking pixels are not meaningful images.
+  return true;
+ });
  const imagesMissingAlt=missingAltTags.length;
  const structuredDataCount=[...activeHtml.matchAll(/<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>/gi)].length;
  const headingMatches=[...inspectableHtml.matchAll(/<h([1-6])\b[^>]*>([\s\S]*?)<\/h\1\s*>/gi)];
