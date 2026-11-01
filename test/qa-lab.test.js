@@ -68,7 +68,7 @@ test('QA tool presents extension-first single URL, accurate scope, and printable
  for(const id of ['audit','url','run','extension-status','setup','progress','results','print','advanced','manual','download'])assert.match(page,new RegExp('id="'+id+'"'));
  assert.match(page,/Save report as PDF/);
  assert.match(page,/Choose .*Save as PDF/);
- assert.match(page,/static HTML only/);
+ assert.match(page,/captured static HTML/);
  assert.match(app,/MICIRQL_DISCOVER/);
  assert.match(app,/MICIRQL_SEO_READ/);
  assert.match(app,/pages.length===60/);
@@ -90,4 +90,21 @@ test('QA new-tab advice does not falsely claim a security vulnerability',()=>{
  const report=inspectQaHtml(html,url);
  assert.equal(report.findings.find(item=>item.code==='new_tab_without_noopener')?.severity,'info');
  assert.match(report.findings.find(item=>item.code==='new_tab_without_noopener')?.message||'',/Modern browsers/);
+});
+
+
+test('QA Lab collects one read-only viewport sample without claiming interactive testing',()=>{
+ const app=readFileSync(new URL('../public/tools/qa/app.js',import.meta.url),'utf8');
+ const page=readFileSync(new URL('../public/tools/qa/index.html',import.meta.url),'utf8');
+ assert.match(app,/layoutSupported=Array\.isArray\(event\.data\.capabilities\)/);
+ assert.match(app,/MICIRQL_QA_LAYOUT/);
+ assert.match(app,/MICIRQL_QA_LAYOUT_RESULT/);
+ assert.match(app,/layoutInspection/);
+ assert.match(app,/Checking homepage layout at 375, 768 and 1440px/);
+ assert.match(app,/This is not functional testing/);
+ assert.match(page,/read-only Chrome layout observation/);
+ assert.match(page,/does not establish functional or multi-page responsive correctness/);
+ assert.match(page,/id="layout-summary"/);
+ assert.match(page,/id="layout-details"/);
+ assert.doesNotMatch(app,/\.click\(\)\s*;\s*\/\/.*form submission/);
 });
