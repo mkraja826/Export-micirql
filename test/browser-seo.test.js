@@ -2246,3 +2246,39 @@ test('site report now records cross-page content, depth and observed redirect di
 });
 
 test('PDF gate stays disabled while link verification is pending',()=>{const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');assert.ok(html.includes('siteReport.linkVerificationPending=verificationPending'));assert.ok(html.includes('sitePrintButton.disabled=siteReport.linkVerificationPending===true'));});
+
+
+test('beginner SEO view prioritizes scan, top issues, and PDF over technical dashboards',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/body:not\(\.developer-mode\) #site-page-dashboard/);
+ assert.match(html,/body:not\(\.developer-mode\) #site-issues/);
+ assert.match(html,/body:not\(\.developer-mode\) #site-fix-first button/);
+ assert.doesNotMatch(html,/body:not\(\.developer-mode\) #site-seo-opportunities,body:not\(\.developer-mode\) #site-fix-first,/);
+ assert.match(html,/row.className='finding seo-cross-page-evidence'/);
+ assert.match(html,/body:not\(\.developer-mode\) #site-results \.seo-cross-page-evidence/);
+ assert.match(html,/id="seo-advanced-controls"/);
+ assert.match(html,/id="site-run">Scan website pages/);
+ assert.match(html,/id="site-export-pdf" disabled>Save PDF audit report/);
+});
+
+test('beginner SEO setup explains the real extension prerequisite and remains actionable',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/id="seo-extension-help"[^>]*hidden role="status"/);
+ assert.match(html,/desktop Chrome/);
+ assert.match(html,/id="seo-show-extension-help" type="button"/);
+ assert.match(html,/document.getElementById\('seo-extension-help'\)\.hidden=ready/);
+ assert.match(html,/instructions.open=true;instructions.scrollIntoView/);
+});
+
+test('beginner PDF readiness follows link verification rather than page scan alone',()=>{
+ const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(html,/linkVerification:\[\],linkVerificationPending:true,retryPolicy:/);
+ assert.match(html,/pdfNow.disabled=true/);
+ assert.match(html,/sitePrintButton.disabled=siteReport.linkVerificationPending===true/);
+ assert.match(html,/sitePrintButton.disabled=verificationPending/);
+ assert.match(html,/completion.textContent=verificationPending\?/);
+ assert.match(html,/Checked '\+completed.size\+' of '\+queue.length\+' internal link destinations/);
+ assert.match(html,/progressLabel.textContent=verificationPending\?/);
+ assert.match(html,/quickPdf.disabled=verificationPending/);
+ assert.doesNotMatch(html,/Your SEO PDF report is ready with/);
+});
