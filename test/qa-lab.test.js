@@ -77,3 +77,17 @@ test('QA tool presents extension-first single URL, accurate scope, and printable
  assert.match(app,/window.print\(\)/);
  assert.ok(!app.includes("fetch('/api/qa/html'"),'No server-side HTML upload for the normal browser-first scan');
 });
+
+test('QA flags duplicate element IDs once and preserves browser parity',()=>{
+ const html='<html><body><h1>Contact</h1><div id="same">A</div><div id="same">B</div><a href="#same">Go</a></body></html>';
+ const server=inspectQaHtml(html,url),browser=browserInspect(html,url);
+ assert.deepEqual(server,browser);
+ assert.equal(server.findings.filter(item=>item.code==='duplicate_id').length,1);
+ assert.equal(server.findings.find(item=>item.code==='duplicate_id').evidence,'same');
+});
+test('QA new-tab advice does not falsely claim a security vulnerability',()=>{
+ const html='<html><body><h1>Links</h1><a href="https://example.org" target="_blank">External</a></body></html>';
+ const report=inspectQaHtml(html,url);
+ assert.equal(report.findings.find(item=>item.code==='new_tab_without_noopener')?.severity,'info');
+ assert.match(report.findings.find(item=>item.code==='new_tab_without_noopener')?.message||'',/Modern browsers/);
+});
