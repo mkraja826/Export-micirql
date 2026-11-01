@@ -337,11 +337,30 @@ async function readQaLayout(rawUrl){
      }).length;
      const implicitSubmitButtons=[...document.forms].slice(0,100).reduce((sum,form)=>
       sum+[...form.querySelectorAll('button:not([type])')].filter(el=>el.getClientRects().length>0).length,0);
+     // Inspect only visible/enabled elements. Check structure and dimensions, never invoke handlers.
+     const visibleButtons=[...document.querySelectorAll('button')].filter(el=>el.getClientRects().length>0&&!el.disabled).slice(0,500);
+     const hasName=el=>Boolean(el.textContent?.trim()||el.getAttribute('aria-label')?.trim()
+      ||el.getAttribute('aria-labelledby')?.trim()||el.getAttribute('title')?.trim()
+      ||el.querySelector('img[alt]:not([alt=""]),svg title'));
+     const buttonsWithoutNames=visibleButtons.filter(el=>!hasName(el)).length;
+     const customInteractive=[...document.querySelectorAll('[role="button"],[role="link"]')]
+      .filter(el=>el.getClientRects().length>0&&el.getAttribute('aria-disabled')!=='true').slice(0,500);
+     const customControlsWithoutTabFocus=customInteractive.filter(el=>typeof el.tabIndex==='number'&&el.tabIndex<0).length;
+     const navigationWithoutTabFocus=navLinks.filter(el=>el.getAttribute('aria-disabled')!=='true'
+      &&typeof el.tabIndex==='number'&&el.tabIndex<0).length;
+     // Small targets can have spacing or inline-text exceptions: report only as a review count.
+     const smallNavigationTargets=navLinks.filter(el=>{
+      if(typeof el.getBoundingClientRect!=='function')return false;
+      const rect=el.getBoundingClientRect();
+      return Boolean(rect&&rect.width>0&&rect.height>0&&(rect.width<24||rect.height<24));
+     }).length;
+     const requiredFieldsWithoutLabels=controls.filter(el=>el.required&&!labelled(el)).length;
      return {observedWidth:viewportWidth,documentWidth:docWidth,horizontalOverflowPx:Math.max(0,docWidth-viewportWidth),
       formCount:document.forms.length,visibleFormControls:controls.length,unlabelledVisibleFields:controls.filter(el=>!labelled(el)).length,
       requiredVisibleFields:controls.filter(el=>el.required).length,navigationLinks:navLinks.length,unnamedNavigationLinks:linksWithoutNames.length,
       placeholderNavigationLinks:placeholderNavLinks,scriptedNavigationLinks:scriptedNavLinks,missingNavigationFragmentTargets:missingFragmentTargets,
-      implicitSubmitButtons};
+      implicitSubmitButtons,visibleButtons:visibleButtons.length,buttonsWithoutNames,customInteractiveControls:customInteractive.length,
+      customControlsWithoutTabFocus,navigationWithoutTabFocus,smallNavigationTargets,requiredFieldsWithoutLabels};
     }});
     const metrics=results?.[0]?.result;
     if(!metrics||!Number.isFinite(metrics.observedWidth)||Math.abs(metrics.observedWidth-width)>4)throw Error('Chrome did not confirm the requested viewport');
