@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "MiCirql Tools — Website Capture",
-  "version": "0.3.14",
-  "description": "Browser-local website captures, SEO audits and read-only QA layout inspection with 60-page discovery.",
+  "version": "0.3.15",
+  "description": "Browser-local screenshots, SEO audits, and read-only QA layout, navigation and form evidence for public websites.",
   "permissions": [
     "debugger",
     "tabs",
