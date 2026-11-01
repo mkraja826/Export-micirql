@@ -345,3 +345,77 @@ test('real navigation event sequence captures redirect hops but keeps final head
  assert.equal(listenerRemoved,true);
  assert.equal(tabRemoved,true);
 });
+
+
+test('read-only QA checks navigation wiring and form controls without clicks, typing or submissions',async()=>{
+ let listener,removed=0,detached=0,opened=0,mutations=0,viewport=375;
+ const nav=(href,name,visible=true)=>({
+  textContent:name,getAttribute(key){return key==='href'?href:null},
+  getClientRects(){return visible?[{}]:[]},
+  querySelector(){return null},
+  click(){mutations++}
+ });
+ const navigation=[
+  nav('#present','Section'),nav('#missing','Missing section'),
+  nav('','Placeholder'),nav('javascript:void(0)','Script action'),nav('/products',''),
+  nav('#hidden','Hidden',false)
+ ];
+ const field=(name,required)=>({
+  required,labels:name?[{}]:[],disabled:false,
+  getAttribute(key){return key==='aria-label'?null:null},
+  getClientRects(){return [{}]},value:'PROTECTED_FIELD_VALUE'
+ });
+ const forms=[{querySelectorAll(selector){
+  assert.equal(selector,'button:not([type])');
+  return [{getClientRects:()=>[{}]},{getClientRects:()=>[]}];
+ },submit(){mutations++}}];
+ const document={
+  documentElement:{scrollWidth:1100},body:{scrollWidth:1050},forms,
+  querySelectorAll(selector){
+   if(selector==='nav a,[role="navigation"] a')return navigation;
+   if(selector==='input:not([type=hidden]),select,textarea')return [field('name',true),field('',false)];
+   throw Error('Unexpected query: '+selector);
+  },
+  getElementById(id){return id==='present'?{}:null}
+ };
+ const pageWindow={get innerWidth(){return viewport}};
+ const chrome={
+  runtime:{id:'micirql-extension',onMessage:{addListener(fn){listener=fn}}},
+  tabs:{onUpdated:{addListener(){},removeListener(){}},
+   async create(){opened++;return {id:55,status:'complete'}},
+   async get(){return {id:55,status:'complete',url:'https://example.com/'}},
+   async remove(){removed++}},
+  debugger:{async attach(){},async detach(){detached++},
+   async sendCommand(_target,method,args){if(method==='Emulation.setDeviceMetricsOverride')viewport=args.width;return {}}},
+  scripting:{async executeScript({func}){
+   return [{result:runInNewContext('('+func.toString()+')()', {document,window:pageWindow,decodeURIComponent})}];
+  }}
+ };
+ runInNewContext(background,{chrome,URL,Promise,setTimeout,clearTimeout,console});
+ const answer=await new Promise(resolve=>{
+  const accepted=listener({type:'READ_QA_LAYOUT',url:'https://example.com/'},
+   {id:'micirql-extension',tab:{url:'https://tools.micirql.com/tools/qa/'},url:'https://tools.micirql.com/tools/qa/'},resolve);
+  assert.equal(accepted,true);
+ });
+ assert.equal(answer.ok,true,answer.error);
+ assert.equal(answer.interactionTesting,false);
+ assert.deepEqual(Array.from(answer.observations,entry=>entry.width),[375,768,1440]);
+ for(const item of answer.observations){
+  assert.equal(item.verified,true,item.reason);
+  assert.equal(item.navigationLinks,5);
+  assert.equal(item.unnamedNavigationLinks,1);
+  assert.equal(item.placeholderNavigationLinks,1);
+  assert.equal(item.scriptedNavigationLinks,1);
+  assert.equal(item.missingNavigationFragmentTargets,1);
+  assert.equal(item.formCount,1);
+  assert.equal(item.visibleFormControls,2);
+  assert.equal(item.unlabelledVisibleFields,1);
+  assert.equal(item.requiredVisibleFields,1);
+  assert.equal(item.implicitSubmitButtons,1);
+  assert.equal(Object.values(item).some(value=>typeof value==='string'&&value.includes('PROTECTED_FIELD_VALUE')),false);
+ }
+ assert.equal(answer.observations[0].horizontalOverflowPx,725);
+ assert.equal(answer.observations[2].horizontalOverflowPx,0);
+ assert.equal(opened,1);assert.equal(detached,1);assert.equal(removed,1);
+ assert.equal(mutations,0,'Read-only QA must not click, submit or change input values');
+});
