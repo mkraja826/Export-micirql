@@ -495,11 +495,11 @@ test('SEO Studio V2.4 offers a printable client summary without changing audit s
 });
 
 
-test('SEO Studio V2.4 printed report includes score bands and full affected page appendix',()=>{
+test('SEO Studio printed report includes score bands and a concise issue appendix',()=>{
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  assert.ok(html.includes('const scoreBands=['));
  assert.ok(html.includes('valid.filter(page=>page.score>=80)'));
- assert.ok(html.includes('const issueAppendix=issues.flatMap('));
+ assert.ok(html.includes('const issueAppendix=issues.map('));
  assert.ok(html.includes('escapeHTML(page.url)'));
  assert.ok(html.includes('Affected page appendix'));
  assert.ok(html.includes('Audited page appendix'));
@@ -927,7 +927,8 @@ test('scan progress and completion explain success, partial results, and recover
  assert.match(html,/id="site-progress-percent"/);
  assert.match(html,/const updateSiteProgress=\(\)=>/);
  assert.match(html,/siteProgress\.value=i\+1;updateSiteProgress\(\)/);
- assert.match(html,/Your SEO PDF report is ready/);
+ assert.match(html,/Checking internal links before your PDF is ready/);
+ assert.match(html,/Your PDF is ready/);
  assert.match(html,/pages needing another check/);
  assert.match(html,/Scan interrupted — you can try again/);
  assert.match(html,/site-scan-completion/);
@@ -1348,7 +1349,10 @@ test('link verification refresh cannot recursively rebuild issues or stack dashb
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  assert.match(html,/pending\.size&&!siteResults\.querySelector\('#seo-link-verification-dashboard'\)/);
  assert.doesNotMatch(html,/siteResults\.querySelectorAll\('#seo-link-verification-dashboard'\)\.forEach\(panel=>panel\.remove\(\)\)/);
- assert.match(html,/siteReport\.linkVerification=\[\.\.\.completed\.values\(\)\];\s*\/\/ Do not call renderIssues\(\) here:[^\n]*\n\s*quickProgress\.value=completed\.size/);
+ assert.match(html,/siteReport\.linkVerification=\[\.\.\.completed\.values\(\)\];/);
+ assert.match(html,/\/\/ Do not call renderIssues\(\) here:/);
+ assert.match(html,/sitePrintButton\.disabled=verificationPending/);
+ assert.match(html,/quickProgress\.value=completed\.size/);
  assert.doesNotMatch(html,/siteReport\.linkVerification=\[\.\.\.completed\.values\(\)\];\s*renderIssues\(\);/);
 });
 
@@ -2094,7 +2098,8 @@ test('simple website entry normalizes domain and starts automatic discovery on E
  assert.ok(html.includes("sitePrintButton.disabled=true;siteReport=null"));
  assert.ok(html.includes('body:not(.developer-mode) .seo-results-jump'));
  assert.ok(html.includes('body:not(.developer-mode) #site-export-pdf:disabled'));
- assert.ok(html.includes("Your SEO PDF report is ready."));
+ assert.ok(html.includes("Your PDF is ready."));
+ assert.ok(html.includes("Checking internal links before your PDF is ready."));
  assert.ok(html.includes('Read-only inspection: MiCirql does not edit your website.'));
 });
 
