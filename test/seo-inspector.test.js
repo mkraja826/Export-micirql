@@ -410,7 +410,9 @@ test('inert markup in scripts, templates and comments cannot fabricate scored SE
   +'<script>const fake = "<h1>fake script</h1><img src=/fake-script.png><a href=/fake-script>Fake</a>";</script>'
   +'<style>/* <h1>fake CSS</h1><img src="/fake-css.png"> */</style>'
   +'<template><h1>fake template</h1><img src="/fake-template.png"><a href="/fake-template">Fake</a><script type="application/ld+json">{"@type": }</script></template>'
-  +'<noscript><h1>inactive heading</h1><img src="/fake-noscript.png"><a href="/fake-noscript">Fake</a></noscript>';
+  +'<noscript><h1>inactive heading</h1><img src="/fake-noscript.png"><a href="/fake-noscript">Fake</a></noscript>'
+  +'<textarea><h1>example heading only</h1><a href="/fake-textarea">Fake</a><img src="/fake-textarea.png"></textarea>'
+  +'<xmp><h1>example heading only</h1><a href="/fake-xmp">Fake</a></xmp>';
  const decorated=baseline.replace('</body>',inert+'</body>').replace('</head>','<!-- <title>Comment title</title><meta name="description" content="Comment"> --></head>');
  const first=inspectSeoHtml(baseline,url);
  const actual=inspectSeoHtml(decorated,url);
