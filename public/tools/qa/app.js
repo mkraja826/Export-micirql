@@ -3,6 +3,7 @@ import {selectQaLayoutSamples} from './layout-sampling.js';
 import {summarizeQaReport} from './report-summary.js';
 import {evaluateQaExtensionHandshake} from './extension-compat.js';
 import {summarizeQaDiscovery} from './discovery-coverage.js';
+import {classifyQaHttpEvidence} from './http-evidence.js';
 import {selectQaCaptureRetries,QA_CAPTURE_RETRY_LIMIT,isTransientQaCaptureError} from './capture-recovery.js';
 
 const $=id=>document.getElementById(id);
@@ -93,7 +94,9 @@ function render(report){
   report.pagesAnalyzed+' of '+report.pagesSelected+' selected page(s) verified'+
   (report.truncated?' · Discovery was limited to 60 pages':'')+
   (report.partialPages?' · '+report.partialPages+' incomplete capture(s)':'')+
-  (discoveryIncomplete?' · Discovery coverage requires review':'')+'.';
+  (discoveryIncomplete?' · Discovery coverage requires review':'')+
+  (report.httpErrors?' · '+report.httpErrors+' page(s) returned confirmed HTTP errors':'')+
+  (report.httpStatusUnknownPages?' · HTTP status unverified for '+report.httpStatusUnknownPages+' captured page(s)':'')+'.';
  const discoverySummary=$('discovery-summary'),discoveryErrors=$('discovery-errors');
  discoveryErrors.replaceChildren();
  if(!discovery){
@@ -210,11 +213,12 @@ function render(report){
  for(const page of orderedPages){
   const details=node('details');
   const issueCount=Array.isArray(page.findings)?page.findings.length:0;
-  const pageStatus=page.partial?
+  const pageStatus=(page.partial?
    'Partial HTML capture — provisional observations only, not part of prioritized findings.':
    issueCount?
     'Complete HTML snapshot — static checks only; not a functional QA pass.':
-    'No concerns detected in this complete HTML snapshot; functional behavior remains unverified.';
+    'No concerns detected in this complete HTML snapshot; functional behavior remains unverified.')+
+   (page.httpEvidence?(' '+(page.httpEvidence.statusVerified?'Observed HTTP '+page.httpEvidence.status+'.':'HTTP response status could not be verified.')):'');
   details.append(node('summary',page.url+' · '+issueCount+(page.partial?' provisional observation(s)':' HTML finding(s)')),
    node('p',pageStatus,'page-status'));
   // A clean page needs just one clear status line, not two repeated disclaimers.
@@ -231,7 +235,9 @@ function render(report){
   const reason=failure.retryReason?
    'Initial HTML capture: '+failure.reason+' · Automatic retry: '+failure.retryReason+'. Not verified.':
    failure.reason;
-  details.append(node('summary',failure.url+' · not checked'),node('p',reason,'notice alert'));pages.append(details);
+  const description=failure.classification==='http_error'&&Number.isInteger(failure.httpStatus)?
+   'confirmed HTTP '+failure.httpStatus+' · HTML findings excluded':'not checked';
+  details.append(node('summary',failure.url+' · '+description),node('p',reason,'notice alert'));pages.append(details);
  }
  if(!pages.children.length)pages.append(node('p','No pages were available to inspect.'));
 }
@@ -264,11 +270,20 @@ async function scan(url){
   updateProgress(i,progressTotal,'Inspecting HTML page '+(i+1)+' of '+pages.length+'…');
   try{
    const response=await extensionRequest('MICIRQL_SEO_READ','MICIRQL_SEO_RESULT',pages[i],90000);
-   if(!response.ok)throw Error(response.error||'Page capture failed.');
-   const finalUrl=normalize(response.url||pages[i]);
-   if(finalUrl.origin!==url.origin)throw Error('Page redirected outside the selected website; excluded.');
-   const inspected=inspectQaHtml(response.html,finalUrl.href,{partial:response.partial===true});
-   inspected.requestedUrl=pages[i];reports.push(inspected);
+   const http=classifyQaHttpEvidence(response);
+   if(http.httpError){
+    failures.push({url:pages[i],reason:http.reason,classification:'http_error',
+     httpStatus:http.status,statusVerified:true});
+   }else{
+    if(!response.ok)throw Error(response.error||'Page capture failed.');
+    const finalUrl=normalize(response.url||pages[i]);
+    if(finalUrl.origin!==url.origin)throw Error('Page redirected outside the selected website; excluded.');
+    const inspected=inspectQaHtml(response.html,finalUrl.href,{partial:response.partial===true});
+    inspected.requestedUrl=pages[i];
+    inspected.httpEvidence={status:http.status,statusVerified:http.statusVerified,
+     confidence:http.confidence};
+    reports.push(inspected);
+   }
   }catch(error){failures.push({url:pages[i],reason:error.message||'Could not inspect the page'});}
   updateProgress(i+1,progressTotal,'Checked '+(i+1)+' of '+pages.length+' HTML pages');
  }
@@ -283,11 +298,21 @@ async function scan(url){
   updateProgress(pages.length,progressTotal,'Retrying temporary HTML capture failure '+captureRecovery.attempted+' of '+retries.length+'…');
   try{
    const response=await extensionRequest('MICIRQL_SEO_READ','MICIRQL_SEO_RESULT',failure.url,45000);
+   const http=classifyQaHttpEvidence(response);
+   if(http.httpError){
+    failure.reason=http.reason;failure.classification='http_error';
+    failure.httpStatus=http.status;failure.statusVerified=true;
+    captureRecovery.failed++;captureRecovery.entries.push({url:failure.url,
+     outcome:'http_error',httpStatus:http.status,initialReason:failure.reason});
+    continue;
+   }
    if(!response.ok||typeof response.html!=='string')throw Error(response.error||'Retry did not return an HTML snapshot');
    const finalUrl=normalize(response.url||failure.url);
    if(finalUrl.origin!==url.origin)throw Error('Page redirected outside the selected website; excluded.');
    const inspected=inspectQaHtml(response.html,finalUrl.href,{partial:response.partial===true});
    inspected.requestedUrl=failure.url;
+   inspected.httpEvidence={status:http.status,statusVerified:http.statusVerified,
+    confidence:http.confidence};
    reports.push(inspected);
    failures.splice(failures.indexOf(failure),1);
    const outcome=inspected.partial?'partial':'complete';
@@ -302,6 +327,8 @@ async function scan(url){
   }
  }
  const partialPages=reports.filter(page=>page.partial).length;
+ const httpErrors=failures.filter(item=>item.classification==='http_error').length;
+ const httpStatusUnknownPages=reports.filter(page=>page.httpEvidence&&!page.httpEvidence.statusVerified).length;
  // Layout evidence is intentionally capped at three complete HTML pages, not 60.
  // Prefer the entry page, then a page with form controls, then the next distinct page.
  // Navigating to these public pages is read-only; no buttons are clicked or forms submitted.
@@ -326,7 +353,8 @@ async function scan(url){
  const layoutInspection=layoutInspections[0]||null;
  return {schemaVersion:1,tool:'qa-lab',inspectorVersion:QA_INSPECTOR_VERSION,generatedAt:new Date().toISOString(),
   website:url.origin,pagesDiscovered:discovered.originalCount??entries.length,pagesSelected:pages.length,discovery,
-  pagesAnalyzed:reports.length-partialPages,partialPages,truncated:Boolean(discovered.truncated||entries.length>60),
+  pagesAnalyzed:reports.length-partialPages,partialPages,httpErrors,httpStatusUnknownPages,
+  truncated:Boolean(discovered.truncated||entries.length>60),
   reports,failures,captureRecovery,layoutInspection,layoutInspections,layoutPagesRequested:sampledPages.length,layoutPagesVerified,
   layoutSamplingLimit:3,totalFindings:reports.reduce((n,page)=>n+page.findings.length,0),
   scope:'browser_captured_static_html_with_bounded_read_only_layout_sample',limitations:['Static HTML inspected on up to 60 pages; rendered viewport evidence sampled on no more than three complete pages','No functional form submissions or navigation journey testing','No verified external link status','Incomplete captures remain provisional']};
