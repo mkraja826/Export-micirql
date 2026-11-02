@@ -9,6 +9,14 @@ const complete=p=>p?.auditStatus==='complete'&&p.partial!==true;
 const publicPage=p=>(p?.pageRole||'public')==='public';
 const severityRank={high:3,medium:2,low:1,info:0};
 const verifiedIssue=i=>i?.verified===true||i?.evidenceStatus==='verified'||i?.verificationStatus==='verified';
+// Critical requires specific high-impact evidence, not merely a high issue count or URL share.
+const CRITICAL_CODES=new Set([
+ 'http_noindex','http_robots_blocked','robots_blocked','sitewide_noindex',
+ 'unexpected_noindex','noindex','canonical_external','canonical_conflict',
+ 'multiple_canonicals','canonical_to_unreachable','indexable_page_404',
+ 'http_404','http_410','http_5xx','server_error'
+]);
+const criticalCode=code=>CRITICAL_CODES.has(String(code||'').toLowerCase());
 const roleOf=url=>{
  let path='/';try{path=new URL(url).pathname.toLowerCase()}catch{}
  if(path==='/'||path==='/index.html')return 'home';
@@ -48,7 +56,7 @@ export function assessSeoSiteRisk(report){
   const affectedPercent=eligibleUrls.size?Math.round(100*affectedUrls.length/eligibleUrls.size):0;
   return {code:item.code,severity:item.severity,verified:item.verified,
    evidenceStatus:item.verified?'verified':'not_verified',
-   affectedPages:affectedUrls.length,affectedPercent,importantPageAffected:important,
+   affectedPages:affectedUrls.length,affectedPercent,importantPageAffected:important,criticalEligible:criticalCode(item.code),
    affectedUrls};
  }).sort((a,b)=>Number(b.verified)-Number(a.verified)||severityRank[b.severity]-severityRank[a.severity]||b.affectedPages-a.affectedPages||a.code.localeCompare(b.code));
  const selected=Number.isInteger(report?.pagesSelected)?report.pagesSelected:pages.size;
@@ -60,7 +68,7 @@ export function assessSeoSiteRisk(report){
  const confirmedHigh=findings.filter(f=>f.severity==='high'&&f.verified);
  const unverifiedHigh=findings.filter(f=>f.severity==='high'&&!f.verified);
  let level='no_verified_high_risk';
- if(confirmedHigh.some(f=>f.importantPageAffected||f.affectedPercent>=50))level='critical';
+ if(confirmedHigh.some(f=>f.criticalEligible&&(f.importantPageAffected||f.affectedPercent>=50)))level='critical';
  else if(confirmedHigh.length)level='high';
  else if(findings.some(f=>f.verified&&f.severity==='medium'))level='moderate';
  if(!confirmedHigh.length&&incomplete)level='unverified';
