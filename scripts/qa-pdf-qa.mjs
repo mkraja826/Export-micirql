@@ -57,7 +57,7 @@ async function runCase({name,count,partial,failed}){
    if(event.source!==window||request?.source!=='micirql-web')return;
    window.__qaMockRequests.push(request.type);
    if(request.type==='MICIRQL_EXTENSION_PING'){
-    answer(request,'MICIRQL_EXTENSION_READY',{protocol:3,capabilities:['qa-layout'],extensionVersion:'fixture'});
+    answer(request,'MICIRQL_EXTENSION_READY',{protocol:3,capabilities:['discover','seo-http-evidence','qa-layout'],extensionVersion:'0.3.17'});
    }else if(request.type==='MICIRQL_DISCOVER'){
     answer(request,'MICIRQL_DISCOVER_RESULT',{ok:true,pages:urls,originalCount:urls.length+1,truncated:urls.length>=60});
    }else if(request.type==='MICIRQL_SEO_READ'){
