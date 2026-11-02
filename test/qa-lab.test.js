@@ -93,17 +93,20 @@ test('QA new-tab advice does not falsely claim a security vulnerability',()=>{
 });
 
 
-test('QA Lab collects one read-only viewport sample without claiming interactive testing',()=>{
+test('QA Lab samples up to three complete pages and declares read-only scope',()=>{
  const app=readFileSync(new URL('../public/tools/qa/app.js',import.meta.url),'utf8');
  const page=readFileSync(new URL('../public/tools/qa/index.html',import.meta.url),'utf8');
  assert.match(app,/layoutSupported=Array\.isArray\(event\.data\.capabilities\)/);
  assert.match(app,/MICIRQL_QA_LAYOUT/);
  assert.match(app,/MICIRQL_QA_LAYOUT_RESULT/);
  assert.match(app,/layoutInspection/);
- assert.match(app,/Checking homepage layout at 375, 768 and 1440px/);
- assert.match(app,/not proof of successful navigation, form submission/);
- assert.match(page,/read-only Chrome layout observation/);
- assert.match(page,/does not establish functional or multi-page responsive correctness/);
+ assert.match(app,/Observing layout /);
+ assert.match(app,/layoutSamplingLimit:3/);
+ assert.match(app,/for\(const page of completeReports\)choose\(page\)/);
+ assert.match(app,/page\.counts\?\.formControls>0/);
+ assert.match(app,/does not establish complete-site responsive or functional correctness/);
+ assert.match(page,/Browser-rendered layout and accessible-control observations sample up to three/);
+ assert.match(page,/A sample does not verify every page/);
  assert.match(page,/id="layout-summary"/);
  assert.match(page,/id="layout-details"/);
  assert.doesNotMatch(app,/\.click\(\)\s*;\s*\/\/.*form submission/);
@@ -114,7 +117,7 @@ test('read-only QA observations report bounded navigation and form counts, with 
  const app=readFileSync(new URL('../public/tools/qa/app.js',import.meta.url),'utf8');
  const source=readFileSync(new URL('../extension/background.js',import.meta.url),'utf8');
  const manifest=JSON.parse(readFileSync(new URL('../extension/manifest.json',import.meta.url),'utf8'));
- assert.equal(manifest.version,'0.3.16');
+ assert.equal(manifest.version,'0.3.17');
  for(const field of ['placeholderNavigationLinks','scriptedNavigationLinks','missingNavigationFragmentTargets','implicitSubmitButtons']){
   assert.ok(source.includes(field),'Extension must provide '+field);
   assert.ok(app.includes(field),'Report must show '+field);
