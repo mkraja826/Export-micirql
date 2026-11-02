@@ -253,6 +253,17 @@ async function readWebsiteHtml(url){
  const observe=Boolean(chrome.webRequest?.onHeadersReceived&&chrome.tabs.update);
  const tab=await chrome.tabs.create({url:observe?'about:blank':parsed.href,active:false});
  const httpEvidence={observed:false,status:null,headers:{},redirects:[],observationState:observe?'waiting_for_response':'api_unavailable'};
+ let navigationError=null;
+ const onNavigationError=details=>{
+  if(details.tabId!==tab.id||details.frameId!==0)return;
+  // Only Chrome's explicit DNS error can be called DNS failure.
+  const error=String(details.error||'');
+  navigationError={errorCode:error.slice(0,100),classification:error==='net::ERR_NAME_NOT_RESOLVED'?'dns_resolution_failed':
+   error==='net::ERR_DNS_TIMED_OUT'?'dns_timeout':'navigation_failed'};
+ };
+ const observeNavigation=Boolean(chrome.webNavigation?.onErrorOccurred);
+ if(observeNavigation)chrome.webNavigation.onErrorOccurred.addListener(onNavigationError,{url:[{schemes:['http','https']}]});
+
  const onHeaders=details=>{
   if(details.tabId!==tab.id||details.type!=='main_frame')return;
   httpEvidence.observed=true;
@@ -298,8 +309,8 @@ async function readWebsiteHtml(url){
  }catch(error){
   // Keep observed HTTP evidence when navigation fails; a failed page has no HTML SEO score.
   const detail=String(error?.message||error||'Navigation failed');
-  return {ok:false,error:detail,classification:/timed out|timeout/i.test(detail)?'navigation_timeout':'navigation_failed',httpEvidence:{...httpEvidence,requestedUrl:parsed.href,finalUrl:null}};
- }finally{if(observe)chrome.webRequest.onHeadersReceived.removeListener(onHeaders);try{await chrome.tabs.remove(tab.id)}catch{}}
+  return {ok:false,error:detail,classification:navigationError?.classification||(/timed out|timeout/i.test(detail)?'navigation_timeout':'navigation_failed'),navigationError,httpEvidence:{...httpEvidence,requestedUrl:parsed.href,finalUrl:null}};
+ }finally{if(observe)chrome.webRequest.onHeadersReceived.removeListener(onHeaders);if(observeNavigation)chrome.webNavigation.onErrorOccurred.removeListener(onNavigationError);try{await chrome.tabs.remove(tab.id)}catch{}}
 }
 // Browser-observed, read-only layout QA: no clicking, form submission or input values.
 async function readQaLayout(rawUrl){
