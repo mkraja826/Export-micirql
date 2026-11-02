@@ -31,6 +31,9 @@ details{padding:12px 0;border-top:1px solid #3b536d}summary{cursor:pointer;font-
 .priority-meta{font-size:12px;font-weight:750;letter-spacing:.02em}
 #priority-count,#provisional-summary,#page-list-summary{color:#c4d2e6;font-size:13px}
 .report-divider{border:0;border-top:1px solid #435877;margin:24px 0}
+#discovery-errors details{border-left:3px solid #d99e6c;padding:8px 12px;background:#1a2b42;margin:6px 0;border-radius:6px;overflow-wrap:anywhere}
+#discovery-errors details p{margin:5px 0;color:#cbd4e3}
+#discovery-summary{line-height:1.45}
 footer{color:#aabed6;margin:30px 0}
 [hidden]{display:none!important}
 @media(max-width:620px){.wrap{padding:16px}.card{padding:16px}.field{flex-direction:column}.field button,.actions button{width:100%}.metrics{grid-template-columns:1fr 1fr}}
@@ -81,7 +84,11 @@ footer{color:#aabed6;margin:30px 0}
  .priority-item strong,.finding strong{color:#111}.priority-item p{color:#333!important}
  .priority-meta{font-size:9pt}
  #priority-section{break-after:auto}
- #layout-details details,#pages details{break-inside:auto;page-break-inside:auto}
+ #layout-details details,#pages details,#discovery-errors details{break-inside:auto;page-break-inside:auto}
+ #discovery-section{margin:8pt 0}
+ #discovery-errors details{background:#fff!important;color:#111!important;border:1px solid #bbb;padding:5pt 8pt;margin:4pt 0;break-inside:avoid}
+ #discovery-errors details p{color:#333!important;font-size:9pt;margin:3pt 0}
+ #discovery-summary{font-size:9pt;line-height:1.35}
  #layout-details details>summary,#pages details>summary{color:#111;break-after:avoid}
  #layout-details details .finding,#pages details .finding{break-inside:avoid}
  #report-site,summary,p{overflow-wrap:anywhere}
@@ -100,13 +107,18 @@ footer{color:#aabed6;margin:30px 0}
 <section id="results" class="card" hidden aria-labelledby="result-title">
 <p class="eyebrow">Website QA report</p><h2 id="result-title">Inspection results</h2><p id="report-site"></p><p id="report-time" class="small"></p>
 <div id="metrics" class="metrics"></div><p id="summary" class="notice"></p>
+<section id="discovery-section" class="report-section" aria-labelledby="discovery-title">
+<h3 id="discovery-title">Crawl discovery coverage — separate evidence</h3>
+<p id="discovery-summary" class="small">Discovery coverage has not been assessed.</p>
+<div id="discovery-errors"></div>
+</section>
 <section id="priority-section" class="report-section" aria-labelledby="priority-title">
 <h3 id="priority-title">What needs attention first</h3>
 <p id="priority-count" class="small">Priorities are based on complete HTML snapshots only. They are not verified functional failures.</p>
 <div id="priority-findings"></div>
 <p id="provisional-summary" class="notice">Partial and failed scans are shown separately from the complete HTML findings.</p>
 </section>
-<p id="limitations" class="small">Scope: up to 60 public pages checked from captured static HTML. Browser-rendered layout and accessible-control observations sample up to three successfully captured pages at 375, 768 and 1440px. A sample does not verify every page, successful form submissions, full user journeys, accessibility conformance or external link reachability. Partial captures are not counted as verified.</p>
+<p id="limitations" class="small">Scope: discovery can encounter unreachable URLs that are listed separately, not treated as verified; up to 60 public pages checked from captured static HTML. Browser-rendered layout and accessible-control observations sample up to three successfully captured pages at 375, 768 and 1440px. A sample does not verify every page, successful form submissions, full user journeys, accessibility conformance or external link reachability. Partial captures are not counted as verified.</p>
 <div class="actions no-print"><button id="print" type="button" disabled>Save report as PDF</button><span class="small muted">Choose “Save as PDF” in your browser's print dialog.</span></div>
 <hr class="report-divider"><section class="report-section" aria-labelledby="layout-title">
 <h3 id="layout-title">Browser-observed layout — separate evidence</h3><p id="layout-summary" class="small">Responsive layout was not checked.</p><div id="layout-details"></div>
