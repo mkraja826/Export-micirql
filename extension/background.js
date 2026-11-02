@@ -320,11 +320,24 @@ async function readQaLayout(rawUrl){
      const viewportWidth=window.innerWidth;
      const docWidth=Math.max(root?.scrollWidth||0,body?.scrollWidth||0);
      const controls=[...document.querySelectorAll('input:not([type=hidden]),select,textarea')].filter(el=>el.getClientRects().length>0).slice(0,600);
-     const labelled=el=>Boolean(el.getAttribute('aria-label')?.trim()||el.getAttribute('aria-labelledby')||el.labels?.length||el.getAttribute('title')?.trim());
+     // Resolve accessible names conservatively. Empty labels and missing aria-labelledby IDs
+     // cannot make a control "named"; never inspect or return input values.
+     const hasName=(el,includeContents=true)=>{
+      if(String(el.getAttribute('aria-label')||'').trim())return true;
+      const ids=String(el.getAttribute('aria-labelledby')||'').trim().split(/\s+/).slice(0,12);
+      if(ids.some(id=>id&&String(document.getElementById(id)?.textContent||'').trim()))return true;
+      if(String(el.getAttribute('title')||'').trim())return true;
+      if(el.labels&&[...el.labels].some(label=>String(label.textContent||'').trim()))return true;
+      if(!includeContents)return false;
+      if(String(el.textContent||'').trim())return true;
+      if(el.querySelector('img[alt]:not([alt=""])'))return true;
+      return Boolean(el.querySelector('svg title')?.textContent?.trim());
+     };
+     const labelled=el=>hasName(el,false);
      // Read-only DOM evidence: do not click, follow links, edit fields, validate or submit forms.
      // Return aggregate counts only; no URL destinations, field values or private page text.
      const navLinks=[...document.querySelectorAll('nav a,[role="navigation"] a')].filter(el=>el.getClientRects().length>0).slice(0,500);
-     const linksWithoutNames=navLinks.filter(el=>!el.textContent?.trim()&&!el.getAttribute('aria-label')&&!el.getAttribute('aria-labelledby')&&!el.getAttribute('title')&&!el.querySelector('img[alt]:not([alt=""]),svg title'));
+     const linksWithoutNames=navLinks.filter(el=>!hasName(el));
      const navHref=el=>String(el.getAttribute('href')||'').trim();
      const placeholderNavLinks=navLinks.filter(el=>!navHref(el)||navHref(el)==='#').length;
      const scriptedNavLinks=navLinks.filter(el=>/^(?:javascript|data|vbscript):/i.test(navHref(el))).length;
@@ -339,9 +352,6 @@ async function readQaLayout(rawUrl){
       sum+[...form.querySelectorAll('button:not([type])')].filter(el=>el.getClientRects().length>0).length,0);
      // Inspect only visible/enabled elements. Check structure and dimensions, never invoke handlers.
      const visibleButtons=[...document.querySelectorAll('button')].filter(el=>el.getClientRects().length>0&&!el.disabled).slice(0,500);
-     const hasName=el=>Boolean(el.textContent?.trim()||el.getAttribute('aria-label')?.trim()
-      ||el.getAttribute('aria-labelledby')?.trim()||el.getAttribute('title')?.trim()
-      ||el.querySelector('img[alt]:not([alt=""]),svg title'));
      const buttonsWithoutNames=visibleButtons.filter(el=>!hasName(el)).length;
      const customInteractive=[...document.querySelectorAll('[role="button"],[role="link"]')]
       .filter(el=>el.getClientRects().length>0&&el.getAttribute('aria-disabled')!=='true').slice(0,500);
