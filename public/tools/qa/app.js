@@ -218,7 +218,7 @@ function render(report){
    issueCount?
     'Complete HTML snapshot — static checks only; not a functional QA pass.':
     'No concerns detected in this complete HTML snapshot; functional behavior remains unverified.')+
-   (page.httpEvidence?(' '+(page.httpEvidence.statusVerified?'Observed HTTP '+page.httpEvidence.status+'.':'HTTP response status could not be verified.')):'');
+   (page.httpEvidence?.statusVerified?' Observed HTTP '+page.httpEvidence.status+'.':'');
   details.append(node('summary',page.url+' · '+issueCount+(page.partial?' provisional observation(s)':' HTML finding(s)')),
    node('p',pageStatus,'page-status'));
   // A clean page needs just one clear status line, not two repeated disclaimers.
