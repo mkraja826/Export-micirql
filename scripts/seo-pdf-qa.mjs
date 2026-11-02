@@ -29,6 +29,19 @@ const cases=[
   must:['Website risk assessment: Needs attention','97/100','5 high-severity','await verification','not a clean bill of health']},
  {name:'verified-critical',data:report({issueCenter:[{code:'http_noindex',severity:'high',affectedUrls:[home],verifiedAffectedUrls:[home],recommendation:'Review homepage indexability'}]}),
   must:['Technical verification coverage','Not checked does not mean passed','Risk category: critical','1 explicitly verified high-severity issue group','97/100']},
+ {name:'technical-evidence',data:report({
+  robotsTxtEvidence:{observed:true,status:200,body:'User-agent: *\\nDisallow: /private'},
+  failures:[{url:home+'lost',category:'dns_resolution_failed',navigationError:{errorCode:'net::ERR_NAME_NOT_RESOLVED'}}],
+  externalLinkCoverage:{discovered:3,selected:3,truncated:false},
+  externalLinkDiagnostics:[
+   {destination:'https://external.example/gone',classification:'broken',status:404,referringPages:[home+'service-1']},
+   {destination:'https://external.example/working',classification:'reachable',status:200,referringPages:[home]},
+   {destination:'https://external.example/blocked',classification:'unverified',status:null,referringPages:[home]}
+  ],issueCenter:[]
+ }),
+  must:['Technical verification coverage','robots.txt syntax and crawl directives','DNS resolution and crawl failures',
+   '1 browser-observed DNS resolution failure','External link verification','1 confirmed broken external destination',
+   'https://external.example/gone','https://fixture.example/service-1','Timeouts and blocked checks are not counted as broken']},
  {name:'incomplete',data:report({pagesSelected:35,failures:[{url:home+'missing',reason:'Navigation timed out'}],coverage:{discoveryTruncated:true},issueCenter:[]}),
   must:['Audit evidence incomplete','No numeric website-health score has been assigned','97/100']}
 ];
