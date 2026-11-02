@@ -105,3 +105,41 @@ test('Dashboard and PDF use the same assessment, not the old >=80 Strong thresho
  assert.doesNotMatch(ui,/mean>=80\?'Strong'/);
  assert.match(ui,/numeric whole-site SEO score has been calculated/);
 });
+
+
+test('Actual client PDF leads with BadSEO website risk rather than mislabeling 97 as excellent',()=>{
+ const source=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ const start=source.indexOf('function printClientSeoReport(report){');
+ const end=source.indexOf('sitePrintButton.addEventListener',start);
+ assert.ok(start>=0&&end>start);
+ let output='';
+ const print=new Function('window','alert','summarizeSeoSiteHealth',
+  source.slice(start,end)+';return printClientSeoReport;')(
+   {open:()=>({document:{open(){},write(value){output=value},close(){}}})},
+   ()=>{throw Error('Unexpected print popup block')},summarizeSeoSiteHealth
+  );
+ const pages=Array.from({length:32},(_,i)=>page('https://badseo.dev/fixture-'+i,i===0?80:98));
+ const issueCenter=Array.from({length:5},(_,i)=>({
+  code:'important_issue_'+i,severity:'high',
+  affectedUrls:[pages[i].url],recommendation:'Review the affected page'
+ }));
+ print({...report(pages,issueCenter),website:'https://badseo.dev',generatedAt:'2026-11-02'});
+ assert.match(output,/Website risk assessment: Needs attention/);
+ assert.match(output,/97\/100<\/strong>Average public-page HTML score \(not a full website SEO rating\)/);
+ assert.ok(output.indexOf('Website risk assessment: Needs attention')<output.indexOf('97/100'));
+ assert.match(output,/5 high-severity issue group\(s\)/);
+ assert.ok(!output.includes('Strong (80–100)'),'High HTML scores must not become an overall Strong grade');
+});
+
+test('Empty audit PDF carries an explicit incomplete warning rather than a 100-style score',()=>{
+ const source=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ const a=source.indexOf('function printClientSeoReport(report){'),b=source.indexOf('sitePrintButton.addEventListener',a);
+ let output='';
+ const printer=new Function('window','alert','summarizeSeoSiteHealth',
+  source.slice(a,b)+';return printClientSeoReport;')(
+   {open:()=>({document:{open(){},write(value){output=value},close(){}}})},()=>{},summarizeSeoSiteHealth
+  );
+ printer({...report([],[],{pagesSelected:0}),website:'https://example.com',generatedAt:'2026-11-02'});
+ assert.match(output,/Website risk assessment: Audit incomplete/);
+ assert.match(output,/N\/A<\/strong>Average public-page HTML score/);
+});
