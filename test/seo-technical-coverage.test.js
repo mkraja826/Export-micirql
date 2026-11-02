@@ -20,5 +20,5 @@ test('unverified link checks never become confirmed broken links',()=>{
   {classification:'broken',status:404},{classification:'unverified'},{classification:'reachable',status:200}
  ]});
  assert.equal(summary.checks[3].state,'partial');
- assert.match(summary.checks[3].detail,/2 confirmed destination responses; 1 unverified/);
+ assert.match(summary.checks[3].detail,/2 verified external destinations; 1 unverified/);
 });
