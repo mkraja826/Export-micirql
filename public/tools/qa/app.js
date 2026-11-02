@@ -1,4 +1,5 @@
 import {inspectQaHtml,QA_INSPECTOR_VERSION} from './inspector.js';
+import {selectQaLayoutSamples} from './layout-sampling.js';
 
 const $=id=>document.getElementById(id);
 const urlInput=$('url'),run=$('run'),manual=$('manual'),download=$('download'),print=$('print');
@@ -176,15 +177,7 @@ async function scan(url){
  // Layout evidence is intentionally capped at three complete HTML pages, not 60.
  // Prefer the entry page, then a page with form controls, then the next distinct page.
  // Navigating to these public pages is read-only; no buttons are clicked or forms submitted.
- const completeReports=reports.filter(page=>!page.partial);
- const samples=[];
- const choose=page=>{
-  if(page&&samples.length<3&&!samples.some(existing=>existing.url===page.url))samples.push(page);
- };
- choose(completeReports.find(page=>page.requestedUrl===url.href||page.url===url.href));
- choose(completeReports.find(page=>page.counts?.formControls>0));
- for(const page of completeReports)choose(page);
- const sampledPages=layoutSupported?samples:[];
+ const sampledPages=layoutSupported?selectQaLayoutSamples(reports,url.href,3):[];
  const layoutInspections=[];
  for(let i=0;i<sampledPages.length;i++){
   const selectedUrl=sampledPages[i].requestedUrl||sampledPages[i].url;
