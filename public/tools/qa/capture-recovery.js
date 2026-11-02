@@ -9,6 +9,7 @@ export function isTransientQaCaptureError(reason){
 export function selectQaCaptureRetries(failures,limit=QA_CAPTURE_RETRY_LIMIT){
  const max=Math.min(QA_CAPTURE_RETRY_LIMIT,Math.max(0,Math.trunc(Number(limit)||0)));
  const seen=new Set(),results=[];
+ if(max===0)return results;
  for(const failure of Array.isArray(failures)?failures:[]){
   if(!failure||typeof failure.url!=='string'||!isTransientQaCaptureError(failure.reason))continue;
   let parsed;
