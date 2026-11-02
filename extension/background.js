@@ -324,6 +324,11 @@ async function readQaLayout(rawUrl){
     const results=await chrome.scripting.executeScript({target:{tabId:tab.id},func:()=>{
      const root=document.documentElement,body=document.body;
      const viewportWidth=window.innerWidth;
+     const deviceScreenWidth=Number(window.screen?.width)||null;
+     const hasViewportMeta=Boolean(document.querySelector?.('meta[name="viewport"]'));
+     // Without a device-width viewport declaration, Chromium legitimately renders a
+     // 375px emulated device using a ~980px CSS layout viewport and scales it down.
+     // This is useful QA evidence, not a failed emulation by itself.
      const docWidth=Math.max(root?.scrollWidth||0,body?.scrollWidth||0);
      const controls=[...document.querySelectorAll('input:not([type=hidden]),select,textarea')].filter(el=>el.getClientRects().length>0).slice(0,600);
      // Resolve accessible names conservatively. Empty labels and missing aria-labelledby IDs
@@ -371,7 +376,8 @@ async function readQaLayout(rawUrl){
       return Boolean(rect&&rect.width>0&&rect.height>0&&(rect.width<24||rect.height<24));
      }).length;
      const requiredFieldsWithoutLabels=controls.filter(el=>el.required&&!labelled(el)).length;
-     return {observedWidth:viewportWidth,documentWidth:docWidth,horizontalOverflowPx:Math.max(0,docWidth-viewportWidth),
+     return {observedWidth:viewportWidth,deviceScreenWidth,hasViewportMeta,
+      documentWidth:docWidth,horizontalOverflowPx:Math.max(0,docWidth-viewportWidth),
       formCount:document.forms.length,visibleFormControls:controls.length,unlabelledVisibleFields:controls.filter(el=>!labelled(el)).length,
       requiredVisibleFields:controls.filter(el=>el.required).length,navigationLinks:navLinks.length,unnamedNavigationLinks:linksWithoutNames.length,
       placeholderNavigationLinks:placeholderNavLinks,scriptedNavigationLinks:scriptedNavLinks,missingNavigationFragmentTargets:missingFragmentTargets,
@@ -379,8 +385,16 @@ async function readQaLayout(rawUrl){
       customControlsWithoutTabFocus,navigationWithoutTabFocus,smallNavigationTargets,requiredFieldsWithoutLabels};
     }});
     const metrics=results?.[0]?.result;
-    if(!metrics||!Number.isFinite(metrics.observedWidth)||Math.abs(metrics.observedWidth-width)>4)throw Error('Chrome did not confirm the requested viewport');
-    observations.push({width,verified:true,...metrics});
+    if(!metrics||!Number.isFinite(metrics.observedWidth))throw Error('Chrome did not return a CSS layout viewport');
+    const deviceConfirmed=width===375&&Number.isFinite(metrics.deviceScreenWidth)
+     &&Math.abs(metrics.deviceScreenWidth-width)<=4;
+    const layoutConfirmed=Math.abs(metrics.observedWidth-width)<=4;
+    if(!deviceConfirmed&&!layoutConfirmed)throw Error('Chrome did not confirm the requested emulated device width');
+    // Report the scaled layout explicitly. An absence of horizontal overflow
+    // against a 980px CSS viewport does NOT mean the mobile page is responsive.
+    observations.push({width,verified:true,...metrics,
+     scaledMobileLayout:width===375&&deviceConfirmed&&metrics.observedWidth>width+4,
+     missingMobileViewportMeta:width===375&&metrics.hasViewportMeta===false});
    }catch(error){
     observations.push({width,verified:false,reason:String(error?.message||'Viewport observation failed').slice(0,170)});
    }
