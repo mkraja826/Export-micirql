@@ -526,3 +526,39 @@ test('QA recognizes Chromium mobile emulation when CSS viewport expands to 980px
  assert.equal(scriptCalls,3);
  assert.equal(removed,1);assert.equal(detached,1);
 });
+
+
+test('discovery records unreachable links and indicates overflow beyond 60 URLs',async()=>{
+ let listener,current='https://example.com/',removed=0,updates=0;
+ const links=Array.from({length:75},(_,i)=>'https://example.com/page-'+String(i+1));
+ links[4]='https://example.com/blocked';
+ const chrome={
+  runtime:{id:'micirql-extension',onMessage:{addListener(fn){listener=fn}}},
+  storage:{local:{async set(){}}},
+  tabs:{
+   onUpdated:{addListener(){},removeListener(){}},
+   async create(){return {id:120,status:'complete'}},
+   async update(_id,{url}){current=url;updates++;if(url.endsWith('/blocked'))throw Error('Navigation timed out');return {id:120,status:'complete',url}},
+   async get(){return {id:120,status:'complete',url:current}},
+   async remove(){removed++}
+  },
+  scripting:{async executeScript(){
+   return [{result:current==='https://example.com/'?links:[]}];
+  }}
+ };
+ const fastBackground=background.replace('const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));','const wait=async()=>{};');
+ runInNewContext(fastBackground,{chrome,URL,Promise,setTimeout,clearTimeout});
+ const response=await new Promise(resolve=>{
+  assert.equal(listener({type:'DISCOVER_SUBPAGE',url:'https://example.com/'},
+   {id:'micirql-extension',tab:{url:'https://tools.micirql.com/tools/qa/'},url:'https://tools.micirql.com/tools/qa/'},resolve),true);
+ });
+ assert.equal(response.ok,true,response.error);
+ assert.equal(response.scanned,60);
+ assert.equal(response.pages.length,59);
+ assert.equal(response.errors.length,1);
+ assert.match(response.errors[0].url,/\/blocked$/);
+ assert.match(response.errors[0].message,/Navigation timed out/);
+ assert.equal(response.truncated,true,'More than 60 discoverable links must flag truncation even if the queue drains');
+ assert.equal(updates,60,'Discovery must never navigate beyond its 60-page cap');
+ assert.equal(removed,1);
+});
