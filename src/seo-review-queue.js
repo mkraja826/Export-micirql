@@ -31,6 +31,8 @@ export function createSeoReviewQueue(audit,{maxCases=60,codes=null}={}){
   for(const raw of issue.affectedUrls||[]){
    const address=normalize(raw);
    if(!address||new URL(address).origin!==origin||!inspected.has(address))continue;
+   const inspectedPage=inspected.get(address);
+   if(!(complete(inspectedPage)||(issue.code.startsWith('http_')&&verifiedHttpError(inspectedPage))))continue;
    const id=address+'|'+issue.code;
    if(!found.has(id))found.set(id,{url:address,code:issue.code,detectedByMicirql:true});
   }
