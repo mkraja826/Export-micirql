@@ -43,10 +43,10 @@ try{
   const pdf=await tab.pdf({format:'A4',printBackground:true,preferCSSPageSize:true});
   const file=resolve('dist/seo-pdf-fixtures/'+item.name+'.pdf');
   await writeFile(file,pdf);
-  const text=execFileSync('pdftotext',['-layout',file,'-'],{encoding:'utf8',maxBuffer:5_000_000}).replace(/\\s+/g,' ');
+  const text=execFileSync('pdftotext',['-layout',file,'-'],{encoding:'utf8',maxBuffer:5_000_000}).replace(/\s+/g,' ');
   for(const phrase of item.must)if(!text.includes(phrase))throw Error(item.name+': PDF missing '+phrase);
   if(errors.length)throw Error(item.name+': page errors '+errors.join('; '));
-  const count=Number(execFileSync('pdfinfo',[file],{encoding:'utf8'}).match(/^Pages:\\s*(\\d+)/m)?.[1]||0);
+  const count=Number(execFileSync('pdfinfo',[file],{encoding:'utf8'}).match(/^Pages:\s*(\d+)/m)?.[1]||0);
   if(count<1)throw Error(item.name+': missing PDF pages');
   const final=execFileSync('pdftotext',['-f',String(count),'-l',String(count),file,'-'],{encoding:'utf8'});
   if(final.trim().length<50)throw Error(item.name+': last PDF page blank or nearly blank');
