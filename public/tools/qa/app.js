@@ -71,7 +71,7 @@ function render(report){
  $('report-site').textContent=report.website;
  $('report-time').textContent='Generated '+new Date(report.generatedAt).toLocaleString()+' · '+report.inspectorVersion;
  const metrics=$('metrics');metrics.replaceChildren();
- const counts=[['Pages verified',report.pagesAnalyzed],['Findings',report.totalFindings],['Pages not verified',report.failures.length+report.partialPages]];
+ const counts=[['HTML pages verified',report.pagesAnalyzed],['Findings',report.totalFindings],['HTML pages not verified',report.failures.length+report.partialPages],['Layout pages observed',Number.isFinite(report.layoutPagesVerified)?report.layoutPagesVerified:0]];
  for(const [label,value] of counts){
   const item=node('div',undefined,'metric');item.append(node('strong',value),node('span',label));metrics.append(item);
  }
@@ -84,32 +84,42 @@ function render(report){
   (report.partialPages?' · '+report.partialPages+' incomplete capture(s)':'')+'.';
  const layoutSummary=$('layout-summary'),layoutDetails=$('layout-details');
  layoutDetails.replaceChildren();
- const evidence=report.layoutInspection;
- if(!evidence){
-  layoutSummary.textContent='Not checked. No browser layout observations are available for this report.';
- }else if(!evidence.ok){
-  layoutSummary.textContent='Responsive layout could not be verified: '+(evidence.error||'Chrome did not return evidence.');
+ const layoutRecords=Array.isArray(report.layoutInspections)?report.layoutInspections
+  :report.layoutInspection?[report.layoutInspection]:[];
+ const requested=Number.isFinite(report.layoutPagesRequested)?report.layoutPagesRequested:layoutRecords.length;
+ const checked=layoutRecords.filter(entry=>entry?.ok&&Array.isArray(entry.observations)&&entry.observations.some(item=>item.verified===true)).length;
+ const verifiedViewports=layoutRecords.reduce((n,entry)=>n+(Array.isArray(entry.observations)?entry.observations.filter(item=>item.verified===true).length:0),0);
+ if(!layoutRecords.length){
+  layoutSummary.textContent='Not checked. Responsive and rendered-control observations require an updated MiCirql Chrome extension and at least one complete HTML capture.';
  }else{
-  const observed=Array.isArray(evidence.observations)?evidence.observations:[];
-  const verified=observed.filter(item=>item.verified===true);
-  layoutSummary.textContent='Read-only DOM observations for one page ('+evidence.url+'). Verified '+verified.length+' of 3 viewport widths. Findings below are element/target evidence, not proof of successful navigation, form submission, or accessibility conformance.';
-  for(const item of observed){
-   const panel=node('div',undefined,'finding');
-   const title=item.width+'px '+(item.verified?'· verified viewport':'· unverified viewport');
-   panel.append(node('strong',title));
-   if(item.verified){
-    panel.append(node('p','Document width: '+item.documentWidth+'px · Horizontal overflow: '+item.horizontalOverflowPx+'px · Visible form fields: '+item.visibleFormControls+' · Unlabelled fields: '+item.unlabelledVisibleFields+' · Navigation links without names: '+item.unnamedNavigationLinks));
-    if(Number.isFinite(item.placeholderNavigationLinks)){
-     panel.append(node('p','Navigation targets: '+item.navigationLinks+' visible links · '+item.placeholderNavigationLinks+' empty or placeholder destinations · '+item.scriptedNavigationLinks+' script/data destinations · '+item.missingNavigationFragmentTargets+' in-page fragments without matching IDs.'));
-     panel.append(node('p','Form controls: '+item.requiredVisibleFields+' visible required fields · '+item.implicitSubmitButtons+' buttons without an explicit type inside forms (may submit when activated).'));
-    }else panel.append(node('p','Navigation target and form-button checks unavailable in this extension version. Update the extension for these read-only observations.'));
-    if(Number.isFinite(item.buttonsWithoutNames)){
-     panel.append(node('p','Keyboard and form review: '+item.buttonsWithoutNames+' visible buttons without detectable names · '+item.customControlsWithoutTabFocus+' custom button/link roles with negative tab order · '+item.navigationWithoutTabFocus+' navigation links with negative tab order · '+item.requiredFieldsWithoutLabels+' required fields without detected labels.'));
-     panel.append(node('p','Target-size review: '+item.smallNavigationTargets+' visible navigation targets smaller than 24px in at least one dimension. Spacing, inline-text and other exceptions were not evaluated; these are not confirmed accessibility failures.'));
-    }else panel.append(node('p','Keyboard, button-name and target-size observations unavailable in this extension version. Update the extension for these review counts.'));
-    if(item.horizontalOverflowPx>8)panel.dataset.severity='medium';
-   }else panel.append(node('p',item.reason||'The viewport could not be measured.'));
-   layoutDetails.append(panel);
+  layoutSummary.textContent='Read-only browser evidence for '+checked+' of '+requested+' sampled pages ('+verifiedViewports+' of '+(requested*3)+' viewport checks). HTML was inspected on '+report.pagesAnalyzed+' pages. The sample prioritizes the entry page and a form page where available, then other pages; it does not establish complete-site responsive or functional correctness.';
+  for(const evidence of layoutRecords){
+   const details=node('details');
+   details.open=true;
+   details.append(node('summary',(evidence.url||evidence.requestedUrl||report.website)+' · '+(evidence.ok?'browser observations':'not verified')));
+   if(!evidence.ok){
+    details.append(node('p','Layout could not be verified: '+(evidence.error||'Chrome did not return evidence.'),'notice alert'));
+    layoutDetails.append(details);continue;
+   }
+   const observed=Array.isArray(evidence.observations)?evidence.observations:[];
+   for(const item of observed){
+    const panel=node('div',undefined,'finding');
+    panel.append(node('strong',item.width+'px '+(item.verified?'· observed viewport':'· unverified viewport')));
+    if(item.verified){
+     panel.append(node('p','Document width: '+item.documentWidth+'px · Horizontal overflow: '+item.horizontalOverflowPx+'px · Visible form fields: '+item.visibleFormControls+' · Unlabelled fields: '+item.unlabelledVisibleFields+' · Navigation links without names: '+item.unnamedNavigationLinks));
+     if(Number.isFinite(item.placeholderNavigationLinks)){
+      panel.append(node('p','Navigation targets: '+item.navigationLinks+' visible links · '+item.placeholderNavigationLinks+' empty or placeholder destinations · '+item.scriptedNavigationLinks+' script/data destinations · '+item.missingNavigationFragmentTargets+' in-page fragments without matching IDs.'));
+      panel.append(node('p','Form controls: '+item.requiredVisibleFields+' visible required fields · '+item.implicitSubmitButtons+' buttons without an explicit type inside forms (may submit when activated).'));
+     }else panel.append(node('p','Navigation target and form-button checks unavailable in this extension version. Update the extension for these read-only observations.'));
+     if(Number.isFinite(item.buttonsWithoutNames)){
+      panel.append(node('p','Keyboard and form review: '+item.buttonsWithoutNames+' visible buttons without detectable names · '+item.customControlsWithoutTabFocus+' custom button/link roles with negative tab order · '+item.navigationWithoutTabFocus+' navigation links with negative tab order · '+item.requiredFieldsWithoutLabels+' required fields without detected labels.'));
+      panel.append(node('p','Target-size review: '+item.smallNavigationTargets+' visible navigation targets smaller than 24px in at least one dimension. Spacing, inline-text and other exceptions were not evaluated; these are not confirmed accessibility failures.'));
+     }else panel.append(node('p','Keyboard, button-name and target-size observations unavailable in this extension version. Update the extension for these review counts.'));
+     if(item.horizontalOverflowPx>8)panel.dataset.severity='medium';
+    }else panel.append(node('p',item.reason||'The viewport could not be measured.'));
+    details.append(panel);
+   }
+   layoutDetails.append(details);
   }
  }
  const pages=$('pages');pages.replaceChildren();
@@ -148,8 +158,10 @@ async function scan(url){
  }
  if(!pages.length)throw Error('No public pages could be discovered. Check the URL and extension permissions.');
  const reports=[],failures=[];
+ const layoutBudget=layoutSupported?Math.min(3,pages.length):0;
+ const progressTotal=pages.length+layoutBudget;
  for(let i=0;i<pages.length;i++){
-  updateProgress(i,pages.length,'Inspecting '+(i+1)+' of '+pages.length+' pages…');
+  updateProgress(i,progressTotal,'Inspecting HTML page '+(i+1)+' of '+pages.length+'…');
   try{
    const response=await extensionRequest('MICIRQL_SEO_READ','MICIRQL_SEO_RESULT',pages[i],90000);
    if(!response.ok)throw Error(response.error||'Page capture failed.');
@@ -158,25 +170,45 @@ async function scan(url){
    const inspected=inspectQaHtml(response.html,finalUrl.href,{partial:response.partial===true});
    inspected.requestedUrl=pages[i];reports.push(inspected);
   }catch(error){failures.push({url:pages[i],reason:error.message||'Could not inspect the page'});}
-  updateProgress(i+1,pages.length,'Checked '+(i+1)+' of '+pages.length+' selected pages');
+  updateProgress(i+1,progressTotal,'Checked '+(i+1)+' of '+pages.length+' HTML pages');
  }
  const partialPages=reports.filter(page=>page.partial).length;
- // Read-only layout observation samples the requested entry page. It does not
- // click buttons, submit forms or imply that other pages were viewport-tested.
- let layoutInspection=null;
- if(layoutSupported){
-  updateProgress(pages.length,pages.length,'Checking homepage layout at 375, 768 and 1440px…');
+ // Layout evidence is intentionally capped at three complete HTML pages, not 60.
+ // Prefer the entry page, then a page with form controls, then the next distinct page.
+ // Navigating to these public pages is read-only; no buttons are clicked or forms submitted.
+ const completeReports=reports.filter(page=>!page.partial);
+ const samples=[];
+ const choose=page=>{
+  if(page&&samples.length<3&&!samples.some(existing=>existing.url===page.url))samples.push(page);
+ };
+ choose(completeReports.find(page=>page.requestedUrl===url.href||page.url===url.href));
+ choose(completeReports.find(page=>page.counts?.formControls>0));
+ for(const page of completeReports)choose(page);
+ const sampledPages=layoutSupported?samples:[];
+ const layoutInspections=[];
+ for(let i=0;i<sampledPages.length;i++){
+  const selectedUrl=sampledPages[i].requestedUrl||sampledPages[i].url;
+  updateProgress(pages.length+i,progressTotal,'Observing layout '+(i+1)+' of '+sampledPages.length+' sampled pages at 375, 768 and 1440px…');
   try{
-   const layout=await extensionRequest('MICIRQL_QA_LAYOUT','MICIRQL_QA_LAYOUT_RESULT',url.href,90000);
-   layoutInspection=layout.ok?{ok:true,url:layout.url||url.href,observations:Array.isArray(layout.observations)?layout.observations:[]}
-    :{ok:false,error:layout.error||'Browser layout inspection failed'};
-  }catch(error){layoutInspection={ok:false,error:error.message||'Browser layout inspection timed out'};}
+   const layout=await extensionRequest('MICIRQL_QA_LAYOUT','MICIRQL_QA_LAYOUT_RESULT',selectedUrl,90000);
+   layoutInspections.push(layout.ok?
+    {ok:true,requestedUrl:selectedUrl,url:layout.url||selectedUrl,observations:Array.isArray(layout.observations)?layout.observations:[]}
+    :{ok:false,requestedUrl:selectedUrl,error:layout.error||'Browser observation failed'});
+  }catch(error){
+   layoutInspections.push({ok:false,requestedUrl:selectedUrl,error:error.message||'Browser observation timed out'});
+  }
+  updateProgress(pages.length+i+1,progressTotal,'Observed '+(i+1)+' of '+sampledPages.length+' selected layout pages');
  }
+ updateProgress(progressTotal,progressTotal,'Inspection complete. Review the report and save the PDF.');
+ const layoutPagesVerified=layoutInspections.filter(entry=>entry.ok&&entry.observations.some(item=>item.verified===true)).length;
+ // Retain a single-entry alias for previously saved reports and consumers.
+ const layoutInspection=layoutInspections[0]||null;
  return {schemaVersion:1,tool:'qa-lab',inspectorVersion:QA_INSPECTOR_VERSION,generatedAt:new Date().toISOString(),
   website:url.origin,pagesDiscovered:discovered.originalCount??entries.length,pagesSelected:pages.length,
   pagesAnalyzed:reports.length-partialPages,partialPages,truncated:Boolean(discovered.truncated||entries.length>60),
-  reports,failures,layoutInspection,totalFindings:reports.reduce((n,page)=>n+page.findings.length,0),
-  scope:'browser_captured_static_html',limitations:['No functional form or navigation checks','No verified external link status','Incomplete captures remain provisional']};
+  reports,failures,layoutInspection,layoutInspections,layoutPagesRequested:sampledPages.length,layoutPagesVerified,
+  layoutSamplingLimit:3,totalFindings:reports.reduce((n,page)=>n+page.findings.length,0),
+  scope:'browser_captured_static_html_with_bounded_read_only_layout_sample',limitations:['Static HTML inspected on up to 60 pages; rendered viewport evidence sampled on no more than three complete pages','No functional form submissions or navigation journey testing','No verified external link status','Incomplete captures remain provisional']};
 }
 async function runScan(event){
  event.preventDefault();
