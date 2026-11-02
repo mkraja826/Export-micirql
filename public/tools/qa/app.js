@@ -1,5 +1,6 @@
 import {inspectQaHtml,QA_INSPECTOR_VERSION} from './inspector.js';
 import {selectQaLayoutSamples} from './layout-sampling.js';
+import {summarizeQaReport} from './report-summary.js';
 
 const $=id=>document.getElementById(id);
 const urlInput=$('url'),run=$('run'),manual=$('manual'),download=$('download'),print=$('print');
@@ -71,8 +72,9 @@ function render(report){
  currentReport=report;results.hidden=false;download.disabled=false;print.disabled=false;
  $('report-site').textContent=report.website;
  $('report-time').textContent='Generated '+new Date(report.generatedAt).toLocaleString()+' · '+report.inspectorVersion;
+ const evidenceSummary=summarizeQaReport(report);
  const metrics=$('metrics');metrics.replaceChildren();
- const counts=[['HTML pages verified',report.pagesAnalyzed],['Findings',report.totalFindings],['HTML pages not verified',report.failures.length+report.partialPages],['Layout pages observed',Number.isFinite(report.layoutPagesVerified)?report.layoutPagesVerified:0]];
+ const counts=[['Complete HTML pages',evidenceSummary.completePages],['Complete HTML findings',evidenceSummary.completeFindings],['Unverified HTML pages',evidenceSummary.failedPages+evidenceSummary.partialPages],['Layout pages observed',Number.isFinite(report.layoutPagesVerified)?report.layoutPagesVerified:0]];
  for(const [label,value] of counts){
   const item=node('div',undefined,'metric');item.append(node('strong',value),node('span',label));metrics.append(item);
  }
@@ -83,6 +85,29 @@ function render(report){
   report.pagesAnalyzed+' of '+report.pagesSelected+' selected page(s) verified'+
   (report.truncated?' · Discovery was limited to 60 pages':'')+
   (report.partialPages?' · '+report.partialPages+' incomplete capture(s)':'')+'.';
+ const priorityCount=$('priority-count'),priorityFindings=$('priority-findings'),provisional=$('provisional-summary');
+ priorityFindings.replaceChildren();
+ if(evidenceSummary.completePages===0){
+  priorityCount.textContent='No complete HTML snapshots are available, so nothing can be prioritized. This is not a passed QA audit.';
+ }else if(evidenceSummary.issues.length===0){
+  priorityCount.textContent='No concerns detected by these static HTML checks across '+evidenceSummary.completePages+' complete page(s). Functional behavior and accessibility conformance remain unverified.';
+ }else{
+  const top=evidenceSummary.issues.slice(0,8);
+  priorityCount.textContent='Showing '+top.length+' of '+evidenceSummary.issueTypes+' issue types from '+evidenceSummary.completePages+' complete HTML page(s), ranked by review severity and affected-page count. These are checks to review, not verified functional failures.';
+  for(const issue of top){
+   const card=node('div',undefined,'priority-item');card.dataset.severity=issue.severity;
+   const label=issue.severity==='medium'?'Review first':issue.severity==='low'?'Review next':'Advisory';
+   card.append(node('strong',issue.label),
+    node('p',label+' · '+issue.affectedPages+' affected page(s) · '+issue.occurrences+' finding(s)','priority-meta'),
+    node('p',issue.message),
+    node('p','Example page'+(issue.examplePages.length>1?'s':'')+': '+issue.examplePages.join(' · '),'small'));
+   priorityFindings.append(card);
+  }
+ }
+ const pending=evidenceSummary.partialPages+evidenceSummary.failedPages;
+ provisional.textContent=pending?
+  'Not verified: '+evidenceSummary.partialPages+' partial HTML capture(s) with '+evidenceSummary.provisionalFindings+' provisional observation(s), and '+evidenceSummary.failedPages+' failed page capture(s). Their findings are excluded from the priorities above; retry these pages before concluding they are healthy.':
+  'Capture coverage: no partial or failed HTML inspections. Responsive layout observations are still a separate, sampled evidence type.';
  const layoutSummary=$('layout-summary'),layoutDetails=$('layout-details');
  layoutDetails.replaceChildren();
  const layoutRecords=Array.isArray(report.layoutInspections)?report.layoutInspections
@@ -124,12 +149,25 @@ function render(report){
   }
  }
  const pages=$('pages');pages.replaceChildren();
- for(const page of report.reports){
+ const orderedPages=[...(Array.isArray(report.reports)?report.reports:[])].sort((a,b)=>{
+  const priority=page=>{
+   if(page.partial)return 4;
+   const severities=(page.findings||[]).map(item=>item.severity);
+   if(severities.includes('medium'))return 0;
+   if(severities.includes('low'))return 1;
+   if(severities.includes('info'))return 2;
+   return 3;
+  };
+  return priority(a)-priority(b);
+ });
+ $('page-list-summary').textContent='Pages with higher-priority complete HTML findings appear first. '+evidenceSummary.completePages+' complete · '+evidenceSummary.partialPages+' provisional · '+evidenceSummary.failedPages+' not checked. Layout observations are listed separately above.';
+ for(const page of orderedPages){
   const details=node('details');
-  details.append(node('summary',page.url+' · '+page.findings.length+' finding(s)'),
-   node('p',page.partial?'Partial capture: treat findings as provisional.':'Complete HTML snapshot','page-status'));
+  const issueCount=Array.isArray(page.findings)?page.findings.length:0;
+  details.append(node('summary',page.url+' · '+issueCount+(page.partial?' provisional observation(s)':' HTML finding(s)')),
+   node('p',page.partial?'Partial HTML capture — provisional observations only, not part of prioritized findings.':'Complete HTML snapshot — static checks only; not a functional QA pass.','page-status'));
   if(!page.findings.length)details.append(node('p','No concerns detected by these static checks. This does not establish a functional QA pass.'));
-  for(const finding of page.findings){
+  for(const finding of page.findings||[]){
    const card=node('div',undefined,'finding');card.dataset.severity=finding.severity;
    card.append(node('strong',finding.severity.toUpperCase()+' · '+finding.code),
     node('p',finding.message+(finding.evidence?' · '+finding.evidence:'')));
@@ -137,7 +175,7 @@ function render(report){
   }
   pages.append(details);
  }
- for(const failure of report.failures){
+ for(const failure of report.failures||[]){
   const details=node('details');details.append(node('summary',failure.url+' · not checked'),node('p',failure.reason,'notice alert'));pages.append(details);
  }
  if(!pages.children.length)pages.append(node('p','No pages were available to inspect.'));
@@ -230,6 +268,17 @@ manual.addEventListener('click',()=>{
    website:url.origin,pagesDiscovered:1,pagesSelected:1,pagesAnalyzed:1,partialPages:0,truncated:false,
    reports:[page],failures:[],totalFindings:page.findings.length,scope:'pasted_html_only'});
  }catch(error){updateProgress(0,1,error.message)}
+});
+let priorPrintDetails=null;
+window.addEventListener('beforeprint',()=>{
+ if(!currentReport)return;
+ priorPrintDetails=[...$('results').querySelectorAll('details')].map(item=>({item,open:item.open}));
+ for(const {item} of priorPrintDetails)item.open=true;
+});
+window.addEventListener('afterprint',()=>{
+ if(!priorPrintDetails)return;
+ for(const {item,open} of priorPrintDetails)item.open=open;
+ priorPrintDetails=null;
 });
 print.addEventListener('click',()=>{if(currentReport)window.print()});
 download.addEventListener('click',()=>{
