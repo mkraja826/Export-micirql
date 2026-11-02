@@ -44,20 +44,24 @@ export function assessSeoSiteRisk(report){
   if(!urls.length)continue;
   const key=code+'|'+issue.severity;
   const old=grouped.get(key);
-  const record=old||{code,severity:issue.severity,urls:new Set(),verified:false,evidenceStatuses:new Set()};
+  const record=old||{code,severity:issue.severity,urls:new Set(),verifiedUrls:new Set(),evidenceStatuses:new Set()};
   urls.forEach(u=>record.urls.add(u));
-  record.verified ||=verifiedIssue(issue);
+  const verifiedUrls=Array.isArray(issue.verifiedAffectedUrls)?issue.verifiedAffectedUrls.map(norm):verifiedIssue(issue)?urls:[];
+  verifiedUrls.filter(u=>urls.includes(u)).forEach(u=>record.verifiedUrls.add(u));
   if(evidence)record.evidenceStatuses.add(evidence);
   grouped.set(key,record);
  }
  const findings=[...grouped.values()].map(item=>{
   const affectedUrls=[...item.urls].sort();
-  const important=affectedUrls.some(u=>roleOf(u)!=='standard');
+  const confirmedUrls=[...item.verifiedUrls].sort();
+  const important=confirmedUrls.some(u=>roleOf(u)!=='standard');
   const affectedPercent=eligibleUrls.size?Math.round(100*affectedUrls.length/eligibleUrls.size):0;
-  return {code:item.code,severity:item.severity,verified:item.verified,
-   evidenceStatus:item.verified?'verified':'not_verified',
-   affectedPages:affectedUrls.length,affectedPercent,importantPageAffected:important,criticalEligible:criticalCode(item.code),
-   affectedUrls};
+  return {code:item.code,severity:item.severity,verified:confirmedUrls.length>0,
+   evidenceStatus:confirmedUrls.length?'verified':'not_verified',
+   affectedPages:affectedUrls.length,affectedPercent,verifiedAffectedPages:confirmedUrls.length,
+   verifiedAffectedPercent:eligibleUrls.size?Math.round(100*confirmedUrls.length/eligibleUrls.size):0,
+   importantPageAffected:important,criticalEligible:criticalCode(item.code),
+   verifiedAffectedUrls:confirmedUrls,affectedUrls};
  }).sort((a,b)=>Number(b.verified)-Number(a.verified)||severityRank[b.severity]-severityRank[a.severity]||b.affectedPages-a.affectedPages||a.code.localeCompare(b.code));
  const selected=Number.isInteger(report?.pagesSelected)?report.pagesSelected:pages.size;
  const failures=Array.isArray(report?.failures)?report.failures:[];
@@ -68,7 +72,7 @@ export function assessSeoSiteRisk(report){
  const confirmedHigh=findings.filter(f=>f.severity==='high'&&f.verified);
  const unverifiedHigh=findings.filter(f=>f.severity==='high'&&!f.verified);
  let level='no_verified_high_risk';
- if(confirmedHigh.some(f=>f.criticalEligible&&(f.importantPageAffected||f.affectedPercent>=50)))level='critical';
+ if(confirmedHigh.some(f=>f.criticalEligible&&(f.importantPageAffected||f.verifiedAffectedPercent>=50)))level='critical';
  else if(confirmedHigh.length)level='high';
  else if(findings.some(f=>f.verified&&f.severity==='medium'))level='moderate';
  if(!confirmedHigh.length&&incomplete)level='unverified';
