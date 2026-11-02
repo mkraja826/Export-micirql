@@ -33,7 +33,7 @@ footer{color:#aabed6;margin:30px 0}
 <p>Review website pages for accessible form fields, usable navigation labels, image descriptions, heading structure and in-page links.</p></header>
 <section class="card no-print" aria-labelledby="scan-heading"><h2 id="scan-heading">Inspect your website</h2>
 <form id="audit" novalidate><label for="url">Website address</label><div class="field"><input id="url" type="text" inputmode="url" autocomplete="url" maxlength="2048" placeholder="example.com" required><button id="run" type="submit">Start QA inspection</button></div></form>
-<p class="small">Inspects up to 60 discovered public pages in desktop Chrome using the MiCirql extension. No files are changed on your website.</p>
+<p class="small">Inspects up to 60 discovered public pages in desktop Chrome and samples responsive layout on up to three pages. No form submissions, clicks or website file changes.</p>
 <p id="extension-status" class="status" role="status" aria-live="polite">Checking desktop Chrome extension…</p>
 <div id="setup" class="notice" hidden>Install the <a href="/extension/micirql-tools-extension.zip" download>MiCirql Chrome extension</a> on your computer. Extract the ZIP, open <strong>chrome://extensions</strong>, enable Developer mode, choose <strong>Load unpacked</strong>, then return and retry.</div>
 </section>
@@ -41,7 +41,7 @@ footer{color:#aabed6;margin:30px 0}
 <section id="results" class="card" hidden aria-labelledby="result-title">
 <p class="eyebrow">Website QA report</p><h2 id="result-title">Inspection results</h2><p id="report-site"></p><p id="report-time" class="small"></p>
 <div id="metrics" class="metrics"></div><p id="summary" class="notice"></p>
-<p id="limitations" class="small">Scope: up to 60 pages checked from captured static HTML. An optional read-only Chrome layout observation measures the entry page at three widths; it does not establish functional or multi-page responsive correctness. Form submissions, complete user journeys and external link reachability remain unverified. Incomplete HTML captures are not counted as verified.</p>
+<p id="limitations" class="small">Scope: up to 60 public pages checked from captured static HTML. Browser-rendered layout and accessible-control observations sample up to three successfully captured pages at 375, 768 and 1440px. A sample does not verify every page, successful form submissions, full user journeys, accessibility conformance or external link reachability. Partial captures are not counted as verified.</p>
 <div class="actions no-print"><button id="print" type="button" disabled>Save report as PDF</button><span class="small muted">Choose “Save as PDF” in your browser's print dialog.</span></div>
 <h3>Browser-observed layout</h3><p id="layout-summary" class="small">Responsive layout was not checked.</p><div id="layout-details"></div><h3>Findings by page</h3><div id="pages"></div></section>
 <details id="advanced" class="card no-print"><summary>Developer mode · inspect pasted HTML or export JSON</summary>
