@@ -64,3 +64,37 @@ test('Dashboard and PDF integrate independent risk evidence without replacing pa
 function requireFileText(){
  return readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
 }
+
+test('benchmark: homepage high issue without critical HTTP/indexability evidence remains high',()=>{
+ const risk=assessSeoSiteRisk(make([page('https://example.test/')],[
+  issue('missing_title','high',['https://example.test/'],{verified:true})
+ ]));
+ assert.equal(risk.level,'high');
+ assert.equal(risk.findings[0].criticalEligible,false);
+});
+test('benchmark: widespread high content findings cannot become critical solely by prevalence',()=>{
+ const urls=Array.from({length:10},(_,i)=>'https://example.test/blog/'+i);
+ const risk=assessSeoSiteRisk(make(urls.map(u=>page(u)),[
+  issue('duplicate_title','high',urls,{verified:true})
+ ]));
+ assert.equal(risk.level,'high');
+ assert.equal(risk.findings[0].affectedPercent,100);
+});
+test('benchmark: verified homepage noindex and widespread HTTP failures remain critical',()=>{
+ const home='https://example.test/';
+ const homepage=assessSeoSiteRisk(make([page(home)],[
+  issue('noindex','high',[home],{verified:true})
+ ]));
+ assert.equal(homepage.level,'critical');
+ const urls=Array.from({length:4},(_,i)=>'https://example.test/blog/'+i);
+ const widespread=assessSeoSiteRisk(make(urls.map(u=>page(u)),[
+  issue('http_5xx','high',urls.slice(0,2),{verified:true})
+ ]));
+ assert.equal(widespread.level,'critical');
+});
+test('benchmark: unverified homepage noindex must not count as confirmed critical',()=>{
+ const url='https://example.test/';
+ const risk=assessSeoSiteRisk(make([page(url)],[issue('noindex','high',[url])]));
+ assert.equal(risk.level,'no_verified_high_risk');
+ assert.equal(risk.verifiedHighGroups,0);
+});
