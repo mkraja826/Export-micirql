@@ -30,7 +30,7 @@ function pdfPageCount(pdf){
  // Chromium emits an explicit /Type /Page dictionary for each printable PDF page.
  return (pdf.toString('latin1').match(/\/Type\s*\/Page\b/g)||[]).length;
 }
-async function runCase({name,count,partial,failed}){
+async function runCase({name,count,partial,failed,discoveryErrors=0}){
  const page=await browser.newPage({viewport:{width:1100,height:850},locale:'en-US',reducedMotion:'reduce'});
  const consoleErrors=[];
  page.on('pageerror',error=>consoleErrors.push(error.message));
@@ -59,7 +59,11 @@ async function runCase({name,count,partial,failed}){
    if(request.type==='MICIRQL_EXTENSION_PING'){
     answer(request,'MICIRQL_EXTENSION_READY',{protocol:3,capabilities:['discover','seo-http-evidence','qa-layout'],extensionVersion:'0.3.17'});
    }else if(request.type==='MICIRQL_DISCOVER'){
-    answer(request,'MICIRQL_DISCOVER_RESULT',{ok:true,pages:urls,originalCount:urls.length+1,truncated:urls.length>=60});
+    const reachable=urls.slice(0,urls.length-discoveryErrors);
+    const unreachable=urls.slice(urls.length-discoveryErrors);
+    answer(request,'MICIRQL_DISCOVER_RESULT',{ok:true,pages:reachable,
+     scanned:urls.length,originalCount:urls.length,truncated:urls.length>=60,
+     errors:unreachable.map(url=>({url,message:'Simulated discovery timeout'}))});
    }else if(request.type==='MICIRQL_SEO_READ'){
     const index=urls.indexOf(request.url);
     if(index<0){answer(request,'MICIRQL_SEO_RESULT',{ok:false,error:'Not in fixture'});return}
@@ -78,7 +82,7 @@ async function runCase({name,count,partial,failed}){
     })});
    }
   });
- },{urls,partial,failed});
+ },{urls,partial,failed,discoveryErrors});
  try{
   const response=await page.goto(base+'/tools/qa/',{waitUntil:'networkidle'});
   check(response?.ok(),name+': QA Lab route failed');
@@ -96,11 +100,19 @@ async function runCase({name,count,partial,failed}){
   await page.locator('#run').click();
   await page.locator('#results').waitFor({state:'visible',timeout:60000});
   check((await page.locator('#progress').evaluate(el=>el.value))===100,name+': incomplete progress');
-  check((await page.locator('#pages > details').count())===count,name+': page listing count mismatch');
-  const complete=count-partial-failed;
+  const selected=count-discoveryErrors;
+  check((await page.locator('#pages > details').count())===selected,name+': page listing count mismatch');
+  const complete=selected-partial-failed;
   const metrics=await page.locator('#metrics .metric strong').allTextContents();
   check(Number(metrics[0])===complete,name+': complete HTML pages counted incorrectly: '+JSON.stringify(metrics));
   check(Number(metrics[2])===partial+failed,name+': unverified HTML pages counted incorrectly');
+  check((await page.locator('#discovery-errors > details').count())===discoveryErrors,
+   name+': unreachable discovery URLs were not listed separately');
+  const discoveryText=await page.locator('#discovery-summary').textContent();
+  if(discoveryErrors){
+   check(discoveryText.includes(discoveryErrors+' URL(s) not reached'),name+': missing discovery failure count');
+   check(discoveryText.includes('Crawl coverage is incomplete'),name+': missing discovery coverage warning');
+  }
   check((await page.locator('#priority-section').isVisible()),name+': priority section hidden');
   const priority=await page.locator('#priority-count').textContent();
   check(priority.includes('complete HTML')||priority.includes('complete page'),name+': priorities not tied to complete HTML evidence');
@@ -121,10 +133,10 @@ async function runCase({name,count,partial,failed}){
   // Guard against a return to the oversized 7/24-page reports from the initial print layout.
   check(pages<=(count>=60?20:6),name+': printable report regressed to '+pages+' pages');
   check(pdf.length>9000&&pdf.length<12_000_000,name+': unexpected PDF size '+pdf.length);
-  check((await page.locator('#pages details:not([open])').count())===count,
+  check((await page.locator('#pages details:not([open])').count())===selected,
    name+': print expansion did not restore the original collapsed page groups');
   const requests=await page.evaluate(()=>window.__qaMockRequests);
-  check(requests.filter(x=>x==='MICIRQL_SEO_READ').length===count,name+': request count differed from page cap');
+  check(requests.filter(x=>x==='MICIRQL_SEO_READ').length===selected,name+': request count differed from selected pages');
   check(requests.filter(x=>x==='MICIRQL_QA_LAYOUT').length===Math.min(3,complete),
    name+': viewports were observed on more pages than stated in the report');
   check(!consoleErrors.length,name+': page JavaScript errors: '+consoleErrors.join('; '));
@@ -144,6 +156,11 @@ async function runCase({name,count,partial,failed}){
    check(printedText.includes('Not verified'),name+': actual PDF omitted unverified HTML evidence');
    check(printedText.includes('Simulated capture failure'),name+': actual PDF omitted failed page reason');
   }
+  if(discoveryErrors){
+   check(printedText.includes('Crawl discovery coverage'),name+': actual PDF omitted discovery section');
+   check(printedText.includes('Simulated discovery timeout'),name+': PDF omitted failed discovery URL and reason');
+   check(printedText.includes('/service-04'),name+': PDF omitted reachable test page');
+  }
   const finalText=execFileSync('pdftotext',['-f',String(pages),'-l',String(pages),pdfPath,'-'],
    {encoding:'utf8',maxBuffer:1_000_000});
   check(finalText.trim().length>90,name+': last A4 PDF page is blank or contains too little readable content');
@@ -159,6 +176,7 @@ async function runCase({name,count,partial,failed}){
 try{
  await runCase({name:'small-complete',count:4,partial:0,failed:0});
  await runCase({name:'large-60-pages',count:60,partial:2,failed:2});
+ await runCase({name:'discovery-gaps',count:6,partial:0,failed:1,discoveryErrors:2});
 }finally{
  await browser.close();await new Promise(resolve=>server.close(resolve));
 }
