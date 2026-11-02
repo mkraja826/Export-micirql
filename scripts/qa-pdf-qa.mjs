@@ -30,13 +30,13 @@ function pdfPageCount(pdf){
  // Chromium emits an explicit /Type /Page dictionary for each printable PDF page.
  return (pdf.toString('latin1').match(/\/Type\s*\/Page\b/g)||[]).length;
 }
-async function runCase({name,count,partial,failed,discoveryErrors=0,discoveryFailure='',autoRetryRecovered=false,autoRetryPersistent=false}){
+async function runCase({name,count,partial,failed,discoveryErrors=0,discoveryFailure='',autoRetryRecovered=false,autoRetryPersistent=false,httpErrors=0}){
  const page=await browser.newPage({viewport:{width:1100,height:850},locale:'en-US',reducedMotion:'reduce'});
  const consoleErrors=[];
  page.on('pageerror',error=>consoleErrors.push(error.message));
  const urls=Array.from({length:count},(_,i)=>i===0?'https://qa-fixture.example/':
   'https://qa-fixture.example/'+(i===1?'contact-and-booking-form':i===2?'about-us-and-our-services':'service-'+String(i).padStart(2,'0'))+(i===3?'-very-long-page-name-to-check-that-urls-wrap-without-clipping-into-the-paper-margin':''));
- await page.addInitScript(({urls,partial,failed,discoveryErrors,discoveryFailure,autoRetryRecovered,autoRetryPersistent})=>{
+ await page.addInitScript(({urls,partial,failed,discoveryErrors,discoveryFailure,autoRetryRecovered,autoRetryPersistent,httpErrors})=>{
   const answer=(request,type,fields={})=>setTimeout(()=>window.postMessage({
    source:'micirql-extension',type,id:request.id,...fields
   },location.origin),0);
@@ -82,7 +82,15 @@ async function runCase({name,count,partial,failed,discoveryErrors=0,discoveryFai
     }
     const selectedCount=urls.length-discoveryErrors;
     if(index>=selectedCount-failed){answer(request,'MICIRQL_SEO_RESULT',{ok:false,error:'Simulated capture failure'});return}
-    answer(request,'MICIRQL_SEO_RESULT',{ok:true,url:request.url,partial:index>=selectedCount-failed-partial,html:htmlFor(index)});
+    if(httpErrors>0&&index>=selectedCount-failed-httpErrors){
+     const status=index===selectedCount-failed-httpErrors?404:503;
+     answer(request,'MICIRQL_SEO_RESULT',{ok:true,url:request.url,partial:false,html:htmlFor(index),
+      httpEvidence:{observed:true,status,observationState:'response_observed'}});
+     return;
+    }
+    answer(request,'MICIRQL_SEO_RESULT',{ok:true,url:request.url,
+     partial:index>=selectedCount-failed-httpErrors-partial,html:htmlFor(index),
+     ...(httpErrors>0?{httpEvidence:{observed:true,status:200,observationState:'response_observed'}}:{})});
    }else if(request.type==='MICIRQL_QA_LAYOUT'){
     const index=urls.indexOf(request.url);
     answer(request,'MICIRQL_QA_LAYOUT_RESULT',{ok:true,url:request.url,observations:[375,768,1440].map(width=>{
@@ -96,7 +104,7 @@ async function runCase({name,count,partial,failed,discoveryErrors=0,discoveryFai
     })});
    }
   });
- },{urls,partial,failed,discoveryErrors,discoveryFailure,autoRetryRecovered,autoRetryPersistent});
+ },{urls,partial,failed,discoveryErrors,discoveryFailure,autoRetryRecovered,autoRetryPersistent,httpErrors});
  try{
   const response=await page.goto(base+'/tools/qa/',{waitUntil:'networkidle'});
   check(response?.ok(),name+': QA Lab route failed');
@@ -128,10 +136,15 @@ async function runCase({name,count,partial,failed,discoveryErrors=0,discoveryFai
   const selected=count-discoveryErrors;
   check((await page.locator('#pages > details').count())===selected,name+': page listing count mismatch');
   const retryCount=Number(autoRetryRecovered)+Number(autoRetryPersistent);
-  const complete=selected-partial-failed-Number(autoRetryPersistent);
+  const complete=selected-partial-failed-Number(autoRetryPersistent)-httpErrors;
   const metrics=await page.locator('#metrics .metric strong').allTextContents();
   check(Number(metrics[0])===complete,name+': complete HTML pages counted incorrectly: '+JSON.stringify(metrics));
-  check(Number(metrics[2])===partial+failed+Number(autoRetryPersistent),name+': unverified HTML pages counted incorrectly');
+  check(Number(metrics[2])===partial+failed+Number(autoRetryPersistent)+httpErrors,name+': unverified HTML pages counted incorrectly');
+  if(httpErrors){
+   const summary=await page.locator('#summary').textContent();
+   check(summary.includes(httpErrors+' page(s) returned confirmed HTTP errors'),name+': HTTP error count not in summary');
+   check((await page.locator('#pages > details').allTextContents()).some(t=>t.includes('confirmed HTTP 404')),name+': HTTP 404 misclassified as a healthy page');
+  }
   check((await page.locator('#discovery-errors > details').count())===discoveryErrors,
    name+': unreachable discovery URLs were not listed separately');
   const discoveryText=await page.locator('#discovery-summary').textContent();
@@ -200,6 +213,12 @@ async function runCase({name,count,partial,failed,discoveryErrors=0,discoveryFai
   }
   if(discoveryFailure)
    check(printedText.replace(/\s+/g,' ').includes(discoveryFailure),name+': zero-page failed crawl PDF omitted discovery error');
+  if(httpErrors){
+   const normalized=printedText.replace(/\s+/g,' ');
+   for(const status of ['404','503'])
+    check(normalized.includes('confirmed HTTP '+status),name+': PDF omitted verified HTTP '+status+' error');
+   check(normalized.includes('HTML findings excluded'),name+': PDF failed to separate error markup from QA findings');
+  }
   if(retryCount){
    const normalizedText=printedText.replace(/\s+/g,' ');
    check(normalizedText.includes('Automatically retried '+retryCount+' temporary HTML capture'),
@@ -225,6 +244,7 @@ try{
  await runCase({name:'discovery-gaps',count:6,partial:0,failed:1,discoveryErrors:2});
  await runCase({name:'discovery-zero',count:0,partial:0,failed:0,discoveryFailure:'Chrome discovery timed out'});
  await runCase({name:'capture-retry',count:6,partial:0,failed:0,autoRetryRecovered:true,autoRetryPersistent:true});
+ await runCase({name:'http-error-pages',count:6,partial:0,failed:0,httpErrors:2});
 }finally{
  await browser.close();await new Promise(resolve=>server.close(resolve));
 }
