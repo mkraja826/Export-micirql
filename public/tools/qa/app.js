@@ -3,6 +3,7 @@ import {selectQaLayoutSamples} from './layout-sampling.js';
 import {summarizeQaReport} from './report-summary.js';
 import {evaluateQaExtensionHandshake} from './extension-compat.js';
 import {summarizeQaDiscovery} from './discovery-coverage.js';
+import {selectQaCaptureRetries,QA_CAPTURE_RETRY_LIMIT,isTransientQaCaptureError} from './capture-recovery.js';
 
 const $=id=>document.getElementById(id);
 const urlInput=$('url'),run=$('run'),manual=$('manual'),download=$('download'),print=$('print');
@@ -134,10 +135,16 @@ function render(report){
   }
  }
  const pending=evidenceSummary.partialPages+evidenceSummary.failedPages;
+ const recovery=report.captureRecovery;
+ const retryNote=recovery?.attempted?
+  ' Automatically retried '+recovery.attempted+' temporary HTML capture failure(s) once: '+recovery.completed+' complete, '+recovery.partial+' partial, '+recovery.failed+' still unverified.'+
+  (recovery.skippedTransient?' '+recovery.skippedTransient+' additional transient error(s) were not retried under the '+recovery.limit+'-page safety cap.':''):
+  ' No automatic HTML retries were needed or eligible.';
  provisional.textContent=(pending?
   'Not verified during HTML inspection: '+evidenceSummary.partialPages+' partial HTML capture(s) with '+evidenceSummary.provisionalFindings+' provisional observation(s), and '+evidenceSummary.failedPages+' failed page capture(s). Their findings are excluded from the priorities above; retry these pages before concluding they are healthy.':
   'HTML capture coverage: no partial or failed captures of selected pages. Responsive observations remain a separate sample.')+
-  (discoveryIncomplete?' Discovery failures and unvisited URLs are listed separately above and are excluded from these HTML issue rankings.':'');
+  (discoveryIncomplete?' Discovery failures and unvisited URLs are listed separately above and are excluded from these HTML issue rankings.':'')+
+  retryNote;
  const layoutSummary=$('layout-summary'),layoutDetails=$('layout-details');
  layoutDetails.replaceChildren();
  const layoutRecords=Array.isArray(report.layoutInspections)?report.layoutInspections
@@ -220,7 +227,11 @@ function render(report){
   pages.append(details);
  }
  for(const failure of report.failures||[]){
-  const details=node('details');details.append(node('summary',failure.url+' · not checked'),node('p',failure.reason,'notice alert'));pages.append(details);
+  const details=node('details');
+  const reason=failure.retryReason?
+   'Initial HTML capture: '+failure.reason+' · Automatic retry: '+failure.retryReason+'. Not verified.':
+   failure.reason;
+  details.append(node('summary',failure.url+' · not checked'),node('p',reason,'notice alert'));pages.append(details);
  }
  if(!pages.children.length)pages.append(node('p','No pages were available to inspect.'));
 }
@@ -261,6 +272,35 @@ async function scan(url){
   }catch(error){failures.push({url:pages[i],reason:error.message||'Could not inspect the page'});}
   updateProgress(i+1,progressTotal,'Checked '+(i+1)+' of '+pages.length+' HTML pages');
  }
+ // A strictly bounded second read can recover transient capture failures.
+ // Never retry permanent errors, cross-origin redirects, or blocked pages.
+ const retryEligible=failures.filter(failure=>isTransientQaCaptureError(failure.reason));
+ const retries=selectQaCaptureRetries(failures,QA_CAPTURE_RETRY_LIMIT);
+ const captureRecovery={limit:QA_CAPTURE_RETRY_LIMIT,attempted:0,completed:0,partial:0,
+  failed:0,skippedTransient:Math.max(0,retryEligible.length-retries.length),entries:[]};
+ for(const failure of retries){
+  captureRecovery.attempted++;
+  updateProgress(pages.length,progressTotal,'Retrying temporary HTML capture failure '+captureRecovery.attempted+' of '+retries.length+'…');
+  try{
+   const response=await extensionRequest('MICIRQL_SEO_READ','MICIRQL_SEO_RESULT',failure.url,45000);
+   if(!response.ok||typeof response.html!=='string')throw Error(response.error||'Retry did not return an HTML snapshot');
+   const finalUrl=normalize(response.url||failure.url);
+   if(finalUrl.origin!==url.origin)throw Error('Page redirected outside the selected website; excluded.');
+   const inspected=inspectQaHtml(response.html,finalUrl.href,{partial:response.partial===true});
+   inspected.requestedUrl=failure.url;
+   reports.push(inspected);
+   failures.splice(failures.indexOf(failure),1);
+   const outcome=inspected.partial?'partial':'complete';
+   if(outcome==='complete')captureRecovery.completed++;
+   else captureRecovery.partial++;
+   captureRecovery.entries.push({url:failure.url,outcome,initialReason:failure.reason});
+  }catch(error){
+   failure.retryReason=String(error?.message||'Retry failed').slice(0,240);
+   captureRecovery.failed++;
+   captureRecovery.entries.push({url:failure.url,outcome:'unverified',initialReason:failure.reason,
+    retryReason:failure.retryReason});
+  }
+ }
  const partialPages=reports.filter(page=>page.partial).length;
  // Layout evidence is intentionally capped at three complete HTML pages, not 60.
  // Prefer the entry page, then a page with form controls, then the next distinct page.
@@ -287,7 +327,7 @@ async function scan(url){
  return {schemaVersion:1,tool:'qa-lab',inspectorVersion:QA_INSPECTOR_VERSION,generatedAt:new Date().toISOString(),
   website:url.origin,pagesDiscovered:discovered.originalCount??entries.length,pagesSelected:pages.length,discovery,
   pagesAnalyzed:reports.length-partialPages,partialPages,truncated:Boolean(discovered.truncated||entries.length>60),
-  reports,failures,layoutInspection,layoutInspections,layoutPagesRequested:sampledPages.length,layoutPagesVerified,
+  reports,failures,captureRecovery,layoutInspection,layoutInspections,layoutPagesRequested:sampledPages.length,layoutPagesVerified,
   layoutSamplingLimit:3,totalFindings:reports.reduce((n,page)=>n+page.findings.length,0),
   scope:'browser_captured_static_html_with_bounded_read_only_layout_sample',limitations:['Static HTML inspected on up to 60 pages; rendered viewport evidence sampled on no more than three complete pages','No functional form submissions or navigation journey testing','No verified external link status','Incomplete captures remain provisional']};
 }
@@ -316,7 +356,7 @@ manual.addEventListener('click',()=>{
   progressWrap.hidden=true;
   render({schemaVersion:1,tool:'qa-lab',inspectorVersion:QA_INSPECTOR_VERSION,generatedAt:new Date().toISOString(),
    website:url.origin,pagesDiscovered:1,pagesSelected:1,pagesAnalyzed:1,partialPages:0,truncated:false,discovery:null,
-   reports:[page],failures:[],totalFindings:page.findings.length,scope:'pasted_html_only'});
+   reports:[page],failures:[],captureRecovery:null,totalFindings:page.findings.length,scope:'pasted_html_only'});
  }catch(error){updateProgress(0,1,error.message)}
 });
 let priorPrintDetails=null;
