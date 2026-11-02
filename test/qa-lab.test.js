@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {inspectQaHtml,QA_INSPECTOR_VERSION} from '../src/qa-inspector.js';
 import {inspectQaHtml as browserInspect,QA_INSPECTOR_VERSION as browserVersion} from '../public/tools/qa/inspector.js';
+import {selectQaLayoutSamples} from '../public/tools/qa/layout-sampling.js';
 
 const url='https://example.com/services';
 const base='<html lang="en"><head><title>Services</title></head><body><main><h1>Services</h1><a href="#team">Team</a><div id="team">People</div><form><label for="email">Email</label><input id="email"><button>Send</button></form><img src="/team.png" alt="Team portrait"></main></body></html>';
@@ -102,8 +103,7 @@ test('QA Lab samples up to three complete pages and declares read-only scope',()
  assert.match(app,/layoutInspection/);
  assert.match(app,/Observing layout /);
  assert.match(app,/layoutSamplingLimit:3/);
- assert.match(app,/for\(const page of completeReports\)choose\(page\)/);
- assert.match(app,/page\.counts\?\.formControls>0/);
+ assert.match(app,/selectQaLayoutSamples\(reports,url\.href,3\)/);
  assert.match(app,/does not establish complete-site responsive or functional correctness/);
  assert.match(page,/Browser-rendered layout and accessible-control observations sample up to three/);
  assert.match(page,/A sample does not verify every page/);
@@ -143,4 +143,50 @@ test('QA Lab reports read-only keyboard, named-button and touch-target observati
  assert.match(background,/getBoundingClientRect/);
  const observer=background.slice(background.indexOf('async function readQaLayout('),background.indexOf('async function checkSeoLinkStatus('));
  assert.doesNotMatch(observer,/\.submit\(|\.click\(|\.dispatchEvent\(|\.value\s*=|\.focus\(/);
+});
+
+
+test('QA layout sampling prioritizes entry and form pages with a three-page hard cap',()=>{
+ const pages=[
+  {url:'https://example.com/about',requestedUrl:'https://example.com/about',counts:{formControls:0}},
+  {url:'https://example.com/contact',requestedUrl:'https://example.com/contact',counts:{formControls:2}},
+  {url:'https://example.com/',requestedUrl:'https://example.com/',counts:{formControls:0}},
+  {url:'https://example.com/partial',partial:true,counts:{formControls:3}},
+  {url:'https://example.com/contact',requestedUrl:'https://example.com/alias',counts:{formControls:4}},
+  {url:'https://example.com/shop',counts:{formControls:0}},
+  {url:'https://example.com/pricing',counts:{formControls:1}}
+ ];
+ const sampled=selectQaLayoutSamples(pages,'https://example.com/',60);
+ assert.deepEqual(sampled.map(page=>page.url),[
+  'https://example.com/','https://example.com/contact','https://example.com/about'
+ ]);
+ assert.equal(selectQaLayoutSamples(pages,'https://example.com/',1).length,1);
+ assert.deepEqual(selectQaLayoutSamples(pages,'https://example.com/',0),[]);
+ assert.deepEqual(selectQaLayoutSamples(pages.filter(page=>page.partial),'https://example.com/',3),[]);
+});
+
+test('QA layout sampling falls back to complete pages if entry was not captured',()=>{
+ const pages=[
+  {url:'https://example.com/hidden',partial:true,counts:{formControls:20}},
+  {url:'https://example.com/about',counts:{formControls:0}},
+  {url:'https://example.com/contact',counts:{formControls:1}},
+  {url:'https://example.com/faq',counts:{formControls:0}}
+ ];
+ assert.deepEqual(selectQaLayoutSamples(pages,'https://example.com/',3).map(p=>p.url),
+  ['https://example.com/contact','https://example.com/about','https://example.com/faq']);
+});
+
+test('QA report separates complete HTML scans from bounded viewport observation coverage',()=>{
+ const html=readFileSync(new URL('../public/tools/qa/index.html',import.meta.url),'utf8');
+ const app=readFileSync(new URL('../public/tools/qa/app.js',import.meta.url),'utf8');
+ assert.match(html,/up to 60 public pages checked from captured static HTML/);
+ assert.match(html,/up to three successfully captured pages at 375, 768 and 1440px/);
+ assert.match(app,/layoutInspections/);
+ assert.match(app,/layoutPagesRequested/);
+ assert.match(app,/layoutPagesVerified/);
+ assert.match(app,/layoutSamplingLimit:3/);
+ assert.match(app,/sampled pages/);
+ assert.match(app,/layoutRecords/);
+ assert.match(app,/HTML was inspected on /);
+ assert.match(app,/layoutInspection=layoutInspections\[0\]\|\|null/);
 });
