@@ -5,6 +5,7 @@ import {inspectSeoHtml as serverInspector} from '../src/seo-inspector.js';
 import {inspectSeoHtml as browserInspector} from '../public/tools/seo/inspector.js';
 import {interpretHttpEvidence,reconcileHttpSeoScore} from '../public/tools/seo/http-evidence.js';
 import {summarizeSeoSiteHealth} from '../public/tools/seo/site-health.js';
+import {summarizeSeoTechnicalCoverage} from '../public/tools/seo/technical-coverage.js';
 
 test('browser and server inspectors remain identical',()=>{
  const source=readFileSync(new URL('../src/seo-inspector.js',import.meta.url),'utf8');
@@ -999,10 +1000,10 @@ test('Partha-style 60 inspections with four repeated URLs reconcile to 56 unique
  const end=html.indexOf('sitePrintButton.addEventListener',start);
  assert.ok(start>=0&&end>start);
  const source=html.slice(start,end);
- const print=new Function('window','alert','summarizeSeoSiteHealth',source+'; return printClientSeoReport;');
+ const print=new Function('window','alert','summarizeSeoSiteHealth','summarizeSeoTechnicalCoverage',source+'; return printClientSeoReport;');
  let rendered='';
  const fakeWindow={open:()=>({document:{open(){},write(value){rendered=value},close(){}}})};
- const printReport=print(fakeWindow,()=>{},summarizeSeoSiteHealth);
+ const printReport=print(fakeWindow,()=>{},summarizeSeoSiteHealth,summarizeSeoTechnicalCoverage);
  const pages=Array.from({length:56},(_,i)=>({url:'https://parthadental.com/page-'+i+'/',requestedUrl:'https://parthadental.com/page-'+i+'/',score:i===0?33:80,auditStatus:'complete',partial:false,pageRole:'public',findings:[]}));
  const duplicates=[0,1,2,3].map(i=>({...pages[i],url:pages[i].url.slice(0,-1)}));
  const reports=[...pages,...duplicates];
@@ -1022,7 +1023,7 @@ test('printable issue evidence uses inspected finding details and escapes HTML',
  const start=html.indexOf('function printClientSeoReport(report){');
  const end=html.indexOf('sitePrintButton.addEventListener',start);
  assert.ok(start>=0&&end>start);
- const print=new Function('window','alert','summarizeSeoSiteHealth',html.slice(start,end)+'; return printClientSeoReport;')({open:()=>({document:{open(){},write(value){rendered=value},close(){}}})},()=>{},summarizeSeoSiteHealth);
+ const print=new Function('window','alert','summarizeSeoSiteHealth','summarizeSeoTechnicalCoverage',html.slice(start,end)+'; return printClientSeoReport;')({open:()=>({document:{open(){},write(value){rendered=value},close(){}}})},()=>{},summarizeSeoSiteHealth,summarizeSeoTechnicalCoverage);
  let rendered='';
  const url='https://example.com/about/';
  print({website:'https://example.com',generatedAt:'2026-10-26T00:00:00Z',pagesSelected:1,pagesAnalyzed:1,reports:[{url,requestedUrl:url,score:72,auditStatus:'complete',findings:[{code:'missing_alt',message:'Image <missing> alt',evidence:'<img src="x">'}]}],failures:[],issueCenter:[{code:'missing_alt',severity:'medium',recommendation:'Add alt text',affectedUrls:[url]}],coverage:{discovered:1},reportNotes:[]});
@@ -2109,10 +2110,10 @@ test('printable report opens a browser print/save-to-PDF dialog and retains a ma
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  const begin=html.indexOf('function printClientSeoReport(report){'),end=html.indexOf("sitePrintButton.addEventListener('click'",begin);
  assert.ok(begin>0&&end>begin);
- const fn=new Function('window','alert','summarizeSeoSiteHealth',html.slice(begin,end)+';return printClientSeoReport;');
+ const fn=new Function('window','alert','summarizeSeoSiteHealth','summarizeSeoTechnicalCoverage',html.slice(begin,end)+';return printClientSeoReport;');
  let printRequested=false,printCallback,rendered='';
  const printable={document:{open(){},write(value){rendered=value},close(){}},addEventListener(name,callback){if(name==='load')printCallback=callback},focus(){},print(){printRequested=true}};
- const printer=fn({open:()=>printable},()=>{throw Error('Unexpected popup block')},summarizeSeoSiteHealth);
+ const printer=fn({open:()=>printable},()=>{throw Error('Unexpected popup block')},summarizeSeoSiteHealth,summarizeSeoTechnicalCoverage);
  printer({website:'https://example.com',generatedAt:'2026-10-30T00:00:00Z',reports:[],pagesSelected:0,pagesAnalyzed:0,failures:[],issueCenter:[],coverage:{discovered:0},reportNotes:[]});
  assert.match(rendered,/<title>MiCirql SEO Audit - example\.com<\/title>/);
  assert.ok(rendered.includes('Print / Save as PDF'));
@@ -2177,7 +2178,7 @@ test('V3: PDF average covers eligible public pages and discloses HTTP exclusions
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  const a=html.indexOf('function printClientSeoReport(report){'),b=html.indexOf('sitePrintButton.addEventListener',a);
  let output='';
- const fn=new Function('window','alert','summarizeSeoSiteHealth',html.slice(a,b)+';return printClientSeoReport;')({open:()=>({document:{open(){},write(content){output=content},close(){}}})},()=>{},summarizeSeoSiteHealth);
+ const fn=new Function('window','alert','summarizeSeoSiteHealth','summarizeSeoTechnicalCoverage',html.slice(a,b)+';return printClientSeoReport;')({open:()=>({document:{open(){},write(content){output=content},close(){}}})},()=>{},summarizeSeoSiteHealth,summarizeSeoTechnicalCoverage);
  const pages=[{url:'https://example.com/',score:71,pageRole:'public',auditStatus:'complete',findings:[]},{url:'https://example.com/login',score:100,pageRole:'application',auditStatus:'complete',findings:[]},{url:'https://example.com/missing',score:null,pageRole:'public',auditStatus:'invalid_http_status',findings:[]}];
  fn({website:'https://example.com',generatedAt:'2026-10-30',reports:pages,pagesSelected:3,pagesAnalyzed:3,failures:[],issueCenter:[],coverage:{discovered:3},reportNotes:[]});
  assert.match(output,/71\/100<\/strong>Average public-page HTML score \(not a full website SEO rating\)/);
@@ -2203,7 +2204,7 @@ test('scoring provenance is exported with audit data and printed in client PDF',
  assert.match(html,/lastReport=\{schemaVersion:1,tool:'seo',scoringVersion:SEO_SCORING_VERSION/);
  const start=html.indexOf('function printClientSeoReport(report){'),end=html.indexOf('sitePrintButton.addEventListener',start);
  let printed='';
- const print=new Function('window','alert','summarizeSeoSiteHealth',html.slice(start,end)+';return printClientSeoReport;')({open:()=>({document:{open(){},write(value){printed=value},close(){}}})},()=>{},summarizeSeoSiteHealth);
+ const print=new Function('window','alert','summarizeSeoSiteHealth','summarizeSeoTechnicalCoverage',html.slice(start,end)+';return printClientSeoReport;')({open:()=>({document:{open(){},write(value){printed=value},close(){}}})},()=>{},summarizeSeoSiteHealth,summarizeSeoTechnicalCoverage);
  print({website:'https://example.com',generatedAt:'2026-10-30',scoringVersion:'micirql-seo-v3.3',reports:[],pagesSelected:0,pagesAnalyzed:0,failures:[],issueCenter:[],coverage:{discovered:0},reportNotes:[]});
  assert.match(printed,/Scoring methodology: micirql-seo-v3\.3/);
  assert.match(printed,/Scores from different or unknown methodology versions are not directly comparable/);
