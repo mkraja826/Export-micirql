@@ -145,17 +145,21 @@ test('PDF executive summary separates verified, unverified, and incomplete site 
  const end=source.indexOf('sitePrintButton.addEventListener',start);
  assert.ok(start>=0&&end>start,'PDF printer function must remain available');
  let printed='';
- const printer=new Function('window','alert','summarizeSeoSiteHealth','assessSeoSiteRisk',
+ const printer=new Function('window','alert','summarizeSeoSiteHealth','assessSeoSiteRisk','summarizeSeoTechnicalCoverage',
   source.slice(start,end)+';return printClientSeoReport;')(
   {open:()=>({document:{open(){},write(html){printed=html},close(){}}})},
   ()=>{throw Error('PDF popup unexpectedly blocked')},
-  (await import('../public/tools/seo/site-health.js')).summarizeSeoSiteHealth,assessSeoSiteRisk
+  (await import('../public/tools/seo/site-health.js')).summarizeSeoSiteHealth,assessSeoSiteRisk,
+  (await import('../public/tools/seo/technical-coverage.js')).summarizeSeoTechnicalCoverage
  );
  const home='https://example.test/';
  const base={website:home,generatedAt:'2026-11-02',pagesSelected:1,reports:[page(home)],failures:[],coverage:{}};
  printer({...base,issueCenter:[issue('noindex','high',[home])]});
  assert.match(printed,/1 high-severity group\(s\) await verification/);
  assert.match(printed,/not a clean bill of health/);
+ assert.match(printed,/Technical verification coverage/);
+ assert.match(printed,/robots.txt syntax and crawl directives/);
+ assert.match(printed,/Not checked does not mean passed/);
  assert.doesNotMatch(printed,/Risk category: critical/);
  printer({...base,issueCenter:[issue('http_noindex','high',[home],{verifiedAffectedUrls:[home]})]});
  assert.match(printed,/Risk category: critical/);
