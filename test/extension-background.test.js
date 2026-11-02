@@ -471,3 +471,58 @@ test('QA layout never reads a page that redirects off-site between viewport obse
  assert.equal(scriptCalls,1,'No script may inspect a page after it leaves the selected origin');
  assert.equal(attached,1);assert.equal(detached,1);assert.equal(removed,1);
 });
+
+
+test('QA recognizes Chromium mobile emulation when CSS viewport expands to 980px without meta viewport',async()=>{
+ let listener,width=0,removed=0,detached=0,scriptCalls=0;
+ const document={
+  documentElement:{scrollWidth:980},body:{scrollWidth:980},forms:[],
+  querySelector(){return null},
+  querySelectorAll(){return []}
+ };
+ const pageWindow={
+  get innerWidth(){return width===375?980:width},
+  screen:{get width(){return width===375?375:800}}
+ };
+ const chrome={
+  runtime:{id:'micirql-extension',onMessage:{addListener(fn){listener=fn}}},
+  tabs:{
+   onUpdated:{addListener(){},removeListener(){}},
+   async create(){return {id:81,status:'complete'}},
+   async get(){return {id:81,status:'complete',url:'https://example.com/'}},
+   async remove(){removed++}
+  },
+  debugger:{
+   async attach(){},async detach(){detached++},
+   async sendCommand(_target,method,args){
+    if(method==='Emulation.setDeviceMetricsOverride')width=args.width;
+    return {};
+   }
+  },
+  scripting:{async executeScript({func}){
+   scriptCalls++;
+   return [{result:runInNewContext('('+func.toString()+')()',{
+    document,window:pageWindow,decodeURIComponent
+   })}];
+  }}
+ };
+ runInNewContext(background,{chrome,URL,Promise,setTimeout,clearTimeout,console});
+ const response=await new Promise(resolve=>{
+  assert.equal(listener({type:'READ_QA_LAYOUT',url:'https://example.com/'},
+   {id:'micirql-extension',tab:{url:'https://tools.micirql.com/tools/qa/'},url:'https://tools.micirql.com/tools/qa/'},resolve),true);
+ });
+ assert.equal(response.ok,true,response.error);
+ assert.deepEqual(Array.from(response.observations,x=>x.verified),[true,true,true]);
+ const mobile=response.observations[0];
+ assert.equal(mobile.width,375);
+ assert.equal(mobile.deviceScreenWidth,375);
+ assert.equal(mobile.observedWidth,980);
+ assert.equal(mobile.hasViewportMeta,false);
+ assert.equal(mobile.scaledMobileLayout,true);
+ assert.equal(mobile.missingMobileViewportMeta,true);
+ assert.equal(mobile.horizontalOverflowPx,0,'No horizontal scrolling inside the scaled CSS viewport');
+ assert.equal(response.observations[1].scaledMobileLayout,false);
+ assert.equal(response.observations[2].scaledMobileLayout,false);
+ assert.equal(scriptCalls,3);
+ assert.equal(removed,1);assert.equal(detached,1);
+});
