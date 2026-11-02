@@ -30,7 +30,7 @@ const cases=[
  {name:'verified-critical',data:report({issueCenter:[{code:'http_noindex',severity:'high',affectedUrls:[home],verifiedAffectedUrls:[home],recommendation:'Review homepage indexability'}]}),
   must:['Technical verification coverage','Not checked does not mean passed','Risk category: critical','1 explicitly verified high-severity issue group','97/100']},
  {name:'technical-evidence',data:report({
-  robotsTxtEvidence:{observed:true,status:200,body:'User-agent: *\\nDisallow: /private'},
+  robotsTxtEvidence:{observed:true,status:200,body:'User-agent: *\nDisallow: /private'},
   failures:[{url:home+'lost',category:'dns_resolution_failed',navigationError:{errorCode:'net::ERR_NAME_NOT_RESOLVED'}}],
   externalLinkCoverage:{discovered:3,selected:3,truncated:false},
   externalLinkDiagnostics:[
