@@ -14,7 +14,7 @@ function setup(){
  };
  let changeHandler;
  const chrome={
-  runtime:{getManifest(){return {version:'0.3.17'}},async sendMessage(msg){requests.push(msg);if(msg.type==='DISCOVER_SUBPAGE')return {ok:true,pages:['https://example.com/','https://example.com/about']};if(msg.type==='CAPTURE')return {ok:true,count:6};return {ok:true,html:'<html></html>'}}},
+  runtime:{getManifest(){return {version:'0.3.18'}},async sendMessage(msg){requests.push(msg);if(msg.type==='DISCOVER_SUBPAGE')return {ok:true,pages:['https://example.com/','https://example.com/about']};if(msg.type==='CAPTURE')return {ok:true,count:6};return {ok:true,html:'<html></html>'}}},
   storage:{onChanged:{addListener(fn){changeHandler=fn},removeListener(fn){if(changeHandler===fn)changeHandler=null}}}
  };
  runInNewContext(source,{window,location:window.location,chrome,Set,Promise,console});
@@ -67,7 +67,7 @@ test('extension announces protocol 3 with HTTP evidence and read-only QA layout 
  await h.dispatch('MICIRQL_EXTENSION_PING');
  const ready=h.sent.find(entry=>entry.payload.type==='MICIRQL_EXTENSION_READY');
  assert.equal(ready.payload.protocol,3);
- assert.equal(ready.payload.extensionVersion,'0.3.17');
+ assert.equal(ready.payload.extensionVersion,'0.3.18');
  assert.deepEqual(Array.from(ready.payload.capabilities),['discover','capture','bulk','progress','seo-http-evidence','qa-layout']);
 });
 
