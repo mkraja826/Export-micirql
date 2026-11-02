@@ -38,6 +38,20 @@ jobs:
           path: dist/qa-live-smoke/live-site-results.json
           if-no-files-found: warn
           retention-days: 7
+      - name: Real public-site QA discovery-to-PDF workflow (informational)
+        continue-on-error: true
+        timeout-minutes: 3
+        run: node scripts/qa-live-workflow.mjs --strict
+      - name: Upload three-page QA live workflow evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-lab-full-workflow
+          path: |
+            dist/qa-live-workflow/workflow-results.json
+            dist/qa-live-workflow/*.pdf
+          if-no-files-found: warn
+          retention-days: 7
       - name: Upload QA Lab printable PDF fixtures
         if: always()
         uses: actions/upload-artifact@v4
