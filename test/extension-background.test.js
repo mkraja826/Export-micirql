@@ -349,21 +349,21 @@ test('real navigation event sequence captures redirect hops but keeps final head
 
 test('read-only QA checks navigation wiring and form controls without clicks, typing or submissions',async()=>{
  let listener,removed=0,detached=0,opened=0,mutations=0,viewport=375;
- const nav=(href,name,visible=true)=>({
-  textContent:name,tabIndex:href===''?-1:0,getAttribute(key){return key==='href'?href:null},
+ const nav=(href,name,visible=true,reference='')=>({
+  textContent:name,tabIndex:href===''?-1:0,getAttribute(key){return key==='href'?href:key==='aria-labelledby'?reference:null},
   getClientRects(){return visible?[{}]:[]},
   getBoundingClientRect(){return {width:href.startsWith('javascript:')?18:80,height:href.startsWith('javascript:')?20:32}},
   querySelector(){return null},
   click(){mutations++}
  });
  const navigation=[
-  nav('#present','Section'),nav('#missing','Missing section'),
-  nav('','Placeholder'),nav('javascript:void(0)','Script action'),nav('/products',''),
+  nav('#present','',true,'nav-name'),nav('#missing','Missing section'),
+  nav('','Placeholder'),nav('javascript:void(0)','Script action'),nav('/products','',true,'missing-label'),
   nav('#hidden','Hidden',false)
  ];
  const field=(name,required)=>({
-  required,labels:name?[{}]:[],disabled:false,
-  getAttribute(key){return key==='aria-label'?null:null},
+  required,labels:name?[{textContent:name}]:[],disabled:false,
+  getAttribute(key){return key==='aria-labelledby'&&!name?'missing-field-label':null},
   getClientRects(){return [{}]},value:'PROTECTED_FIELD_VALUE'
  });
  const forms=[{querySelectorAll(selector){
@@ -386,7 +386,7 @@ test('read-only QA checks navigation wiring and form controls without clicks, ty
    if(selector==='[role="button"],[role="link"]')return customControls;
    throw Error('Unexpected query: '+selector);
   },
-  getElementById(id){return id==='present'?{}:null}
+  getElementById(id){return id==='present'?{}:id==='nav-name'?{textContent:'Visit section'}:null}
  };
  const pageWindow={get innerWidth(){return viewport}};
  const chrome={
