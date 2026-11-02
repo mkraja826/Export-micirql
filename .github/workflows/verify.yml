@@ -20,6 +20,8 @@ jobs:
         run: |
           npm install --no-package-lock --no-audit --no-fund
           npx playwright install --with-deps chromium
+      - name: Install PDF preflight and render tools
+        run: sudo apt-get install -y -qq poppler-utils
       - name: Test SEO Studio mobile viewports
         run: node scripts/seo-mobile-qa.mjs
       - name: Test QA Lab Chromium A4 PDF pagination and 60-page reports
@@ -29,7 +31,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: qa-lab-print-fixtures
-          path: dist/qa-pdf-fixtures/*.pdf
+          path: |
+            dist/qa-pdf-fixtures/*.pdf
+            dist/qa-pdf-fixtures/*.png
           if-no-files-found: warn
           retention-days: 7
       - name: Validate Worker JavaScript syntax
