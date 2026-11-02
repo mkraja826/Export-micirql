@@ -26,11 +26,12 @@ export function summarizeQaDiscovery(entryUrl,response,selectedPages=[]){
  const failed=errors.length;
  const selected=pages.length;
  const reportedUnaccounted=scanned===null?null:Math.max(0,scanned-selected-failed);
+ const inconsistentCount=scanned!==null&&scanned<selected+failed;
  const truncated=response?.truncated===true;
  const discoveryFailed=response?.ok===false;
- const status=discoveryFailed||failed>0||truncated||reportedUnaccounted>0||scanned===null?'incomplete':'completed';
+ const status=discoveryFailed||selected===0||failed>0||truncated||reportedUnaccounted>0||scanned===null||inconsistentCount?'incomplete':'completed';
  const error=discoveryFailed?String(response?.error||'Website discovery failed').slice(0,240):null;
  return {status,selected,scanned,failed,reportedUnaccounted,truncated,error,errors,
-  scanCountAvailable:scanned!==null,
+  scanCountAvailable:scanned!==null,inconsistentCount,
   limitation:'Only reachable, same-origin pages returned by Chrome are selected for HTML inspection; unvisited URLs have no QA findings.'};
 }
