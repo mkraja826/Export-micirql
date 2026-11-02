@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {summarizeSeoSiteHealth,SITE_HEALTH_PRESENTATION_VERSION} from '../public/tools/seo/site-health.js';
+import {summarizeSeoTechnicalCoverage} from '../public/tools/seo/technical-coverage.js';
 
 const page=(url,score=98,pageRole='public',extra={})=>({
  url,pageRole,score,partial:false,auditStatus:'complete',...extra
@@ -113,10 +114,10 @@ test('Actual client PDF leads with BadSEO website risk rather than mislabeling 9
  const end=source.indexOf('sitePrintButton.addEventListener',start);
  assert.ok(start>=0&&end>start);
  let output='';
- const print=new Function('window','alert','summarizeSeoSiteHealth',
+ const print=new Function('window','alert','summarizeSeoSiteHealth','summarizeSeoTechnicalCoverage',
   source.slice(start,end)+';return printClientSeoReport;')(
    {open:()=>({document:{open(){},write(value){output=value},close(){}}})},
-   ()=>{throw Error('Unexpected print popup block')},summarizeSeoSiteHealth
+   ()=>{throw Error('Unexpected print popup block')},summarizeSeoSiteHealth,summarizeSeoTechnicalCoverage
   );
  const pages=Array.from({length:32},(_,i)=>page('https://badseo.dev/fixture-'+i,i===0?80:98));
  const issueCenter=Array.from({length:5},(_,i)=>({
@@ -135,9 +136,9 @@ test('Empty audit PDF carries an explicit incomplete warning rather than a 100-s
  const source=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  const a=source.indexOf('function printClientSeoReport(report){'),b=source.indexOf('sitePrintButton.addEventListener',a);
  let output='';
- const printer=new Function('window','alert','summarizeSeoSiteHealth',
+ const printer=new Function('window','alert','summarizeSeoSiteHealth','summarizeSeoTechnicalCoverage',
   source.slice(a,b)+';return printClientSeoReport;')(
-   {open:()=>({document:{open(){},write(value){output=value},close(){}}})},()=>{},summarizeSeoSiteHealth
+   {open:()=>({document:{open(){},write(value){output=value},close(){}}})},()=>{},summarizeSeoSiteHealth,summarizeSeoTechnicalCoverage
   );
  printer({...report([],[],{pagesSelected:0}),website:'https://example.com',generatedAt:'2026-11-02'});
  assert.match(output,/Website risk assessment: Audit incomplete/);
