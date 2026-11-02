@@ -150,3 +150,48 @@ test('QA print opens closed details to include all findings then restores expand
  h.handlers.get('afterprint')();
  assert.equal(details.open,false);
 });
+
+
+test('QA UI and PDF separate unreachable discovery links from checked-page findings',()=>{
+ const h=makeRenderer();
+ h.render({website:'https://site.test',generatedAt:'2026-11-02T00:00:00.000Z',
+  inspectorVersion:'micirql-qa-v1.1',pagesSelected:1,pagesAnalyzed:1,partialPages:0,
+  truncated:false,layoutPagesVerified:0,failures:[],
+  discovery:{status:'incomplete',scanned:3,selected:1,failed:2,reportedUnaccounted:0,
+   truncated:false,errors:[
+    {url:'https://site.test/no-access',reason:'Timed out during discovery'},
+    {url:'https://site.test/unavailable',reason:'Could not load page'}
+   ]},
+  reports:[page('https://site.test/',[])]});
+ const id=x=>h.elements.get(x);
+ assert.match(id('summary').textContent,/Discovery coverage requires review/);
+ assert.match(id('discovery-summary').textContent,/3 attempted URL/);
+ assert.match(id('discovery-summary').textContent,/2 URL\(s\) not reached/);
+ assert.equal(id('discovery-errors').children.length,2);
+ assert.equal(id('priority-findings').children.length,0,'Discovery failures must not become verified HTML findings');
+ assert.match(id('priority-count').textContent,/No concerns detected by these static HTML checks/);
+ assert.match(id('provisional-summary').textContent,/Discovery failures and unvisited URLs/);
+ const first=id('discovery-errors').children[0];
+ assert.match(first.children[0].textContent,/no-access/);
+ assert.match(first.children[1].textContent,/Timed out/);
+ assert.equal(first.open,false);
+ h.handlers.get('beforeprint')();
+ assert.equal(first.open,true,'Print should include expanded discovery error reason');
+ h.handlers.get('afterprint')();
+ assert.equal(first.open,false,'Print must restore the original interaction state');
+});
+
+test('QA zero-page failed discovery yields printable unverified report, not a healthy score',()=>{
+ const h=makeRenderer();
+ h.render({website:'https://site.test',generatedAt:'2026-11-02T00:00:00.000Z',
+  inspectorVersion:'micirql-qa-v1.1',pagesSelected:0,pagesAnalyzed:0,partialPages:0,
+  truncated:false,layoutPagesVerified:0,reports:[],failures:[],
+  discovery:{status:'incomplete',scanned:0,selected:0,failed:0,
+   reportedUnaccounted:0,truncated:false,errors:[],error:'Chrome navigation timed out'}});
+ const id=x=>h.elements.get(x);
+ assert.match(id('summary').textContent,/No pages received a complete HTML inspection/);
+ assert.match(id('discovery-summary').textContent,/Chrome navigation timed out/);
+ assert.match(id('priority-count').textContent,/No complete HTML snapshots/);
+ assert.equal(id('metrics').children[0].children[0].textContent,'0');
+ assert.equal(id('pages').children.length,1,'The report should state when no pages could be inspected');
+});
