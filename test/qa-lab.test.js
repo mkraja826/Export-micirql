@@ -10,7 +10,7 @@ const url='https://example.com/services';
 const base='<html lang="en"><head><title>Services</title></head><body><main><h1>Services</h1><a href="#team">Team</a><div id="team">People</div><form><label for="email">Email</label><input id="email"><button>Send</button></form><img src="/team.png" alt="Team portrait"></main></body></html>';
 
 test('QA browser and server inspectors return identical results and versions',()=>{
- assert.equal(QA_INSPECTOR_VERSION,'micirql-qa-v1');
+ assert.equal(QA_INSPECTOR_VERSION,'micirql-qa-v1.1');
  assert.equal(QA_INSPECTOR_VERSION,browserVersion);
  assert.deepEqual(inspectQaHtml(base,url),browserInspect(base,url));
  assert.deepEqual(inspectQaHtml(base,url).findings,[]);
@@ -261,4 +261,35 @@ test('QA browser workflow limits layout to three complete same-origin pages and 
  assert.equal(requests.filter(x=>x.type==='MICIRQL_QA_LAYOUT').length,3);
  assert.equal(requests.filter(x=>x.type==='MICIRQL_SEO_READ').length,5);
  assert.ok(!requests.some(x=>x.type==='MICIRQL_CAPTURE'),'QA does not initiate screenshot downloads');
+});
+
+
+test('QA v1.1 accepts resolved ARIA names for fields, buttons and links',()=>{
+ const html='<html><body><h1>Contact</h1><span id="name">Send message</span>'
+  +'<input aria-labelledby="name"><button aria-labelledby="name"><svg></svg></button>'
+  +'<a href="/contact" aria-labelledby="name"><svg></svg></a></body></html>';
+ const result=inspectQaHtml(html,url);
+ assert.ok(!result.findings.some(item=>['unlabelled_control','empty_button','unnamed_link'].includes(item.code)));
+ assert.deepEqual(result,browserInspect(html,url));
+});
+
+test('QA v1.1 does not mistake missing ARIA references or empty labels for accessible names',()=>{
+ const html='<html><body><h1>Contact</h1><label for="empty"></label>'
+  +'<input id="empty" aria-labelledby="absent"><input aria-label="   ">'
+  +'<button aria-labelledby="absent"><svg></svg></button>'
+  +'<a href="/contact" aria-labelledby="absent"><svg></svg></a></body></html>';
+ const result=inspectQaHtml(html,url);
+ assert.equal(result.findings.filter(item=>item.code==='unlabelled_control').length,2);
+ assert.equal(result.findings.filter(item=>item.code==='empty_button').length,1);
+ assert.equal(result.findings.filter(item=>item.code==='unnamed_link').length,1);
+ assert.deepEqual(result,browserInspect(html,url));
+});
+
+test('QA v1.1 retains an explicitly named fallback if ARIA reference is broken',()=>{
+ const html='<html><body><h1>Contact</h1><label for="field">Email</label>'
+  +'<input id="field" aria-labelledby="absent">'
+  +'<button aria-label="Submit" aria-labelledby="absent"></button></body></html>';
+ const result=inspectQaHtml(html,url);
+ assert.equal(result.findings.some(item=>item.code==='unlabelled_control'),false);
+ assert.equal(result.findings.some(item=>item.code==='empty_button'),false);
 });
