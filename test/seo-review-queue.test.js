@@ -33,8 +33,7 @@ test('no negative controls inferred from failed or partial page captures',()=>{
  reports:[page('',{partial:true,auditStatus:'partial'}),page('b',{auditStatus:'failed'})],
  issueCenter:[{code:'missing_title',severity:'high',affectedUrls:[root]}]});
  assert.equal(q.candidates.undetectedControls,0);
- assert.equal(q.labels.length,1);
- assert.equal(q.labels[0].expected,'unknown');
+ assert.equal(q.labels.length,0,'Partial HTML cannot establish detected review candidates');
 });
 test('max cases input bounded and unknown origin URLs excluded',()=>{
  assert.throws(()=>createSeoReviewQueue(make(),{maxCases:501}),/1–500/);
