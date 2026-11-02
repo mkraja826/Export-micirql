@@ -436,3 +436,39 @@ test('read-only QA checks navigation wiring and form controls without clicks, ty
  assert.equal(opened,1);assert.equal(detached,1);assert.equal(removed,1);
  assert.equal(mutations,0,'Read-only QA must not click, submit or change input values');
 });
+
+
+test('QA layout never reads a page that redirects off-site between viewport observations',async()=>{
+ let listener,getCalls=0,scriptCalls=0,removed=0,detached=0,attached=0;
+ const chrome={
+  runtime:{id:'micirql-extension',onMessage:{addListener(fn){listener=fn}}},
+  tabs:{
+   onUpdated:{addListener(){},removeListener(){}},
+   async create(){return {id:35,status:'complete'}},
+   async get(){
+    getCalls++;
+    return {id:35,status:'complete',url:getCalls<=2?'https://example.com/':'https://unexpected.test/login'};
+   },
+   async remove(){removed++}
+  },
+  debugger:{
+   async attach(){attached++},async detach(){detached++},
+   async sendCommand(){return {}}
+  },
+  scripting:{async executeScript(){
+   scriptCalls++;
+   return [{result:{observedWidth:375,documentWidth:375,horizontalOverflowPx:0}}];
+  }}
+ };
+ runInNewContext(background,{chrome,URL,Promise,setTimeout,clearTimeout,console});
+ const result=await new Promise(resolve=>{
+  assert.equal(listener({type:'READ_QA_LAYOUT',url:'https://example.com/'},
+   {id:'micirql-extension',tab:{url:'https://tools.micirql.com/tools/qa/'},url:'https://tools.micirql.com/tools/qa/'},resolve),true);
+ });
+ assert.equal(result.ok,true,result.error);
+ assert.deepEqual(Array.from(result.observations,x=>x.verified),[true,false,false]);
+ assert.match(result.observations[1].reason,/outside the selected website/);
+ assert.match(result.observations[2].reason,/outside the selected website/);
+ assert.equal(scriptCalls,1,'No script may inspect a page after it leaves the selected origin');
+ assert.equal(attached,1);assert.equal(detached,1);assert.equal(removed,1);
+});
