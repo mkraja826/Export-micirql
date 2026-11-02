@@ -98,7 +98,7 @@ test('QA new-tab advice does not falsely claim a security vulnerability',()=>{
 test('QA Lab samples up to three complete pages and declares read-only scope',()=>{
  const app=readFileSync(new URL('../public/tools/qa/app.js',import.meta.url),'utf8');
  const page=readFileSync(new URL('../public/tools/qa/index.html',import.meta.url),'utf8');
- assert.match(app,/layoutSupported=Array\.isArray\(event\.data\.capabilities\)/);
+ assert.match(app,/evaluateQaExtensionHandshake\(event\.data\)/);
  assert.match(app,/MICIRQL_QA_LAYOUT/);
  assert.match(app,/MICIRQL_QA_LAYOUT_RESULT/);
  assert.match(app,/layoutInspection/);
@@ -226,7 +226,7 @@ test('QA browser workflow limits layout to three complete same-origin pages and 
      data:{source:'micirql-extension',type,id:payload.id,...data}
     });
    };
-   if(payload.type==='MICIRQL_EXTENSION_PING')reply('MICIRQL_EXTENSION_READY',{capabilities:['qa-layout'],protocol:3});
+   if(payload.type==='MICIRQL_EXTENSION_PING')reply('MICIRQL_EXTENSION_READY',{capabilities:['discover','seo-http-evidence','qa-layout'],protocol:3,extensionVersion:'0.3.17'});
    if(payload.type==='MICIRQL_DISCOVER')reply('MICIRQL_DISCOVER_RESULT',{ok:true,pages:urls,truncated:false});
    if(payload.type==='MICIRQL_SEO_READ'){
     const isPartial=payload.url.endsWith('/partial');
