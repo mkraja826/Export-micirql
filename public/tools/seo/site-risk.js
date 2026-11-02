@@ -14,7 +14,8 @@ const CRITICAL_CODES=new Set([
  'http_noindex','http_robots_blocked','robots_blocked','sitewide_noindex',
  'unexpected_noindex','noindex','canonical_external','canonical_conflict',
  'multiple_canonicals','canonical_to_unreachable','indexable_page_404',
- 'http_404','http_410','http_5xx','server_error'
+ 'http_404','http_410','http_5xx','server_error',
+ 'http_not_found','http_server_error','http_canonical_conflict','http_redirect_loop'
 ]);
 const criticalCode=code=>CRITICAL_CODES.has(String(code||'').toLowerCase());
 const roleOf=url=>{
@@ -31,7 +32,8 @@ export function assessSeoSiteRisk(report){
   const prior=pages.get(url);
   if(!prior||(complete(page)&&!complete(prior)))pages.set(url,page);
  }
- const eligible=[...pages.entries()].filter(([,p])=>complete(p)&&publicPage(p));
+ const verifiedHttpError=p=>p?.auditStatus==='invalid_http_status'&&p.httpVerification?.verified===true&&Number.isInteger(p.httpVerification.status)&&p.httpVerification.status>=400;
+ const eligible=[...pages.entries()].filter(([,p])=>(complete(p)||verifiedHttpError(p))&&publicPage(p));
  const eligibleUrls=new Set(eligible.map(([u])=>u));
  const issues=Array.isArray(report?.issueCenter)?report.issueCenter:[];
  const grouped=new Map();
@@ -66,8 +68,8 @@ export function assessSeoSiteRisk(report){
  const selected=Number.isInteger(report?.pagesSelected)?report.pagesSelected:pages.size;
  const failures=Array.isArray(report?.failures)?report.failures:[];
  const coverage=report?.coverage||{};
- const incomplete=!eligibleUrls.size||[...pages.values()].some(p=>!complete(p))||
-   failures.length>0||selected> [...pages.values()].filter(complete).length||
+ const incomplete=!eligibleUrls.size||[...pages.values()].some(p=>!complete(p)&&!verifiedHttpError(p))||
+   failures.length>0||selected> [...pages.values()].filter(p=>complete(p)||verifiedHttpError(p)).length||
    coverage.discoveryTruncated===true||coverage.selectionLimited===true;
  const confirmedHigh=findings.filter(f=>f.severity==='high'&&f.verified);
  const unverifiedHigh=findings.filter(f=>f.severity==='high'&&!f.verified);
@@ -81,6 +83,7 @@ export function assessSeoSiteRisk(report){
   verifiedHighGroups:confirmedHigh.length,unverifiedHighGroups:unverifiedHigh.length,
   findings,limitations:['Findings without eligible affected URLs cannot be assigned site-wide reach.',
    'Verification requires explicit evidence; issue severity alone is not HTTP confirmation.',
+   'Verified HTTP error pages are risk evidence, but never receive HTML scores.',
    'Selected-page coverage never proves complete website discovery.'],
   note:incomplete?'Coverage is incomplete; uninspected pages may contain additional risks.':
    'All selected pages were inspected; undiscovered pages may still exist.'};
