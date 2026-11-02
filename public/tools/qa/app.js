@@ -272,7 +272,8 @@ manual.addEventListener('click',()=>{
 let priorPrintDetails=null;
 window.addEventListener('beforeprint',()=>{
  if(!currentReport)return;
- priorPrintDetails=[...$('results').querySelectorAll('details')].map(item=>({item,open:item.open}));
+ const printableDetails=[...$('layout-details').querySelectorAll('details'),...$('pages').querySelectorAll('details')];
+ priorPrintDetails=printableDetails.map(item=>({item,open:item.open}));
  for(const {item} of priorPrintDetails)item.open=true;
 });
 window.addEventListener('afterprint',()=>{
