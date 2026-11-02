@@ -64,7 +64,11 @@ test('QA printable report includes a distinct executive priority and provisional
  const app=readFileSync(new URL('../public/tools/qa/app.js',import.meta.url),'utf8');
  for(const id of ['priority-section','priority-title','priority-count','priority-findings','provisional-summary',
   'page-list-summary','layout-details','layout-summary'])assert.match(html,new RegExp('id="'+id+'"'));
- assert.match(html,/@page\{size:A4;margin:15mm 13mm\}/);
+ assert.match(html,/@page\{\s*size:A4;\s*margin:15mm 13mm 16mm;/);
+ assert.match(html,/@top-left\{/);
+ assert.match(html, /@bottom-right\{/);
+ assert.match(html, /counter\(page\)/);
+ assert.match(html, /counter\(pages\)/);
  assert.match(html,/#results\[hidden\]\{display:none!important\}/);
  assert.match(html,/break-inside:avoid/);
  assert.match(app,/summarizeQaReport\(report\)/);
