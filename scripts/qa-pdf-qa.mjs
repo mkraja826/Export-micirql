@@ -71,8 +71,9 @@ async function runCase({name,count,partial,failed,discoveryErrors=0,discoveryFai
    }else if(request.type==='MICIRQL_SEO_READ'){
     const index=urls.indexOf(request.url);
     if(index<0){answer(request,'MICIRQL_SEO_RESULT',{ok:false,error:'Not in fixture'});return}
-    if(index>=urls.length-failed){answer(request,'MICIRQL_SEO_RESULT',{ok:false,error:'Simulated capture failure'});return}
-    answer(request,'MICIRQL_SEO_RESULT',{ok:true,url:request.url,partial:index>=urls.length-failed-partial,html:htmlFor(index)});
+    const selectedCount=urls.length-discoveryErrors;
+    if(index>=selectedCount-failed){answer(request,'MICIRQL_SEO_RESULT',{ok:false,error:'Simulated capture failure'});return}
+    answer(request,'MICIRQL_SEO_RESULT',{ok:true,url:request.url,partial:index>=selectedCount-failed-partial,html:htmlFor(index)});
    }else if(request.type==='MICIRQL_QA_LAYOUT'){
     const index=urls.indexOf(request.url);
     answer(request,'MICIRQL_QA_LAYOUT_RESULT',{ok:true,url:request.url,observations:[375,768,1440].map(width=>{
