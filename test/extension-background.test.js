@@ -439,21 +439,20 @@ test('read-only QA checks navigation wiring and form controls without clicks, ty
 
 
 test('QA layout never reads a page that redirects off-site between viewport observations',async()=>{
- let listener,getCalls=0,scriptCalls=0,removed=0,detached=0,attached=0;
+ let listener,viewport=0,scriptCalls=0,removed=0,detached=0,attached=0;
  const chrome={
   runtime:{id:'micirql-extension',onMessage:{addListener(fn){listener=fn}}},
   tabs:{
    onUpdated:{addListener(){},removeListener(){}},
    async create(){return {id:35,status:'complete'}},
    async get(){
-    getCalls++;
-    return {id:35,status:'complete',url:getCalls<=2?'https://example.com/':'https://unexpected.test/login'};
+    return {id:35,status:'complete',url:viewport<768?'https://example.com/':'https://unexpected.test/login'};
    },
    async remove(){removed++}
   },
   debugger:{
    async attach(){attached++},async detach(){detached++},
-   async sendCommand(){return {}}
+   async sendCommand(_target,method,args){if(method==='Emulation.setDeviceMetricsOverride')viewport=args.width;return {}}
   },
   scripting:{async executeScript(){
    scriptCalls++;
