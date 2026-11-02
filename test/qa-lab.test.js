@@ -8,6 +8,7 @@ import {selectQaLayoutSamples} from '../public/tools/qa/layout-sampling.js';
 import {evaluateQaExtensionHandshake} from '../public/tools/qa/extension-compat.js';
 import {summarizeQaDiscovery} from '../public/tools/qa/discovery-coverage.js';
 import {classifyQaHttpEvidence} from '../public/tools/qa/http-evidence.js';
+import {selectQaCaptureRetries,isTransientQaCaptureError,QA_CAPTURE_RETRY_LIMIT} from '../public/tools/qa/capture-recovery.js';
 
 const url='https://example.com/services';
 const base='<html lang="en"><head><title>Services</title></head><body><main><h1>Services</h1><a href="#team">Team</a><div id="team">People</div><form><label for="email">Email</label><input id="email"><button>Send</button></form><img src="/team.png" alt="Team portrait"></main></body></html>';
@@ -248,6 +249,7 @@ test('QA browser workflow limits layout to three complete same-origin pages and 
  };
  const sandbox={window,document,location,URL,URLSearchParams,Date,Math,Promise,Number,
   inspectQaHtml,QA_INSPECTOR_VERSION,selectQaLayoutSamples,evaluateQaExtensionHandshake,summarizeQaDiscovery,classifyQaHttpEvidence,
+  selectQaCaptureRetries,isTransientQaCaptureError,QA_CAPTURE_RETRY_LIMIT,
   setTimeout(){return 1},clearTimeout(){}};
  runInNewContext(source+'\nthis.__qaScan=scan;',sandbox);
  const report=await sandbox.__qaScan(new URL('https://example.com/'));
