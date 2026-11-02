@@ -205,7 +205,7 @@ test('QA browser workflow limits layout to three complete same-origin pages and 
  const requests=[];
  const document={
   getElementById(id){
-   if(!elements.has(id))elements.set(id,{hidden:false,disabled:false,value:'',textContent:'',
+   if(!elements.has(id))elements.set(id,{hidden:false,disabled:false,value:'',textContent:'',dataset:{},
     addEventListener(){}});
    return elements.get(id);
   },
