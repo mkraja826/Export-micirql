@@ -424,6 +424,39 @@ async function checkSeoLinkStatus(rawUrl){
  }catch(error){return {ok:true,url:target.href,status:null,classification:'unverified',reason:error.name==='AbortError'?'timeout':'request_failed'}}
  finally{clearTimeout(timeout)}
 }
+// Read-only robots.txt request on the audited origin. Redirects remain unverified.
+async function readRobotsTxt(rawUrl){
+ const website=new URL(rawUrl);
+ if(!['https:','http:'].includes(website.protocol)||website.username||website.password)throw Error('Invalid public website URL');
+ const target=new URL('/robots.txt',website.origin);
+ const controller=new AbortController();
+ const timer=setTimeout(()=>controller.abort(),12000);
+ try{
+  const response=await fetch(target.href,{method:'GET',credentials:'omit',redirect:'manual',cache:'no-store',signal:controller.signal});
+  const status=response.status;
+  const result={ok:true,observed:true,url:target.href,status,body:null,truncated:false};
+  if(status===200){
+   const type=response.headers.get('content-type')||'';
+   if(type&&!/text\/plain|text\/html|application\/octet-stream/i.test(type))
+    return {...result,truncated:true,reason:'unexpected_content_type'};
+   const length=Number(response.headers.get('content-length'));
+   if(Number.isFinite(length)&&length>500000)return {...result,truncated:true,reason:'body_too_large'};
+   const reader=response.body?.getReader();
+   if(!reader)return {...result,truncated:true,reason:'body_unavailable'};
+   const chunks=[];let total=0;
+   while(true){const next=await reader.read();if(next.done)break;total+=next.value.length;
+    if(total>500000){await reader.cancel();return {...result,truncated:true,reason:'body_too_large'}}
+    chunks.push(next.value);
+   }
+   const bytes=new Uint8Array(total);let offset=0;
+   for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length}
+   result.body=new TextDecoder('utf-8',{fatal:false}).decode(bytes);
+  }
+  return result;
+ }catch(error){return {ok:true,observed:false,status:null,url:target.href,
+  reason:error?.name==='AbortError'?'timeout':'network_unverified'}}
+ finally{clearTimeout(timer)}
+}
 chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
  if(sender.id!==chrome.runtime.id)return false;
  // The first-party site bridge can request page inspection; reject other web-tab senders.
@@ -443,6 +476,10 @@ chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
  }
  if(message?.type==='CHECK_SEO_LINK'){
   checkSeoLinkStatus(message.url).then(sendResponse).catch(error=>sendResponse({ok:false,error:error.message||'Invalid URL'}));
+  return true;
+ }
+ if(message?.type==='READ_SEO_ROBOTS'){
+  readRobotsTxt(message.url).then(sendResponse).catch(error=>sendResponse({ok:false,error:error.message||'Robots request failed'}));
   return true;
  }
  if(message?.type==='READ_SEO_HTML'){
