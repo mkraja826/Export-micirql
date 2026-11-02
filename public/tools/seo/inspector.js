@@ -136,6 +136,7 @@ export function inspectSeoHtml(html,url,options={}){
  }
  if(!isPartial&&invalidLinkExamples.length)add('invalid_link_urls','medium',invalidLinkExamples.length+' link destination(s) are invalid or non-navigable. Examples: '+invalidLinkExamples.slice(0,3).join(', '),4,'links');
  const internalLinkTargets=[];
+ const externalLinkTargets=[];
  for(const match of anchorTags){
   const href=attribute('<a '+match[1]+'>','href').trim();
   if(!href||href.startsWith('#'))continue;
@@ -143,6 +144,8 @@ export function inspectSeoHtml(html,url,options={}){
    const resolved=new URL(href,url),base=new URL(url);
    if(['http:','https:'].includes(resolved.protocol)&&resolved.origin===base.origin){
     resolved.hash='';internalLinkTargets.push(resolved.href);
+   }else if(['http:','https:'].includes(resolved.protocol)&&resolved.origin!==base.origin){
+    resolved.hash='';externalLinkTargets.push(resolved.href);
    }
   }catch{}
  }
@@ -202,5 +205,5 @@ export function inspectSeoHtml(html,url,options={}){
  const categoryDeductions={};
  for(const finding of findings){const key=finding.category||'technical';categoryDeductions[key]=(categoryDeductions[key]||0)+(finding.points||0)}
  const scoring={version:SEO_SCORING_VERSION,method:'weighted_html_finding_deductions',startingScore:100,totalDeductions:deductions,categoryDeductions,appliedScore:score,scoreFloor:0,coverage:isPartial?'partial_html_snapshot':'provided_html_only'};
- return {url,title,description,robots,canonical,lang,viewport,h1Count,ogTitle,ogDescription,ogImage,twitterCard,imageCount:imageTags.length,imagesMissingAlt,structuredDataCount,headingSkips,mainContentText:!isPartial&&contentHasTextBlock?contentText.slice(0,5000):'',contentWordCount,linkTypes,internalLinkTargets:[...new Set(internalLinkTargets)].slice(0,500),findings,scoring,scoringVersion:SEO_SCORING_VERSION,scope:'static_html_only',auditStatus:isPartial?'partial':'complete',partial:isPartial,incompleteReasons,score,maxScore:100,scoreLabel:isPartial?'Provisional score':'SEO HTML score',scoreExplanation:'Heuristic static HTML score based on weighted findings. Not Google ranking, performance, accessibility, or a full-site SEO score.'};
+ return {url,title,description,robots,canonical,lang,viewport,h1Count,ogTitle,ogDescription,ogImage,twitterCard,imageCount:imageTags.length,imagesMissingAlt,structuredDataCount,headingSkips,mainContentText:!isPartial&&contentHasTextBlock?contentText.slice(0,5000):'',contentWordCount,linkTypes,internalLinkTargets:[...new Set(internalLinkTargets)].slice(0,500),externalLinkTargets:[...new Set(externalLinkTargets)].slice(0,500),findings,scoring,scoringVersion:SEO_SCORING_VERSION,scope:'static_html_only',auditStatus:isPartial?'partial':'complete',partial:isPartial,incompleteReasons,score,maxScore:100,scoreLabel:isPartial?'Provisional score':'SEO HTML score',scoreExplanation:'Heuristic static HTML score based on weighted findings. Not Google ranking, performance, accessibility, or a full-site SEO score.'};
 }
