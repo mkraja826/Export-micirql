@@ -36,7 +36,7 @@ async function runCase({name,count,partial,failed,discoveryErrors=0,discoveryFai
  page.on('pageerror',error=>consoleErrors.push(error.message));
  const urls=Array.from({length:count},(_,i)=>i===0?'https://qa-fixture.example/':
   'https://qa-fixture.example/'+(i===1?'contact-and-booking-form':i===2?'about-us-and-our-services':'service-'+String(i).padStart(2,'0'))+(i===3?'-very-long-page-name-to-check-that-urls-wrap-without-clipping-into-the-paper-margin':''));
- await page.addInitScript(({urls,partial,failed})=>{
+ await page.addInitScript(({urls,partial,failed,discoveryErrors,discoveryFailure})=>{
   const answer=(request,type,fields={})=>setTimeout(()=>window.postMessage({
    source:'micirql-extension',type,id:request.id,...fields
   },location.origin),0);
