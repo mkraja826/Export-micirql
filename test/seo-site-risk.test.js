@@ -1,0 +1,54 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {assessSeoSiteRisk,SITE_RISK_VERSION} from '../public/tools/seo/site-risk.js';
+const page=(url,extras={})=>({url,auditStatus:'complete',score:97,partial:false,pageRole:'public',...extras});
+const make=(reports,issueCenter=[],extras={})=>({reports,issueCenter,pagesSelected:reports.length,failures:[],coverage:{},...extras});
+const issue=(code,severity,affectedUrls,extra={})=>({code,severity,affectedUrls,...extra});
+test('verified homepage high-severity evidence is critical, with no numeric site score',()=>{
+ const data=make([page('https://example.test/'),page('https://example.test/blog')],[issue('http_noindex','high',['https://example.test/'],{evidenceStatus:'verified'})]);
+ const old=JSON.stringify(data);
+ const risk=assessSeoSiteRisk(data);
+ assert.equal(risk.version,SITE_RISK_VERSION);
+ assert.equal(risk.level,'critical');assert.equal(risk.numericScore,null);
+ assert.equal(risk.verifiedHighGroups,1);assert.equal(JSON.stringify(data),old);
+ assert.equal(data.reports[0].score,97);
+});
+test('unverified issue severity is not represented as verified HTTP evidence',()=>{
+ const risk=assessSeoSiteRisk(make([page('https://example.test/')],[issue('noindex','high',['https://example.test/'])]));
+ assert.equal(risk.verifiedHighGroups,0);assert.equal(risk.unverifiedHighGroups,1);
+ assert.equal(risk.findings[0].evidenceStatus,'not_verified');
+ assert.equal(risk.level,'no_verified_high_risk');
+});
+test('duplicate affected URLs and duplicated issue groups do not amplify reach',()=>{
+ const report=make([page('https://example.test/a/'),page('https://example.test/b')],[
+  issue('missing_title','high',['https://example.test/a','https://example.test/a/'],{verified:true}),
+  issue('missing_title','high',['https://example.test/a/'],{verified:true})
+ ]);
+ const risk=assessSeoSiteRisk(report);
+ assert.equal(risk.findings.length,1);assert.equal(risk.findings[0].affectedPages,1);
+ assert.equal(risk.findings[0].affectedPercent,50);
+});
+test('private login exclusion does not count toward public risk',()=>{
+ const risk=assessSeoSiteRisk(make([page('https://example.test/'),page('https://example.test/login',{pageRole:'application'})],[
+  issue('noindex','high',['https://example.test/login'],{verified:true})
+ ]));
+ assert.equal(risk.eligiblePublicPages,1);assert.equal(risk.findings.length,0);
+ assert.equal(risk.level,'no_verified_high_risk');
+});
+test('incomplete audit remains unverified instead of healthy',()=>{
+ const risk=assessSeoSiteRisk(make([page('https://example.test/'),page('https://example.test/slow',{partial:true,auditStatus:'partial'})],[],{
+  failures:[{url:'https://example.test/fail'}],coverage:{discoveryTruncated:true}
+ }));
+ assert.equal(risk.coverageComplete,false);assert.equal(risk.level,'unverified');
+ assert.match(risk.note,/incomplete/);
+});
+test('verified medium risk is moderate, high on a noncritical minority is high',()=>{
+ const urls=Array.from({length:5},(_,i)=>'https://example.test/blog/post-'+i);
+ const pages=urls.map(u=>page(u));
+ assert.equal(assessSeoSiteRisk(make(pages,[issue('duplicate_description','medium',[urls[0]],{verified:true})])).level,'moderate');
+ assert.equal(assessSeoSiteRisk(make(pages,[issue('broken_link','high',[urls[0]],{verified:true})])).level,'high');
+});
+test('unknown issue URL cannot imply confirmed website risk',()=>{
+ const risk=assessSeoSiteRisk(make([page('https://example.test/')],[issue('noindex','high',['https://external.test/'],{verified:true})]));
+ assert.equal(risk.findings.length,0);
+});
