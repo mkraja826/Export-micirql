@@ -136,7 +136,16 @@ function render(report){
     const panel=node('div',undefined,'finding');
     panel.append(node('strong',item.width+'px '+(item.verified?'· observed viewport':'· unverified viewport')));
     if(item.verified){
-     panel.append(node('p','Document width: '+item.documentWidth+'px · Horizontal overflow: '+item.horizontalOverflowPx+'px · Visible form fields: '+item.visibleFormControls+' · Unlabelled fields: '+item.unlabelledVisibleFields+' · Navigation links without names: '+item.unnamedNavigationLinks));
+     panel.append(node('p','CSS document width: '+item.documentWidth+'px · Horizontal overflow within CSS layout: '+item.horizontalOverflowPx+'px · Visible form fields: '+item.visibleFormControls+' · Unlabelled fields: '+item.unlabelledVisibleFields+' · Navigation links without names: '+item.unnamedNavigationLinks));
+     if(item.width===375&&item.scaledMobileLayout===true){
+      const note=item.missingMobileViewportMeta===true
+       ?'Mobile review: no viewport meta declaration detected. Chrome emulated a 375px device, but the page used a '+item.observedWidth+'px CSS layout viewport and scaled it down. Zero horizontal overflow does not demonstrate mobile responsiveness.'
+       :'Mobile review: Chrome emulated a 375px device, but the CSS layout viewport was '+item.observedWidth+'px. The page may scale down on phones; review its viewport settings and text readability.';
+      panel.append(node('p',note,'notice'));
+      panel.dataset.severity='medium';
+     }else if(item.width===375&&item.missingMobileViewportMeta===true){
+      panel.append(node('p','Mobile review: no viewport meta declaration was detected in the captured document. Check its intended viewport behavior.','small'));
+     }
      if(Number.isFinite(item.placeholderNavigationLinks)){
       panel.append(node('p','Navigation targets: '+item.navigationLinks+' visible links · '+item.placeholderNavigationLinks+' empty or placeholder destinations · '+item.scriptedNavigationLinks+' script/data destinations · '+item.missingNavigationFragmentTargets+' in-page fragments without matching IDs.'));
       panel.append(node('p','Form controls: '+item.requiredVisibleFields+' visible required fields · '+item.implicitSubmitButtons+' buttons without an explicit type inside forms (may submit when activated).'));
