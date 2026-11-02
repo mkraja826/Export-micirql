@@ -99,8 +99,31 @@ test('100 independently labeled cases across five websites can qualify for targe
  assert.equal(result.positives,50);assert.equal(result.negatives,50);
  assert.equal(result.sites,5);
  assert.equal(result.precision,1);assert.equal(result.recall,1);
- assert.equal(result.readyForReleaseClaim,true);
+ assert.equal(result.sampleThresholdMet,true);
+ assert.equal(result.readyForReleaseClaim,false,'Human evidence review cannot be automated');
+ assert.equal(result.independentReviewSignoffRequired,true);
  assert.equal(result.targetMet,true);
- assert.equal(result.verdict,'proposed_accuracy_target_met');
+ assert.equal(result.verdict,'proposed_target_met_for_submitted_labels');
  // These data are synthetic; this test only verifies the evaluator itself.
+});
+
+test('same site URL and issue cannot be counted twice across benchmark files',()=>{
+ const a=site+'a';
+ const sample=pair({reports:[page(a)],issueCenter:[issue('noindex',[a])]},
+  [{url:a,code:'noindex',expected:'present'}]);
+ assert.throws(()=>evaluateSeoDetectionAccuracy([sample,sample]),/Duplicate cross-dataset/);
+});
+test('unbalanced site sampling does not qualify for a 95% claim',()=>{
+ const pairs=Array.from({length:5},(_,i)=>{
+  const website='https://unbalanced-'+i+'.test/';
+  const n=i===0?96:1;
+  const urls=Array.from({length:n},(_,j)=>website+'p-'+j);
+  return pair({reports:urls.map(u=>page(u)),issueCenter:[issue('noindex',urls.slice(0,n===1?1:48))]},
+   urls.map((u,j)=>({url:u,code:'noindex',expected:j<(n===1?1:48)?'present':'absent'})),website);
+ });
+ const r=evaluateSeoDetectionAccuracy(pairs);
+ assert.equal(r.totalLabels,100);
+ assert.equal(r.sampleThresholdMet,false);
+ assert.equal(r.readyForReleaseClaim,false);
+ assert.equal(r.verdict,'insufficient_independent_evidence');
 });
