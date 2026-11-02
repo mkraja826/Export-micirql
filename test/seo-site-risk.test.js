@@ -98,3 +98,19 @@ test('benchmark: unverified homepage noindex must not count as confirmed critica
  assert.equal(risk.level,'no_verified_high_risk');
  assert.equal(risk.verifiedHighGroups,0);
 });
+
+test('mixed verified and HTML-only observations count only verified URLs toward critical reach',()=>{
+ const urls=Array.from({length:5},(_,i)=>'https://example.test/blog/page-'+i);
+ const risk=assessSeoSiteRisk(make(urls.map(u=>page(u)),[
+  issue('http_noindex','high',urls,{verifiedAffectedUrls:[urls[0]]})
+ ]));
+ assert.equal(risk.level,'high');
+ assert.equal(risk.findings[0].affectedPercent,100);
+ assert.equal(risk.findings[0].verifiedAffectedPercent,20);
+ assert.deepEqual(risk.findings[0].verifiedAffectedUrls,[urls[0]]);
+});
+test('verified HTTP evidence provenance survives issue grouping in SEO dashboard source',()=>{
+ const source=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ assert.match(source,/issue\.evidenceConfidence==='verified'&&report\.httpVerification\?\.verified===true/);
+ assert.match(source,/verifiedAffectedUrls:\[\.\.\.new Set\(issue\.verifiedAffectedUrls\|\|\[\]\)\]/);
+});
