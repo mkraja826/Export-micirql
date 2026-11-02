@@ -1,11 +1,12 @@
 import {inspectQaHtml,QA_INSPECTOR_VERSION} from './inspector.js';
 import {selectQaLayoutSamples} from './layout-sampling.js';
 import {summarizeQaReport} from './report-summary.js';
+import {evaluateQaExtensionHandshake} from './extension-compat.js';
 
 const $=id=>document.getElementById(id);
 const urlInput=$('url'),run=$('run'),manual=$('manual'),download=$('download'),print=$('print');
 const status=$('extension-status'),setup=$('setup'),progressWrap=$('progress-wrap'),results=$('results');
-let connected=false,layoutSupported=false,busy=false,currentReport=null;
+let connected=false,layoutSupported=false,extensionResponded=false,busy=false,currentReport=null;
 const preset=new URLSearchParams(location.search).get('url');
 if(preset)urlInput.value=preset;
 function normalize(raw){
@@ -15,18 +16,21 @@ function normalize(raw){
  if(!['http:','https:'].includes(target.protocol)||!target.hostname||target.username||target.password)throw Error('Enter a valid HTTP or HTTPS website address.');
  target.hash='';return target;
 }
-function message(text,error=false){
- status.textContent=text;status.dataset.state=error?'error':'ready';
+function message(text,state='ready'){
+ status.textContent=text;status.dataset.state=state;
 }
 function ping(){window.postMessage({source:'micirql-web',type:'MICIRQL_EXTENSION_PING'},location.origin)}
 window.addEventListener('message',event=>{
  if(event.source!==window||event.origin!==location.origin||event.data?.source!=='micirql-extension'||event.data.type!=='MICIRQL_EXTENSION_READY')return;
- connected=true;layoutSupported=Array.isArray(event.data.capabilities)&&event.data.capabilities.includes('qa-layout');
- setup.hidden=true;message('MiCirql Chrome extension connected. '+(layoutSupported?'Responsive layout evidence available.':'Update the extension to include responsive layout checks.'));
-
+ extensionResponded=true;
+ const compatibility=evaluateQaExtensionHandshake(event.data);
+ connected=compatibility.supported;
+ layoutSupported=compatibility.layoutSupported;
+ setup.hidden=compatibility.status==='ready';
+ message(compatibility.message,compatibility.status);
 });
 ping();
-setTimeout(()=>{if(!connected){setup.hidden=false;message('Chrome extension not detected. Install it to inspect live pages.',true)}},1800);
+setTimeout(()=>{if(!extensionResponded){setup.hidden=false;message('Chrome extension not detected. Install it to inspect live pages.','missing')}},1800);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)ping()});
 
 function extensionRequest(type,resultType,url,timeout){
@@ -186,7 +190,7 @@ function render(report){
  if(!pages.children.length)pages.append(node('p','No pages were available to inspect.'));
 }
 async function scan(url){
- if(!connected)throw Error('Connect the MiCirql Chrome extension in desktop Chrome before running a live scan.');
+ if(!connected)throw Error('Install or update the MiCirql Chrome extension (inspection protocol v3) in desktop Chrome before running a live scan.');
  updateProgress(0,1,'Discovering public website pages in Chrome…');
  const discovered=await extensionRequest('MICIRQL_DISCOVER','MICIRQL_DISCOVER_RESULT',url.href,180000);
  if(discovered.ok===false)throw Error(discovered.error||'Page discovery failed.');
@@ -257,7 +261,7 @@ async function runScan(event){
   $('progress-text').textContent='Inspection complete. Review the report and choose Save as PDF.';
  }catch(error){
   updateProgress(0,1,'Inspection stopped: '+(error.message||'Unknown error'));
-  message(error.message||'Inspection failed.',true);
+  message(error.message||'Inspection failed.','error');
   if(!connected)setup.hidden=false;
  }finally{busy=false;run.disabled=false;manual.disabled=false}
 }
