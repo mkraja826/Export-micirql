@@ -30,7 +30,7 @@ function pdfPageCount(pdf){
  // Chromium emits an explicit /Type /Page dictionary for each printable PDF page.
  return (pdf.toString('latin1').match(/\/Type\s*\/Page\b/g)||[]).length;
 }
-async function runCase({name,count,partial,failed,discoveryErrors=0}){
+async function runCase({name,count,partial,failed,discoveryErrors=0,discoveryFailure=''}){
  const page=await browser.newPage({viewport:{width:1100,height:850},locale:'en-US',reducedMotion:'reduce'});
  const consoleErrors=[];
  page.on('pageerror',error=>consoleErrors.push(error.message));
@@ -59,6 +59,10 @@ async function runCase({name,count,partial,failed,discoveryErrors=0}){
    if(request.type==='MICIRQL_EXTENSION_PING'){
     answer(request,'MICIRQL_EXTENSION_READY',{protocol:3,capabilities:['discover','seo-http-evidence','qa-layout'],extensionVersion:'0.3.17'});
    }else if(request.type==='MICIRQL_DISCOVER'){
+    if(discoveryFailure){
+     answer(request,'MICIRQL_DISCOVER_RESULT',{ok:false,error:discoveryFailure,pages:[],scanned:0});
+     return;
+    }
     const reachable=urls.slice(0,urls.length-discoveryErrors);
     const unreachable=urls.slice(urls.length-discoveryErrors);
     answer(request,'MICIRQL_DISCOVER_RESULT',{ok:true,pages:reachable,
@@ -82,7 +86,7 @@ async function runCase({name,count,partial,failed,discoveryErrors=0}){
     })});
    }
   });
- },{urls,partial,failed,discoveryErrors});
+ },{urls,partial,failed,discoveryErrors,discoveryFailure});
  try{
   const response=await page.goto(base+'/tools/qa/',{waitUntil:'networkidle'});
   check(response?.ok(),name+': QA Lab route failed');
@@ -112,6 +116,11 @@ async function runCase({name,count,partial,failed,discoveryErrors=0}){
   if(discoveryErrors){
    check(discoveryText.includes(discoveryErrors+' URL(s) not reached'),name+': missing discovery failure count');
    check(discoveryText.includes('Crawl coverage is incomplete'),name+': missing discovery coverage warning');
+  }
+  if(discoveryFailure){
+   check(discoveryText.includes(discoveryFailure),name+': discovery error reason not visible in report');
+   check((await page.locator('#priority-count').textContent()).includes('No complete HTML snapshots'),
+    name+': failed discovery wrongly looks like a healthy audit');
   }
   check((await page.locator('#priority-section').isVisible()),name+': priority section hidden');
   const priority=await page.locator('#priority-count').textContent();
@@ -159,8 +168,10 @@ async function runCase({name,count,partial,failed,discoveryErrors=0}){
   if(discoveryErrors){
    check(printedText.includes('Crawl discovery coverage'),name+': actual PDF omitted discovery section');
    check(printedText.includes('Simulated discovery timeout'),name+': PDF omitted failed discovery URL and reason');
-   check(printedText.includes('/service-04'),name+': PDF omitted reachable test page');
+   check(printedText.includes('/service-04'),name+': PDF omitted unreachable discovery URL');
   }
+  if(discoveryFailure)
+   check(printedText.includes(discoveryFailure),name+': zero-page failed crawl PDF omitted discovery error');
   const finalText=execFileSync('pdftotext',['-f',String(pages),'-l',String(pages),pdfPath,'-'],
    {encoding:'utf8',maxBuffer:1_000_000});
   check(finalText.trim().length>90,name+': last A4 PDF page is blank or contains too little readable content');
@@ -177,6 +188,7 @@ try{
  await runCase({name:'small-complete',count:4,partial:0,failed:0});
  await runCase({name:'large-60-pages',count:60,partial:2,failed:2});
  await runCase({name:'discovery-gaps',count:6,partial:0,failed:1,discoveryErrors:2});
+ await runCase({name:'discovery-zero',count:0,partial:0,failed:0,discoveryFailure:'Chrome discovery timed out'});
 }finally{
  await browser.close();await new Promise(resolve=>server.close(resolve));
 }
