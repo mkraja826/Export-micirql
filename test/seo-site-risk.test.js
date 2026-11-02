@@ -114,3 +114,27 @@ test('verified HTTP evidence provenance survives issue grouping in SEO dashboard
  assert.match(source,/issue\.evidenceConfidence==='verified'&&report\.httpVerification\?\.verified===true/);
  assert.match(source,/verifiedAffectedUrls:\[\.\.\.new Set\(issue\.verifiedAffectedUrls\|\|\[\]\)\]/);
 });
+
+test('real HTTP finding names from interpreter qualify for critical risk',()=>{
+ for(const code of ['http_not_found','http_server_error','http_canonical_conflict','http_redirect_loop']){
+  const url='https://example.test/';
+  const result=assessSeoSiteRisk(make([page(url)],[issue(code,'high',[url],{verifiedAffectedUrls:[url]})]));
+  assert.equal(result.level,'critical',code);
+ }
+});
+test('verified 404 page remains risk evidence without inventing an HTML score',()=>{
+ const url='https://example.test/contact';
+ const error=page(url,{score:null,auditStatus:'invalid_http_status',httpVerification:{verified:true,status:404}});
+ const result=assessSeoSiteRisk(make([error],[issue('http_not_found','high',[url],{verifiedAffectedUrls:[url]})]));
+ assert.equal(result.level,'critical');
+ assert.equal(result.eligiblePublicPages,1);
+ assert.equal(result.coverageComplete,true);
+ assert.equal(error.score,null);
+});
+test('unverified error pages never manufacture confirmed reach',()=>{
+ const url='https://example.test/contact';
+ const error=page(url,{score:null,auditStatus:'invalid_http_status',httpVerification:{verified:false,status:null}});
+ const result=assessSeoSiteRisk(make([error],[issue('http_not_found','high',[url],{verifiedAffectedUrls:[url]})]));
+ assert.equal(result.level,'unverified');
+ assert.equal(result.verifiedHighGroups,0);
+});
