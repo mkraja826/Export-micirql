@@ -70,6 +70,8 @@ try{
     return {metrics,pages,layouts,progress:document.querySelector('#progress')?.value,
       reportSite:document.querySelector('#report-site')?.textContent,
       priorityText:document.querySelector('#priority-section')?.textContent||'',
+      layoutSummaryText:document.querySelector('#layout-summary')?.textContent||'',
+      layoutDetailsText:document.querySelector('#layout-details')?.textContent||'',
       summaryText:document.querySelector('#summary')?.textContent||'',
       provisionalText:document.querySelector('#provisional-summary')?.textContent||''};
    });
@@ -87,6 +89,14 @@ try{
     throw Error('Incomplete discovery, HTML inspection, or layout sampling: '+JSON.stringify({
      expectedPages,countsAreCorrect,progress:evidence.progress,metrics:evidence.metrics,pages:evidence.pages
     }).slice(0,700));
+   attempt.viewportSummary=evidence.layoutSummaryText;
+   if(!evidence.layoutSummaryText.includes('(9 of 9 viewport checks)'))
+    throw Error('Some emulated device viewports were not verified: '+evidence.layoutSummaryText.slice(0,250));
+   // The httpbin demo intentionally omits mobile viewport metadata. A scaled
+   // 980px CSS layout on a 375px device must be called out, not silently passed.
+   if(!evidence.layoutDetailsText.includes('no viewport meta declaration detected'))
+    throw Error('Scaled mobile layout / missing viewport meta was not reported');
+   attempt.mobileViewportAdvisory=true;
    if(!evidence.priorityText.includes('Missing main heading'))
     throw Error('Expected no-H1 static finding not present in prioritized report');
    if(!evidence.reportSite?.includes(target.origin))
@@ -111,7 +121,7 @@ try{
    if(!Number.isInteger(count)||count<1||count>12||!/^Page size:.*\(A4\)/m.test(info))
     throw Error('Printable document has invalid page count or A4 size');
    for(const required of ['What needs attention first','Missing main heading','Detailed HTML findings by page',
-     '/links/3/0','/links/3/1','/links/3/2']){
+     '/links/3/0','/links/3/1','/links/3/2','no viewport meta declaration detected']){
     if(!printed.includes(required))throw Error('PDF text missing '+required);
    }
    attempt.status='verified';
@@ -127,13 +137,12 @@ try{
    attempt.note=String(error?.message||error).slice(0,950);
    // Another public test domain can still be tried if this one blocks CI.
    // Close no website forms; the QA app is the only tab we interact with.
-   if(await page.locator('#results').isVisible().catch(()=>false)){
-    // Restore UI for a fresh URL without carrying over previous evidence.
-    await page.reload({waitUntil:'domcontentloaded'}).catch(()=>{});
-    await page.waitForFunction(()=>document.querySelector('#extension-status')?.dataset?.state==='ready',
-      null,{timeout:15000}).catch(()=>{});
-    await page.evaluate(()=>{window.__qaWorkflowRequests=[]}).catch(()=>{});
-   }
+   // Restore UI for a fresh URL without carrying over pending app scan state,
+   // even if the report never became visible.
+   await page.reload({waitUntil:'domcontentloaded'}).catch(()=>{});
+   await page.waitForFunction(()=>document.querySelector('#extension-status')?.dataset?.state==='ready',
+     null,{timeout:15000}).catch(()=>{});
+   await page.evaluate(()=>{window.__qaWorkflowRequests=[]}).catch(()=>{});
   }
  }
  await page.close();
