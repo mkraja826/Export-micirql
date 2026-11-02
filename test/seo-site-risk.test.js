@@ -139,7 +139,7 @@ test('unverified error pages never manufacture confirmed reach',()=>{
  assert.equal(result.verifiedHighGroups,0);
 });
 
-test('PDF executive summary separates verified, unverified, and incomplete site risk',()=>{
+test('PDF executive summary separates verified, unverified, and incomplete site risk',async()=>{
  const source=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  const start=source.indexOf('function printClientSeoReport(report){');
  const end=source.indexOf('sitePrintButton.addEventListener',start);
