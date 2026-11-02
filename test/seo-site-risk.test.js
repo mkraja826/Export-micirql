@@ -138,3 +138,29 @@ test('unverified error pages never manufacture confirmed reach',()=>{
  assert.equal(result.level,'unverified');
  assert.equal(result.verifiedHighGroups,0);
 });
+
+test('PDF executive summary separates verified, unverified, and incomplete site risk',()=>{
+ const source=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+ const start=source.indexOf('function printClientSeoReport(report){');
+ const end=source.indexOf('sitePrintButton.addEventListener',start);
+ assert.ok(start>=0&&end>start,'PDF printer function must remain available');
+ let printed='';
+ const printer=new Function('window','alert','summarizeSeoSiteHealth','assessSeoSiteRisk',
+  source.slice(start,end)+';return printClientSeoReport;')(
+  {open:()=>({document:{open(){},write(html){printed=html},close(){}}})},
+  ()=>{throw Error('PDF popup unexpectedly blocked')},
+  (await import('../public/tools/seo/site-health.js')).summarizeSeoSiteHealth,assessSeoSiteRisk
+ );
+ const home='https://example.test/';
+ const base={website:home,generatedAt:'2026-11-02',pagesSelected:1,reports:[page(home)],failures:[],coverage:{}};
+ printer({...base,issueCenter:[issue('noindex','high',[home])]});
+ assert.match(printed,/1 high-severity group\(s\) await verification/);
+ assert.match(printed,/not a clean bill of health/);
+ assert.doesNotMatch(printed,/Risk category: critical/);
+ printer({...base,issueCenter:[issue('http_noindex','high',[home],{verifiedAffectedUrls:[home]})]});
+ assert.match(printed,/Risk category: critical/);
+ assert.match(printed,/1 explicitly verified high-severity issue group/);
+ printer({...base,pagesSelected:2,issueCenter:[]});
+ assert.match(printed,/Audit evidence incomplete; website risk cannot be ruled out/);
+ assert.match(printed,/No numeric website-health score has been assigned/);
+});
