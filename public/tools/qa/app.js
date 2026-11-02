@@ -2,6 +2,7 @@ import {inspectQaHtml,QA_INSPECTOR_VERSION} from './inspector.js';
 import {selectQaLayoutSamples} from './layout-sampling.js';
 import {summarizeQaReport} from './report-summary.js';
 import {evaluateQaExtensionHandshake} from './extension-compat.js';
+import {summarizeQaDiscovery} from './discovery-coverage.js';
 
 const $=id=>document.getElementById(id);
 const urlInput=$('url'),run=$('run'),manual=$('manual'),download=$('download'),print=$('print');
@@ -82,13 +83,37 @@ function render(report){
  for(const [label,value] of counts){
   const item=node('div',undefined,'metric');item.append(node('strong',value),node('span',label));metrics.append(item);
  }
- const complete=report.pagesAnalyzed===report.pagesSelected&&!report.truncated&&!report.partialPages&&!report.failures.length;
+ const discovery=report.discovery||null;
+ const discoveryIncomplete=discovery&&discovery.status!=='completed';
+ const complete=report.pagesAnalyzed===report.pagesSelected&&!report.truncated&&!report.partialPages&&!report.failures.length&&!discoveryIncomplete;
  const summary=$('summary');
  summary.textContent=(report.pagesAnalyzed===0?'No pages received a complete HTML inspection. ':
   complete?'All selected public pages were inspected. ':'Coverage is incomplete. ')+
   report.pagesAnalyzed+' of '+report.pagesSelected+' selected page(s) verified'+
   (report.truncated?' · Discovery was limited to 60 pages':'')+
-  (report.partialPages?' · '+report.partialPages+' incomplete capture(s)':'')+'.';
+  (report.partialPages?' · '+report.partialPages+' incomplete capture(s)':'')+
+  (discoveryIncomplete?' · Discovery coverage requires review':'')+'.';
+ const discoverySummary=$('discovery-summary'),discoveryErrors=$('discovery-errors');
+ discoveryErrors.replaceChildren();
+ if(!discovery){
+  discoverySummary.textContent='Discovery not assessed in this report. Pasted HTML and earlier reports cannot establish crawl coverage.';
+ }else{
+  const scanned=discovery.scanned===null?'not reported by the extension':discovery.scanned+' attempted URL(s)';
+  const resultText='Chrome discovery: '+scanned+' · '+discovery.selected+' reachable page(s) selected · '+discovery.failed+
+   ' URL(s) not reached during discovery'+(discovery.reportedUnaccounted>0?' · '+discovery.reportedUnaccounted+' attempted URL(s) without detailed outcomes':'')+
+   (discovery.truncated?' · More pages may exist beyond the 60-page limit':'')+'.';
+  const caution=discovery.status==='completed'?'All discovered URLs attempted within this crawl cap; this does not prove every website page exists in the crawl.':
+   'Crawl coverage is incomplete or unconfirmed. Unreached pages have no QA findings and are not counted as healthy.';
+  discoverySummary.textContent=resultText+' '+caution+(discovery.error?' Discovery error: '+discovery.error+'.':'');
+  for(const issue of discovery.errors||[]){
+   const entry=node('details');
+   entry.append(node('summary',issue.url+' · discovery not verified'),
+    node('p',issue.reason,'page-status'));
+   discoveryErrors.append(entry);
+  }
+  if(discovery.reportedUnaccounted>0)discoveryErrors.append(node('p',
+   discovery.reportedUnaccounted+' discovery attempt(s) have no page-level outcome in the extension response. Their URLs are unavailable; do not assume they were healthy.','small'));
+ }
  const priorityCount=$('priority-count'),priorityFindings=$('priority-findings'),provisional=$('provisional-summary');
  priorityFindings.replaceChildren();
  if(evidenceSummary.completePages===0){
@@ -109,9 +134,10 @@ function render(report){
   }
  }
  const pending=evidenceSummary.partialPages+evidenceSummary.failedPages;
- provisional.textContent=pending?
-  'Not verified: '+evidenceSummary.partialPages+' partial HTML capture(s) with '+evidenceSummary.provisionalFindings+' provisional observation(s), and '+evidenceSummary.failedPages+' failed page capture(s). Their findings are excluded from the priorities above; retry these pages before concluding they are healthy.':
-  'Capture coverage: no partial or failed HTML inspections. Responsive layout observations are still a separate, sampled evidence type.';
+ provisional.textContent=(pending?
+  'Not verified during HTML inspection: '+evidenceSummary.partialPages+' partial HTML capture(s) with '+evidenceSummary.provisionalFindings+' provisional observation(s), and '+evidenceSummary.failedPages+' failed page capture(s). Their findings are excluded from the priorities above; retry these pages before concluding they are healthy.':
+  'HTML capture coverage: no partial or failed captures of selected pages. Responsive observations remain a separate sample.')+
+  (discoveryIncomplete?' Discovery failures and unvisited URLs are listed separately above and are excluded from these HTML issue rankings.':'');
  const layoutSummary=$('layout-summary'),layoutDetails=$('layout-details');
  layoutDetails.replaceChildren();
  const layoutRecords=Array.isArray(report.layoutInspections)?report.layoutInspections
@@ -173,7 +199,7 @@ function render(report){
   };
   return priority(a)-priority(b);
  });
- $('page-list-summary').textContent='Pages with higher-priority complete HTML findings appear first. '+evidenceSummary.completePages+' complete · '+evidenceSummary.partialPages+' provisional · '+evidenceSummary.failedPages+' not checked. Layout observations are listed separately above.';
+ $('page-list-summary').textContent='Pages with higher-priority complete HTML findings appear first. '+evidenceSummary.completePages+' complete · '+evidenceSummary.partialPages+' provisional · '+evidenceSummary.failedPages+' HTML capture failures. Discovery failures are listed separately above. Layout observations are listed separately.';
  for(const page of orderedPages){
   const details=node('details');
   const issueCount=Array.isArray(page.findings)?page.findings.length:0;
@@ -202,7 +228,6 @@ async function scan(url){
  if(!connected)throw Error('Install or update the MiCirql Chrome extension (inspection protocol v3) in desktop Chrome before running a live scan.');
  updateProgress(0,1,'Discovering public website pages in Chrome…');
  const discovered=await extensionRequest('MICIRQL_DISCOVER','MICIRQL_DISCOVER_RESULT',url.href,180000);
- if(discovered.ok===false)throw Error(discovered.error||'Page discovery failed.');
  const entries=Array.isArray(discovered.pages)?discovered.pages:[];
  const pages=[];
  for(const entry of entries){
@@ -213,7 +238,9 @@ async function scan(url){
    }
   }catch{}
  }
- if(!pages.length)throw Error('No public pages could be discovered. Check the URL and extension permissions.');
+ // Keep discovery failures in the report even if zero pages are reachable.
+ // A zero-page result must never masquerade as a clean audit.
+ const discovery=summarizeQaDiscovery(url.href,discovered,pages);
  const reports=[],failures=[];
  const layoutBudget=layoutSupported?Math.min(3,pages.length):0;
  const progressTotal=pages.length+layoutBudget;
@@ -253,7 +280,7 @@ async function scan(url){
  // Retain a single-entry alias for previously saved reports and consumers.
  const layoutInspection=layoutInspections[0]||null;
  return {schemaVersion:1,tool:'qa-lab',inspectorVersion:QA_INSPECTOR_VERSION,generatedAt:new Date().toISOString(),
-  website:url.origin,pagesDiscovered:discovered.originalCount??entries.length,pagesSelected:pages.length,
+  website:url.origin,pagesDiscovered:discovered.originalCount??entries.length,pagesSelected:pages.length,discovery,
   pagesAnalyzed:reports.length-partialPages,partialPages,truncated:Boolean(discovered.truncated||entries.length>60),
   reports,failures,layoutInspection,layoutInspections,layoutPagesRequested:sampledPages.length,layoutPagesVerified,
   layoutSamplingLimit:3,totalFindings:reports.reduce((n,page)=>n+page.findings.length,0),
@@ -283,14 +310,14 @@ manual.addEventListener('click',()=>{
   const page=inspectQaHtml(html,url.href);
   progressWrap.hidden=true;
   render({schemaVersion:1,tool:'qa-lab',inspectorVersion:QA_INSPECTOR_VERSION,generatedAt:new Date().toISOString(),
-   website:url.origin,pagesDiscovered:1,pagesSelected:1,pagesAnalyzed:1,partialPages:0,truncated:false,
+   website:url.origin,pagesDiscovered:1,pagesSelected:1,pagesAnalyzed:1,partialPages:0,truncated:false,discovery:null,
    reports:[page],failures:[],totalFindings:page.findings.length,scope:'pasted_html_only'});
  }catch(error){updateProgress(0,1,error.message)}
 });
 let priorPrintDetails=null;
 window.addEventListener('beforeprint',()=>{
  if(!currentReport)return;
- const printableDetails=[...$('layout-details').querySelectorAll('details'),...$('pages').querySelectorAll('details')];
+ const printableDetails=[...$('discovery-errors').querySelectorAll('details'),...$('layout-details').querySelectorAll('details'),...$('pages').querySelectorAll('details')];
  priorPrintDetails=printableDetails.map(item=>({item,open:item.open}));
  for(const {item} of priorPrintDetails)item.open=true;
 });
