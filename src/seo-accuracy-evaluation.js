@@ -1,0 +1,114 @@
+// Evidence-backed SEO detection evaluation. This is a benchmark utility,
+// not a new SEO scoring methodology and not a claim of live-site accuracy.
+export const SEO_GROUND_TRUTH_VERSION='micirql-seo-ground-truth-v1';
+const validEvidence=new Set(['independent-http','independent-html','independent-link']);
+const supportedExpected=new Set(['present','absent','unknown']);
+const isString=value=>typeof value==='string'&&value.trim().length>0;
+const urlKey=value=>{
+ try{
+  const u=new URL(value);
+  if(u.protocol!=='http:'&&u.protocol!=='https:'||u.username||u.password)return null;
+  u.hash='';
+  return u.href;
+ }catch{return null}
+};
+const pageInspected=p=>p?.auditStatus==='complete'&&p.partial!==true;
+const verifiedHttpError=p=>p?.auditStatus==='invalid_http_status'&&p.httpVerification?.verified===true&&
+ Number.isInteger(p.httpVerification.status)&&p.httpVerification.status>=400;
+const isHttpCode=code=>/^http_/.test(code);
+const metric=(n,d)=>d?n/d:null;
+const detectionFor=(audit)=>{
+ const issueKeys=new Set();
+ for(const issue of audit.issueCenter){
+  if(!isString(issue?.code))continue;
+  for(const raw of issue.affectedUrls||[]){
+   const k=urlKey(raw);
+   if(k)issueKeys.add(k+'|'+issue.code);
+  }
+ }
+ return issueKeys;
+};
+function evaluateOne(audit,groundTruth){
+ if(!audit||!isString(audit.website)||!Array.isArray(audit.issueCenter)||!Array.isArray(audit.reports))
+  throw Error('Audit must contain website, issueCenter[] and reports[]');
+ if(groundTruth?.schemaVersion!==SEO_GROUND_TRUTH_VERSION||!Array.isArray(groundTruth.labels)||
+  !isString(groundTruth.website)||!isString(groundTruth.reviewer))
+  throw Error('Ground truth needs schemaVersion, website, reviewer and labels[]');
+ const site=urlKey(audit.website),truthSite=urlKey(groundTruth.website);
+ if(!site||!truthSite||new URL(site).origin!==new URL(truthSite).origin)
+  throw Error('Audit and ground truth must belong to the same website origin');
+ const origin=new URL(site).origin;
+ const pages=new Map();
+ for(const page of audit.reports){
+  for(const raw of [page?.requestedUrl,page?.url]){
+   const key=urlKey(raw);
+   if(!key||new URL(key).origin!==origin)continue;
+   const older=pages.get(key);
+   if(!older||(pageInspected(page)&&!pageInspected(older))||
+    (verifiedHttpError(page)&&!pageInspected(older)&&!verifiedHttpError(older)))pages.set(key,page);
+  }
+ }
+ const found=detectionFor(audit);
+ const seen=new Set(),rows=[];
+ for(const label of groundTruth.labels){
+  const key=urlKey(label?.url);
+  if(!key||new URL(key).origin!==origin||!isString(label?.code)||
+   !supportedExpected.has(label.expected))
+   throw Error('Ground truth contains malformed or cross-origin URL/code/expected');
+  const id=key+'|'+label.code;
+  if(seen.has(id))throw Error('Duplicate ground truth URL and issue code: '+id);
+  seen.add(id);
+  const evidence=label.evidence;
+  if(label.expected!=='unknown'&&(!validEvidence.has(evidence?.type)||
+    !isString(evidence?.detail)||!isString(evidence?.observedAt)||
+    !Number.isFinite(Date.parse(evidence.observedAt))))
+   throw Error('Independent, timestamped URL-level evidence required for '+id);
+  const page=pages.get(key);
+  const eligible=pageInspected(page)||(isHttpCode(label.code)&&verifiedHttpError(page));
+  const status=label.expected==='unknown'?'unknown_ground_truth':
+   !eligible?'not_inspected':'evaluated';
+  rows.push({url:key,code:label.code,expected:label.expected,
+   detected:found.has(id),status,evidenceType:evidence?.type||null});
+ }
+ return {website:origin,rows};
+}
+export function evaluateSeoDetectionAccuracy(pairs){
+ if(!Array.isArray(pairs)||!pairs.length)throw Error('Provide at least one audit and ground-truth pair');
+ const results=pairs.map(p=>evaluateOne(p.audit,p.groundTruth));
+ const rows=results.flatMap(item=>item.rows.map(r=>({...r,website:item.website})));
+ const eligible=rows.filter(r=>r.status==='evaluated');
+ const count={tp:0,fp:0,tn:0,fn:0};
+ for(const row of eligible){
+  if(row.expected==='present'&&row.detected)count.tp++;
+  else if(row.expected==='present')count.fn++;
+  else if(row.detected)count.fp++;
+  else count.tn++;
+ }
+ const positives=count.tp+count.fn,negatives=count.fp+count.tn;
+ const precision=metric(count.tp,count.tp+count.fp);
+ const recall=metric(count.tp,positives);
+ const falsePositiveRate=metric(count.fp,negatives);
+ const specificity=metric(count.tn,negatives);
+ const sites=new Set(eligible.map(r=>r.website)).size;
+ // These thresholds are proposed acceptance gates, NOT empirically validated.
+ const sufficientlyRepresentative=eligible.length>=100&&positives>=30&&negatives>=30&&sites>=5;
+ const meetsTargets=sufficientlyRepresentative&&precision!==null&&recall!==null&&
+  precision>=0.95&&recall>=0.95;
+ return {version:'micirql-detection-benchmark-v1',source:'independently-reviewed URL-level evidence',
+  claims:'Benchmark results apply only to reviewed URLs and labeled issue codes, not full Google rankings or a Semrush-equivalent health score.',
+  totalLabels:rows.length,eligibleLabels:eligible.length,
+  abstained:rows.length-eligible.length,abstainReasons:{
+   notInspected:rows.filter(r=>r.status==='not_inspected').length,
+   unknownTruth:rows.filter(r=>r.status==='unknown_ground_truth').length
+  },sites,positives,negatives,confusion:count,
+  precision,recall,falsePositiveRate,specificity,
+  readyForReleaseClaim:sufficientlyRepresentative,
+  targetMet:meetsTargets,
+  verdict:!sufficientlyRepresentative?'insufficient_independent_evidence':
+   meetsTargets?'proposed_accuracy_target_met':'proposed_accuracy_target_not_met',
+  examples:rows.filter(r=>r.status==='evaluated'&&
+   ((r.expected==='present')!==r.detected)).slice(0,25).map(r=>({
+    website:r.website,url:r.url,code:r.code,expected:r.expected,detected:r.detected
+   }))
+ };
+}
