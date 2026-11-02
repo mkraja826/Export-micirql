@@ -164,9 +164,14 @@ function render(report){
  for(const page of orderedPages){
   const details=node('details');
   const issueCount=Array.isArray(page.findings)?page.findings.length:0;
+  const pageStatus=page.partial?
+   'Partial HTML capture — provisional observations only, not part of prioritized findings.':
+   issueCount?
+    'Complete HTML snapshot — static checks only; not a functional QA pass.':
+    'No concerns detected in this complete HTML snapshot; functional behavior remains unverified.';
   details.append(node('summary',page.url+' · '+issueCount+(page.partial?' provisional observation(s)':' HTML finding(s)')),
-   node('p',page.partial?'Partial HTML capture — provisional observations only, not part of prioritized findings.':'Complete HTML snapshot — static checks only; not a functional QA pass.','page-status'));
-  if(!page.findings.length)details.append(node('p','No concerns detected by these static checks. This does not establish a functional QA pass.'));
+   node('p',pageStatus,'page-status'));
+  // A clean page needs just one clear status line, not two repeated disclaimers.
   for(const finding of page.findings||[]){
    const card=node('div',undefined,'finding');card.dataset.severity=finding.severity;
    card.append(node('strong',finding.severity.toUpperCase()+' · '+finding.code),
