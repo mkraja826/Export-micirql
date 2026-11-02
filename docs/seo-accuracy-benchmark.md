@@ -67,3 +67,17 @@ The uploaded Semrush overview reports Site Health 89%, 41 pages, two errors, 82 
 ## Scope limitations
 
 This evaluates labeled finding detection for pages actually inspected. It does not independently certify site-risk severity, importance of a landing page, crawl completeness beyond selected URLs, search indexing, rankings, traffic, or AI-bot accessibility. Site-risk classification is covered by separate synthetic rules until independently adjudicated site-risk scenarios are collected. Do not add real user data, private credentials or proprietary customer HTML to repository fixtures.
+
+## Prepare independent-review cases from an existing MiCirql audit
+
+Run the read-only draft generator:
+
+```bash
+node scripts/prepare-seo-review.mjs audit-jvdental.json --output review-draft.json --max 60
+```
+
+This prepares a bounded, deterministic queue of detected findings and undetected controls for reviewers. **All labels are set to `unknown` and contain no fabricated verification evidence.** The generated `micirql-seo-review-queue-v1` file is a working draft, **not** directly accepted as `micirql-seo-ground-truth-v1`.
+
+A reviewer must open each URL, independently inspect the relevant HTML/headers/link target, record whether the finding is `present` or `absent`, and record timestamped evidence using the ground-truth format above. Leave inaccessible or uncertain URLs as `unknown` and retain abstentions. Use additional sampling to cover issue codes that never appear in the source audit; the queue generator cannot automatically invent negative controls for checks it did not observe.
+
+For JV Dental, the provided Semrush overview has no affected URL list, so this process requires an actual MiCirql audit JSON and independent inspection. The Semrush overview is useful for selecting investigation topics but cannot supply verified URL-level labels.
