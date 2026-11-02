@@ -6,16 +6,17 @@ import {execFileSync} from 'node:child_process';
 import {resolve} from 'node:path';
 import {summarizeSeoSiteHealth} from '../public/tools/seo/site-health.js';
 import {assessSeoSiteRisk} from '../public/tools/seo/site-risk.js';
+import {summarizeSeoTechnicalCoverage} from '../public/tools/seo/technical-coverage.js';
 
 const source=await readFile(resolve('public/tools/seo/index.html'),'utf8');
 const start=source.indexOf('function printClientSeoReport(report){');
 const end=source.indexOf('sitePrintButton.addEventListener',start);
 if(start<0||end<=start)throw Error('SEO Studio PDF printing function not found');
 let printedHtml='';
-const printer=new Function('window','alert','summarizeSeoSiteHealth','assessSeoSiteRisk',
+const printer=new Function('window','alert','summarizeSeoSiteHealth','assessSeoSiteRisk','summarizeSeoTechnicalCoverage',
  source.slice(start,end)+';return printClientSeoReport;')(
  {open:()=>({document:{open(){},write(html){printedHtml=html},close(){}}})},
- ()=>{throw Error('PDF popup unexpectedly blocked')},summarizeSeoSiteHealth,assessSeoSiteRisk);
+ ()=>{throw Error('PDF popup unexpectedly blocked')},summarizeSeoSiteHealth,assessSeoSiteRisk,summarizeSeoTechnicalCoverage);
 const home='https://fixture.example/';
 const page=(url,i)=>({url,requestedUrl:url,pageRole:'public',auditStatus:'complete',partial:false,score:i===0?80:98,
  title:'Fixture page '+i,description:'Synthetic benchmark',findings:[]});
@@ -27,7 +28,7 @@ const cases=[
  {name:'high-risk-unverified',data:report({issueCenter:Array.from({length:5},(_,i)=>({code:'case_'+i,severity:'high',affectedUrls:[urls[i]],recommendation:'Inspect and verify this issue'}))}),
   must:['Website risk assessment: Needs attention','97/100','5 high-severity','await verification','not a clean bill of health']},
  {name:'verified-critical',data:report({issueCenter:[{code:'http_noindex',severity:'high',affectedUrls:[home],verifiedAffectedUrls:[home],recommendation:'Review homepage indexability'}]}),
-  must:['Risk category: critical','1 explicitly verified high-severity issue group','97/100']},
+  must:['Technical verification coverage','Not checked does not mean passed','Risk category: critical','1 explicitly verified high-severity issue group','97/100']},
  {name:'incomplete',data:report({pagesSelected:35,failures:[{url:home+'missing',reason:'Navigation timed out'}],coverage:{discoveryTruncated:true},issueCenter:[]}),
   must:['Audit evidence incomplete','No numeric website-health score has been assigned','97/100']}
 ];
