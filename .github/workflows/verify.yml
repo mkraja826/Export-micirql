@@ -22,6 +22,16 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Test SEO Studio mobile viewports
         run: node scripts/seo-mobile-qa.mjs
+      - name: Test QA Lab Chromium A4 PDF pagination and 60-page reports
+        run: node scripts/qa-pdf-qa.mjs
+      - name: Upload QA Lab printable PDF fixtures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-lab-print-fixtures
+          path: dist/qa-pdf-fixtures/*.pdf
+          if-no-files-found: warn
+          retention-days: 7
       - name: Validate Worker JavaScript syntax
         run: node --check src/worker.js
       - name: Validate SEO inspector syntax
