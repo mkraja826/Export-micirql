@@ -120,9 +120,10 @@ try{
    const count=Number(info.match(/^Pages:\s*(\d+)/m)?.[1]);
    if(!Number.isInteger(count)||count<1||count>12||!/^Page size:.*\(A4\)/m.test(info))
     throw Error('Printable document has invalid page count or A4 size');
+   const pdfTextNormalized=printed.replace(/\s+/g,' ');
    for(const required of ['What needs attention first','Missing main heading','Detailed HTML findings by page',
      '/links/3/0','/links/3/1','/links/3/2','no viewport meta declaration detected']){
-    if(!printed.includes(required))throw Error('PDF text missing '+required);
+    if(!pdfTextNormalized.includes(required))throw Error('PDF text missing '+required);
    }
    attempt.status='verified';
    attempt.pdfPages=count;
