@@ -183,7 +183,7 @@ async function runCase({name,count,partial,failed,discoveryErrors=0,discoveryFai
    check(printedText.includes('/service-04'),name+': PDF omitted unreachable discovery URL');
   }
   if(discoveryFailure)
-   check(printedText.includes(discoveryFailure),name+': zero-page failed crawl PDF omitted discovery error');
+   check(printedText.replace(/\s+/g,' ').includes(discoveryFailure),name+': zero-page failed crawl PDF omitted discovery error');
   const finalText=execFileSync('pdftotext',['-f',String(pages),'-l',String(pages),pdfPath,'-'],
    {encoding:'utf8',maxBuffer:1_000_000});
   check(finalText.trim().length>90,name+': last A4 PDF page is blank or contains too little readable content');
