@@ -32,7 +32,7 @@ test('QA old extension is HTML-only and cannot claim tested viewport evidence',(
  assert.equal(old.status,'limited');
  assert.match(old.message,/HTML-only/);
  assert.match(old.message,/v0\.3\.17/);
- const unknown=evaluateQaExtensionHandshake(handshake(undefined));
+ const unknown=evaluateQaExtensionHandshake(handshake('unknown'));
  assert.equal(unknown.layoutSupported,false);
  const missing=evaluateQaExtensionHandshake(handshake('0.3.17',['discover','seo-http-evidence']));
  assert.equal(missing.supported,true);
