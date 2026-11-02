@@ -16,17 +16,49 @@ button:disabled{opacity:.48;cursor:not-allowed}
 button:focus-visible,input:focus-visible,textarea:focus-visible,summary:focus-visible,a:focus-visible{outline:3px solid #abcaff;outline-offset:3px}
 .small{font-size:13px}.status,.notice{padding:12px 14px;border-radius:9px;background:#1c2e4b;border:1px solid #426084;overflow-wrap:anywhere}
 .notice{border-left:3px solid #e6b76f}.alert{border-left-color:#ee919e}progress{width:100%;height:15px;accent-color:#a6bfff}
-.metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
 .metric{padding:13px;background:#112039;border-radius:10px;border:1px solid #415b79}.metric strong{display:block;font-size:30px}.metric span{font-size:12px;color:#c1cfdf}
 details{padding:12px 0;border-top:1px solid #3b536d}summary{cursor:pointer;font-weight:750;overflow-wrap:anywhere}
 .finding{padding:10px 14px;margin:10px 0;border-left:3px solid #e3bb7e;background:#20314a;border-radius:8px;overflow-wrap:anywhere}
 .finding[data-severity="medium"]{border-left-color:#e89aa2}.page-status{font-size:12px;color:#b5cbed}
+.report-section{margin:24px 0 27px}.report-section>h3{margin:0 0 8px}
+.priority-item{padding:13px 15px;margin:10px 0;border-radius:9px;background:#192a43;border:1px solid #435976;border-left:4px solid #d8b26e;overflow-wrap:anywhere}
+.priority-item[data-severity="medium"]{border-left-color:#ed9ba0}
+.priority-item[data-severity="info"]{border-left-color:#9bb6da}
+.priority-item strong{display:block}.priority-item p{margin:5px 0;color:#ced9e9}
+.priority-meta{font-size:12px;font-weight:750;letter-spacing:.02em}
+#priority-count,#provisional-summary,#page-list-summary{color:#c4d2e6;font-size:13px}
+.report-divider{border:0;border-top:1px solid #435877;margin:24px 0}
 footer{color:#aabed6;margin:30px 0}
 [hidden]{display:none!important}
 @media(max-width:620px){.wrap{padding:16px}.card{padding:16px}.field{flex-direction:column}.field button,.actions button{width:100%}.metrics{grid-template-columns:1fr 1fr}}
-@media print{:root{color-scheme:light}body{background:#fff;color:#111}.wrap{max-width:none;padding:0}nav,.no-print,footer{display:none!important}
-.card{color:#111;background:#fff;border:1px solid #aaa;break-inside:auto}.metric{background:#fff;color:#111}.metric span,p,.muted,.page-status{color:#333}
-.finding{color:#111;background:#fff}#results{display:block!important}#results details>*{display:block!important}#results details{break-inside:avoid}#report-site{overflow-wrap:anywhere}}
+@page{size:A4;margin:15mm 13mm}
+@media print{
+ :root{color-scheme:light}
+ html,body{margin:0;background:#fff!important;color:#111!important;font:10pt/1.4 Arial,sans-serif}
+ .wrap{max-width:none;padding:0}nav,.no-print,footer{display:none!important}
+ main>header{display:none!important}#results{display:block!important;border:0;padding:0;margin:0}
+ #results[hidden]{display:none!important}
+ #result-title{font-size:22pt;margin:0 0 7pt}#report-site{font-size:12pt;font-weight:700}
+ #report-time{font-size:9pt}
+ .card{color:#111;background:#fff;border:0;margin:0;padding:0;break-inside:auto}
+ .metrics{grid-template-columns:repeat(4,1fr);gap:6pt;margin:9pt 0}
+ .metric{background:#fff;color:#111;border:1px solid #bbb;break-inside:avoid;padding:6pt}
+ .metric strong{font-size:17pt}.metric span{color:#333}
+ h2,h3{color:#111;break-after:avoid}h3{font-size:13pt}
+ p,.muted,.small,.page-status,#priority-count,#provisional-summary,#page-list-summary{color:#333!important}
+ .status,.notice{background:#fff!important;color:#111!important;border:1px solid #bbb}
+ .report-section{margin:16pt 0}
+ .report-divider{margin:13pt 0;border-color:#bbb}
+ .priority-item,.finding{background:#fff!important;color:#111!important;border:1px solid #bbb;padding:8pt;break-inside:avoid}
+ .priority-item strong,.finding strong{color:#111}.priority-item p{color:#333!important}
+ .priority-meta{font-size:9pt}
+ #priority-section{break-after:auto}
+ #layout-details details,#pages details{break-inside:auto;page-break-inside:auto}
+ #layout-details details>summary,#pages details>summary{color:#111;break-after:avoid}
+ #layout-details details .finding,#pages details .finding{break-inside:avoid}
+ #report-site,summary,p{overflow-wrap:anywhere}
+}
 </style></head><body><div class="wrap">
 <nav aria-label="Tool navigation"><a href="/tools/">All tools</a><a href="/tools/screenshots/">Screenshots</a><a href="/tools/seo/">SEO Studio</a><a href="/tools/qa/" aria-current="page">QA Lab</a></nav>
 <main><header><p class="eyebrow">MiCirql Tools · Tool 03 · Beta</p><h1>QA Testing Lab</h1>
@@ -41,9 +73,20 @@ footer{color:#aabed6;margin:30px 0}
 <section id="results" class="card" hidden aria-labelledby="result-title">
 <p class="eyebrow">Website QA report</p><h2 id="result-title">Inspection results</h2><p id="report-site"></p><p id="report-time" class="small"></p>
 <div id="metrics" class="metrics"></div><p id="summary" class="notice"></p>
+<section id="priority-section" class="report-section" aria-labelledby="priority-title">
+<h3 id="priority-title">What needs attention first</h3>
+<p id="priority-count" class="small">Priorities are based on complete HTML snapshots only. They are not verified functional failures.</p>
+<div id="priority-findings"></div>
+<p id="provisional-summary" class="notice">Partial and failed scans are shown separately from the complete HTML findings.</p>
+</section>
 <p id="limitations" class="small">Scope: up to 60 public pages checked from captured static HTML. Browser-rendered layout and accessible-control observations sample up to three successfully captured pages at 375, 768 and 1440px. A sample does not verify every page, successful form submissions, full user journeys, accessibility conformance or external link reachability. Partial captures are not counted as verified.</p>
 <div class="actions no-print"><button id="print" type="button" disabled>Save report as PDF</button><span class="small muted">Choose “Save as PDF” in your browser's print dialog.</span></div>
-<h3>Browser-observed layout</h3><p id="layout-summary" class="small">Responsive layout was not checked.</p><div id="layout-details"></div><h3>Findings by page</h3><div id="pages"></div></section>
+<hr class="report-divider"><section class="report-section" aria-labelledby="layout-title">
+<h3 id="layout-title">Browser-observed layout — separate evidence</h3><p id="layout-summary" class="small">Responsive layout was not checked.</p><div id="layout-details"></div>
+</section><hr class="report-divider"><section class="report-section" aria-labelledby="pages-title">
+<h3 id="pages-title">Detailed HTML findings by page</h3>
+<p id="page-list-summary">Complete HTML pages first. Partial and failed scans appear at the end.</p>
+<div id="pages"></div></section></section>
 <details id="advanced" class="card no-print"><summary>Developer mode · inspect pasted HTML or export JSON</summary>
 <p class="small">Inspect one HTML snapshot without the extension. Do not paste private information or session tokens.</p>
 <label for="html">Page HTML</label><textarea id="html" maxlength="1000000" placeholder="Paste a public HTML snapshot here"></textarea>
