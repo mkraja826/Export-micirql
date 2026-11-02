@@ -108,6 +108,8 @@ async function runCase({name,count,partial,failed}){
   check(pdf.subarray(0,5).toString()==='%PDF-',name+': Chromium did not generate a PDF');
   const pages=pdfPageCount(pdf);
   check(pages>=1&&pages<=Math.max(8,Math.ceil(count*1.4)),name+': implausible PDF page count '+pages);
+  // Guard against a return to the oversized 7/24-page reports from the initial print layout.
+  check(pages<=(count>=60?20:6),name+': printable report regressed to '+pages+' pages');
   check(pdf.length>9000&&pdf.length<12_000_000,name+': unexpected PDF size '+pdf.length);
   check((await page.locator('#pages details:not([open])').count())===count,
    name+': print expansion did not restore the original collapsed page groups');
