@@ -86,14 +86,12 @@ async function runCase({name,count,partial,failed}){
   if(name==='small-complete'){
    await page.evaluate(()=>window.postMessage({source:'micirql-extension',type:'MICIRQL_EXTENSION_READY',
     protocol:3,extensionVersion:'0.3.16',capabilities:['discover','seo-http-evidence','qa-layout']},location.origin));
-   check(await page.locator('#extension-status').getAttribute('data-state')==='limited',
-    name+': older extension should not claim reliable viewport inspection');
+   await page.waitForFunction(()=>document.getElementById('extension-status')?.dataset?.state==='limited',null,{timeout:4000});
    check(await page.locator('#setup').isVisible(),name+': update guidance must be visible for older extension');
    await page.evaluate(()=>window.postMessage({source:'micirql-extension',type:'MICIRQL_EXTENSION_READY',
     protocol:3,extensionVersion:'0.3.17',capabilities:['discover','seo-http-evidence','qa-layout']},location.origin));
   }
-  check(await page.locator('#extension-status').getAttribute('data-state')==='ready',
-   name+': browser extension compatibility not confirmed before scanning');
+  await page.waitForFunction(()=>document.getElementById('extension-status')?.dataset?.state==='ready',null,{timeout:5000});
   await page.locator('#url').fill('https://qa-fixture.example/');
   await page.locator('#run').click();
   await page.locator('#results').waitFor({state:'visible',timeout:60000});
