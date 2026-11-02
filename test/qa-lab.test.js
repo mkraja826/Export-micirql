@@ -6,6 +6,7 @@ import {inspectQaHtml,QA_INSPECTOR_VERSION} from '../src/qa-inspector.js';
 import {inspectQaHtml as browserInspect,QA_INSPECTOR_VERSION as browserVersion} from '../public/tools/qa/inspector.js';
 import {selectQaLayoutSamples} from '../public/tools/qa/layout-sampling.js';
 import {evaluateQaExtensionHandshake} from '../public/tools/qa/extension-compat.js';
+import {summarizeQaDiscovery} from '../public/tools/qa/discovery-coverage.js';
 
 const url='https://example.com/services';
 const base='<html lang="en"><head><title>Services</title></head><body><main><h1>Services</h1><a href="#team">Team</a><div id="team">People</div><form><label for="email">Email</label><input id="email"><button>Send</button></form><img src="/team.png" alt="Team portrait"></main></body></html>';
@@ -245,7 +246,7 @@ test('QA browser workflow limits layout to three complete same-origin pages and 
   }
  };
  const sandbox={window,document,location,URL,URLSearchParams,Date,Math,Promise,Number,
-  inspectQaHtml,QA_INSPECTOR_VERSION,selectQaLayoutSamples,evaluateQaExtensionHandshake,
+  inspectQaHtml,QA_INSPECTOR_VERSION,selectQaLayoutSamples,evaluateQaExtensionHandshake,summarizeQaDiscovery,
   setTimeout(){return 1},clearTimeout(){}};
  runInNewContext(source+'\nthis.__qaScan=scan;',sandbox);
  const report=await sandbox.__qaScan(new URL('https://example.com/'));
