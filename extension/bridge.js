@@ -51,6 +51,12 @@ window.addEventListener('message',async event=>{
   catch(error){result={ok:false,error:error.message||'Link check failed'}}
   reply('MICIRQL_SEO_LINK_RESULT',id,result||{ok:false,error:'No status response'});
  }
+ if(type==='MICIRQL_SEO_ROBOTS'){
+  let result;
+  try{result=await chrome.runtime.sendMessage({type:'READ_SEO_ROBOTS',url:event.data.url})}
+  catch(error){result={ok:false,error:error.message||'Robots evidence unavailable'}}
+  reply('MICIRQL_SEO_ROBOTS_RESULT',id,result||{ok:false,error:'No robots response'});
+ }
  if(type==='MICIRQL_SEO_READ'){
   let result;
   try{result=await chrome.runtime.sendMessage({type:'READ_SEO_HTML',url:event.data.url})}
