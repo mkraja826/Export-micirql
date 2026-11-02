@@ -132,6 +132,8 @@ test('QA UI ranks complete snapshot findings and explicitly separates provisiona
  const details=id('pages').children;
  assert.match(details[0].children[0].textContent,/\/home/);
  assert.match(details[1].children[0].textContent,/\/quiet/);
+ assert.equal(details[1].children.length,2,'A clean page needs one concise status, not duplicate warnings');
+ assert.match(details[1].children[1].textContent,/functional behavior remains unverified/);
  assert.match(details[2].children[0].textContent,/provisional observation/);
  assert.match(details[3].children[0].textContent,/not checked/);
 });
