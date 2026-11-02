@@ -16,7 +16,7 @@ test('observed HTTP statuses do not imply robots/DNS checks passed',()=>{
  assert.equal(summary.checks[2].state,'not_checked');
 });
 test('unverified link checks never become confirmed broken links',()=>{
- const summary=summarizeSeoTechnicalCoverage({reports:[page(true)],linkDiagnostics:[
+ const summary=summarizeSeoTechnicalCoverage({reports:[page(true)],externalLinkDiagnostics:[
   {classification:'broken',status:404},{classification:'unverified'},{classification:'reachable',status:200}
  ]});
  assert.equal(summary.checks[3].state,'partial');
