@@ -102,7 +102,18 @@ async function runCase({name,count,partial,failed,discoveryErrors=0,discoveryFai
   await page.waitForFunction(()=>document.getElementById('extension-status')?.dataset?.state==='ready',null,{timeout:5000});
   await page.locator('#url').fill('https://qa-fixture.example/');
   await page.locator('#run').click();
-  await page.locator('#results').waitFor({state:'visible',timeout:60000});
+  try{await page.locator('#results').waitFor({state:'visible',timeout:30000})}
+  catch(error){
+   const state=await page.evaluate(()=>({
+    status:document.querySelector('#extension-status')?.textContent,
+    progress:document.querySelector('#progress-text')?.textContent,
+    progressValue:document.querySelector('#progress')?.value,
+    resultHidden:document.querySelector('#results')?.hidden,
+    runDisabled:document.querySelector('#run')?.disabled
+   })).catch(()=>({unavailable:true}));
+   throw Error(name+': QA report never became visible: '+JSON.stringify(state)+
+    ' · Browser errors: '+consoleErrors.join(' | ')+' · '+error.message.slice(0,130));
+  }
   check((await page.locator('#progress').evaluate(el=>el.value))===100,name+': incomplete progress');
   const selected=count-discoveryErrors;
   check((await page.locator('#pages > details').count())===selected,name+': page listing count mismatch');
