@@ -79,6 +79,7 @@ import {interpretHttpEvidence,reconcileHttpSeoScore} from './http-evidence.js';
 import {seoPagesCsv,seoIssuesCsv} from './csv-export.js';
 import {reusablePages,auditCoverage,uniqueFinalPages,httpEvidenceCoverage,crossPageMetadataFindings,crossPageContentAndStructureFindings} from './audit-lifecycle.js';
 import {analyzeRedirectEvidence} from './redirect-evidence.js';
+import {summarizeSeoSiteHealth} from './site-health.js';
 const benchmarkButton=document.getElementById('benchmark-run');
 benchmarkButton.addEventListener('click',async()=>{
  const result=document.getElementById('benchmark-results');result.replaceChildren();
@@ -361,7 +362,9 @@ siteButton.addEventListener('click',async()=>{
    }
    const publicScores=groups.public;
    siteStatus.textContent=reports.length+' analyzed, '+failures.length+' failed. Public-page HTML average: '+(publicScores.length?Math.round(publicScores.reduce((a,b)=>a+b,0)/publicScores.length)+'/100 from '+publicScores.length+' pages':'not available')+'. Roles are editable suggestions, not indexability decisions.'+(discovered.truncated===true?' Discovery was truncated; additional pages may exist.':'');
-   if(siteReport)siteReport.roleSummary=Object.fromEntries(Object.entries(groups).map(([role,scores])=>[role,{pageCount:scores.length,average:scores.length?Math.round(scores.reduce((a,b)=>a+b,0)/scores.length):null}]));
+   if(siteReport){siteReport.roleSummary=Object.fromEntries(Object.entries(groups).map(([role,scores])=>[role,{pageCount:scores.length,average:scores.length?Math.round(scores.reduce((a,b)=>a+b,0)/scores.length):null}]));
+    if(siteReport.issueCenter){siteReport.siteHealth=summarizeSeoSiteHealth(siteReport);const h=siteReport.siteHealth;const cards=document.querySelectorAll('#site-health-grid .health-metric strong');if(cards.length===4){cards[0].textContent=h.averagePublicHtmlScore===null?'N/A':h.averagePublicHtmlScore+'/100';cards[1].textContent=h.overallAssessment;cards[2].textContent=h.coverage.selectedCompletePercent+'%';cards[3].textContent=String(h.highSeverityGroups);}const explanation=document.getElementById('site-health-explanation');if(explanation)explanation.textContent=h.interpretation+' '+h.scoreScopeNote+' '+h.coverageSummary+' '+h.confidenceNote;}
+   }
   }
   siteResults.append(roleSummary);
   refreshRoleSummary();
@@ -468,6 +471,7 @@ siteButton.addEventListener('click',async()=>{
   issues.sort((a,b)=>triageOrder[a.triageTier]-triageOrder[b.triageTier]||(priority[a.severity]??4)-(priority[b.severity]??4)||(b.affectedUrls||[]).length-(a.affectedUrls||[]).length);
   siteReport.reportNotes=['Scores reflect HTML and observed HTTP signals only, not Google rankings.','Page roles are suggestions or manual selections.','Only pages discovered and analyzed in this batch are included.'];
   siteReport.issueCenter=issues;
+  siteReport.siteHealth=summarizeSeoSiteHealth(siteReport);
   // V2.7 opportunity ranking uses observed severity and affected URL breadth, not estimated traffic.
   const opportunities=issues.filter(issue=>issue.severity!=='info').map(issue=>({
    code:issue.code,title:issue.title||issue.code.replaceAll('_',' '),severity:issue.severity,
@@ -749,18 +753,19 @@ siteButton.addEventListener('click',async()=>{
   overview.append(overviewStats);
   const healthSummary=document.createElement('div');healthSummary.className='health-summary';healthSummary.setAttribute('aria-label','SEO health summary');
   const healthLabel=document.createElement('h4');healthLabel.textContent='SEO health snapshot';healthSummary.append(healthLabel);
-  const coveragePercent=pages.length?Math.round(reports.length/pages.length*100):0;
-  const scoreStatus=mean===null?'Not scored':mean>=80?'Strong':mean>=50?'Needs attention':'Needs improvement';
-  const healthGrid=document.createElement('div');healthGrid.className='health-grid';
-  for(const [label,value] of [['Public HTML score',mean===null?'N/A':mean+'/100'],['Score assessment',scoreStatus],['Audit completion',coveragePercent+'%'],['High-priority issue groups',severityTotals.high]]){
+  const health=siteReport.siteHealth;
+  const coveragePercent=health.coverage.selectedCompletePercent;
+  const scoreStatus=health.overallAssessment;
+  const healthGrid=document.createElement('div');healthGrid.id='site-health-grid';healthGrid.className='health-grid';
+  for(const [label,value] of [['Average public-page HTML',health.averagePublicHtmlScore===null?'N/A':health.averagePublicHtmlScore+'/100'],['Website risk assessment',scoreStatus],['Selected pages inspected',coveragePercent+'%'],['High-severity issue groups',health.highSeverityGroups]]){
    const card=document.createElement('div');card.className='health-metric';const caption=document.createElement('span');caption.textContent=label;const number=document.createElement('strong');number.textContent=String(value);card.append(caption,number);healthGrid.append(card);
   }
   healthSummary.append(healthGrid);
-  const healthCaveat=document.createElement('p');healthCaveat.className='hint small';healthCaveat.textContent='Health indicators summarize inspected HTML only. Completion is the percentage of selected pages successfully inspected, not total website coverage. Search traffic and rankings are not measured.';healthSummary.append(healthCaveat);
+  const healthCaveat=document.createElement('p');healthCaveat.id='site-health-explanation';healthCaveat.className='hint small';healthCaveat.textContent=health.interpretation+' '+health.scoreScopeNote+' '+health.coverageSummary+' '+health.confidenceNote;healthSummary.append(healthCaveat);
   overview.append(healthSummary);
-  const overviewNote=document.createElement('p');overviewNote.className='hint small';overviewNote.textContent='Average uses complete, scored HTML pages only. Issue counts represent grouped findings, not distinct broken pages or verified search ranking impact.';overview.append(overviewNote);
+  const overviewNote=document.createElement('p');overviewNote.className='hint small';overviewNote.textContent='The average uses complete public-page HTML scores only. Website risk reflects grouped findings, not the average. A high average cannot override high-severity signals. No numeric whole-site SEO score has been calculated.';overview.append(overviewNote);
   siteResults.prepend(overview);
-  siteReport.overview={completeScoredPages:eligible.length,averageHtmlScore:mean,averageScope:'public_pages_only',publicScoredPages:publicEligible.length,issueGroupsBySeverity:severityTotals};
+  siteReport.overview={completeScoredPages:eligible.length,averageHtmlScore:health.averagePublicHtmlScore,averageScope:'public_pages_only',publicScoredPages:health.eligiblePublicPages,issueGroupsBySeverity:severityTotals,siteAssessment:health.overallAssessment};
   // The unified V2.5 audit history above replaces the legacy score-only history dashboard.
   // Searchable page-level results complement the grouped issue center.
   const pageDashboard=document.createElement('section');pageDashboard.id='site-page-dashboard';pageDashboard.setAttribute('aria-label','Audited page results');
