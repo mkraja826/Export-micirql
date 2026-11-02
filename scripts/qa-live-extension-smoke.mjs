@@ -83,7 +83,36 @@ try{
   }catch(error){item.note=String(error?.message||error).slice(0,220)}
   report.results.push(item);
  }
- report.overall=report.results.every(x=>x.status==='verified')?'verified':report.results.some(x=>x.status==='mismatch')?'needs_review':'unverified';
+ // Separately verify one real public page at all three viewports. This is a
+ // Chrome read-only DOM observation: it never clicks or submits the site.
+ report.layout={url:'https://badseo.dev/head/missing-h1',status:'unverified',observations:[]};
+ try{
+  const response=await page.evaluate(async url=>new Promise((resolve,reject)=>{
+   const id='live-layout-'+Date.now()+'-'+Math.random().toString(36).slice(2);
+   const receive=event=>{
+    const payload=event.data;
+    if(event.source!==window||event.origin!==location.origin||payload?.source!=='micirql-extension'||payload.id!==id||payload.type!=='MICIRQL_QA_LAYOUT_RESULT')return;
+    clearTimeout(timer);window.removeEventListener('message',receive);resolve(payload);
+   };
+   window.addEventListener('message',receive);
+   const timer=setTimeout(()=>{window.removeEventListener('message',receive);reject(Error('Timed out waiting for layout response'))},30000);
+   window.postMessage({source:'micirql-web',type:'MICIRQL_QA_LAYOUT',id,url},location.origin);
+  }),report.layout.url);
+  if(!response.ok)throw Error(response.error||'Extension could not inspect layout');
+  if(response.interactionTesting!==false)throw Error('Layout response lacks explicit read-only interaction scope');
+  const observations=Array.isArray(response.observations)?response.observations:[];
+  report.layout.observations=observations.map(x=>({
+   width:x.width,verified:x.verified===true,
+   horizontalOverflowPx:x.verified===true?x.horizontalOverflowPx:null,
+   unlabelledVisibleFields:x.verified===true?x.unlabelledVisibleFields:null
+  }));
+  const widths=[375,768,1440];
+  report.layout.status=observations.length===3&&observations.every((x,i)=>
+   x.verified===true&&x.width===widths[i]&&Number.isFinite(x.horizontalOverflowPx))?'verified':'unverified';
+  if(report.layout.status!=='verified')report.layout.error='At least one requested viewport was not verified by Chrome';
+ }catch(error){report.layout.error=String(error?.message||error).slice(0,220)}
+ report.overall=report.results.every(x=>x.status==='verified')&&report.layout.status==='verified'?
+  'verified':report.results.some(x=>x.status==='mismatch')?'needs_review':'unverified';
  await page.close();
 }catch(error){
  report.error=String(error?.message||error).slice(0,400);
