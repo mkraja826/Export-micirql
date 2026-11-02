@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {runInNewContext} from 'node:vm';
 import {inspectQaHtml,QA_INSPECTOR_VERSION} from '../src/qa-inspector.js';
 import {inspectQaHtml as browserInspect,QA_INSPECTOR_VERSION as browserVersion} from '../public/tools/qa/inspector.js';
 import {selectQaLayoutSamples} from '../public/tools/qa/layout-sampling.js';
@@ -189,4 +190,75 @@ test('QA report separates complete HTML scans from bounded viewport observation 
  assert.match(app,/layoutRecords/);
  assert.match(app,/HTML was inspected on /);
  assert.match(app,/layoutInspection=layoutInspections\[0\]\|\|null/);
+});
+
+
+test('QA browser workflow limits layout to three complete same-origin pages and isolates failed samples',async()=>{
+ const source=readFileSync(new URL('../public/tools/qa/app.js',import.meta.url),'utf8')
+  .replace(/^import [^\n]*\n/gm,'');
+ const elements=new Map();
+ const listeners=new Map();
+ const urls=[
+  'https://example.com/','https://example.com/about','https://example.com/contact',
+  'https://example.com/extra','https://example.com/partial','https://other.test/excluded'
+ ];
+ const requests=[];
+ const document={
+  getElementById(id){
+   if(!elements.has(id))elements.set(id,{hidden:false,disabled:false,value:'',textContent:'',
+    addEventListener(){}});
+   return elements.get(id);
+  },
+  addEventListener(){}
+ };
+ const location={origin:'https://tools.micirql.com',search:''};
+ const window={
+  addEventListener(type,fn){
+   if(!listeners.has(type))listeners.set(type,new Set());
+   listeners.get(type).add(fn);
+  },
+  removeEventListener(type,fn){listeners.get(type)?.delete(fn)},
+  postMessage(payload){
+   requests.push(payload);
+   const reply=(type,data={})=>{
+    for(const fn of [...(listeners.get('message')||[])])fn({
+     source:window,origin:location.origin,
+     data:{source:'micirql-extension',type,id:payload.id,...data}
+    });
+   };
+   if(payload.type==='MICIRQL_EXTENSION_PING')reply('MICIRQL_EXTENSION_READY',{capabilities:['qa-layout'],protocol:3});
+   if(payload.type==='MICIRQL_DISCOVER')reply('MICIRQL_DISCOVER_RESULT',{ok:true,pages:urls,truncated:false});
+   if(payload.type==='MICIRQL_SEO_READ'){
+    const isPartial=payload.url.endsWith('/partial');
+    const hasForm=payload.url.endsWith('/contact');
+    reply('MICIRQL_SEO_RESULT',{ok:true,url:payload.url,partial:isPartial,
+     html:'<html><head><title>Example</title></head><body><h1>Example</h1>'
+      +(hasForm?'<form><label for="email">Email</label><input id="email"></form>':'')
+      +'</body></html>'});
+   }
+   if(payload.type==='MICIRQL_QA_LAYOUT'){
+    if(payload.url.endsWith('/contact'))reply('MICIRQL_QA_LAYOUT_RESULT',{ok:false,error:'Viewport unavailable'});
+    else reply('MICIRQL_QA_LAYOUT_RESULT',{ok:true,url:payload.url,observations:
+     [375,768,1440].map(width=>({width,observedWidth:width,verified:true,horizontalOverflowPx:0}))});
+   }
+  }
+ };
+ const sandbox={window,document,location,URL,URLSearchParams,Date,Math,Promise,Number,
+  inspectQaHtml,QA_INSPECTOR_VERSION,selectQaLayoutSamples,
+  setTimeout(){return 1},clearTimeout(){}};
+ runInNewContext(source+'\nthis.__qaScan=scan;',sandbox);
+ const report=await sandbox.__qaScan(new URL('https://example.com/'));
+ assert.equal(report.pagesSelected,5,'Other origins must never enter the audit');
+ assert.equal(report.pagesAnalyzed,4,'Partial snapshots do not count as verified HTML');
+ assert.equal(report.partialPages,1);
+ assert.equal(report.layoutPagesRequested,3);
+ assert.equal(report.layoutPagesVerified,2,'Failed layout observation must remain unverified');
+ assert.equal(report.layoutSamplingLimit,3);
+ assert.deepEqual(Array.from(report.layoutInspections,x=>x.requestedUrl),
+  ['https://example.com/','https://example.com/contact','https://example.com/about']);
+ assert.equal(report.layoutInspections[1].ok,false);
+ assert.equal(report.layoutInspection,report.layoutInspections[0]);
+ assert.equal(requests.filter(x=>x.type==='MICIRQL_QA_LAYOUT').length,3);
+ assert.equal(requests.filter(x=>x.type==='MICIRQL_SEO_READ').length,5);
+ assert.ok(!requests.some(x=>x.type==='MICIRQL_CAPTURE'),'QA does not initiate screenshot downloads');
 });
