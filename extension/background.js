@@ -215,6 +215,7 @@ async function discoverLocalSubpage(url){
  const start=normalize(parsed.href);
  if(!start)throw Error('Invalid starting page');
  const queued=[start],seen=new Set([start]),visited=new Set(),successful=[],errors=[];
+ let limitReached=false;
  const tab=await chrome.tabs.create({url:start,active:false});
  try{
   while(queued.length&&visited.size<60){
@@ -234,12 +235,15 @@ async function discoverLocalSubpage(url){
     successful.push(page);
     for(const value of results[0]?.result||[]){
      const normalized=normalize(value);
-     if(normalized&&!seen.has(normalized)&&seen.size<60){seen.add(normalized);queued.push(normalized)}
+     if(normalized&&!seen.has(normalized)){
+      if(seen.size>=60){limitReached=true;continue}
+      seen.add(normalized);queued.push(normalized);
+     }
     }
    }catch(error){visited.add(page);errors.push({url:page,message:error.message||'Could not inspect page'})}
    try{await chrome.storage.local.set({seoDiscoveryProgress:{done:visited.size,total:60,found:successful.length,errors:errors.length}})}catch{}
   }
-  return {ok:true,pages:successful,scanned:visited.size,errors,truncated:queued.length>0};
+  return {ok:true,pages:successful,scanned:visited.size,errors,truncated:limitReached||queued.length>0};
  }finally{try{await chrome.tabs.remove(tab.id)}catch{}}
 }
 async function readWebsiteHtml(url){
