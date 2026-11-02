@@ -4,6 +4,7 @@
 import {chromium} from 'playwright';
 import {createServer} from 'node:http';
 import {readFile,mkdir,writeFile} from 'node:fs/promises';
+import {execFileSync} from 'node:child_process';
 import {extname,resolve,sep} from 'node:path';
 
 const root=resolve('public');
@@ -115,9 +116,32 @@ async function runCase({name,count,partial,failed}){
   check(requests.filter(x=>x==='MICIRQL_QA_LAYOUT').length===Math.min(3,complete),
    name+': viewports were observed on more pages than stated in the report');
   check(!consoleErrors.length,name+': page JavaScript errors: '+consoleErrors.join('; '));
-  await writeFile(resolve(output,name+'.pdf'),pdf);
+  const pdfPath=resolve(output,name+'.pdf');
+  await writeFile(pdfPath,pdf);
+  // Inspect the actual PDF bytes and extracted text, not just the browser DOM.
+  const info=execFileSync('pdfinfo',[pdfPath],{encoding:'utf8'});
+  const reportedPages=Number(info.match(/^Pages:\s*(\d+)/m)?.[1]);
+  check(reportedPages===pages,name+': pdfinfo page count differs from Chromium structure');
+  check(/^Page size:.*\(A4\)/m.test(info),name+': PDF does not use A4 paper size');
+  const printedText=execFileSync('pdftotext',['-layout',pdfPath,'-'],{encoding:'utf8',maxBuffer:15_000_000});
+  for(const heading of ['What needs attention first','Browser-observed layout','Detailed HTML findings by page']){
+   check(printedText.includes(heading),name+': actual PDF is missing the printed '+heading+' section');
+  }
+  check(printedText.includes('qa-fixture.example'),name+': actual PDF omitted the tested website');
+  if(partial||failed){
+   check(printedText.includes('Not verified'),name+': actual PDF omitted unverified HTML evidence');
+   check(printedText.includes('Simulated capture failure'),name+': actual PDF omitted failed page reason');
+  }
+  const finalText=execFileSync('pdftotext',['-f',String(pages),'-l',String(pages),pdfPath,'-'],
+   {encoding:'utf8',maxBuffer:1_000_000});
+  check(finalText.trim().length>90,name+': last A4 PDF page is blank or contains too little readable content');
+  // First and final page renders are uploaded with the PDFs for manual visual review.
+  execFileSync('pdftoppm',['-f','1','-l','1','-r','100','-png','-singlefile',pdfPath,
+   resolve(output,name+'-first')],{stdio:'ignore'});
+  execFileSync('pdftoppm',['-f',String(pages),'-l',String(pages),'-r','100','-png','-singlefile',
+   pdfPath,resolve(output,name+'-last')],{stdio:'ignore'});
   console.log('QA PDF '+name+' passed: '+complete+' complete, '+partial+' partial, '+failed+' failed HTML pages; '+
-   layouts+' layout pages; '+pages+' printable A4 PDF pages; '+pdf.length+' bytes');
+   layouts+' layout pages; '+pages+' verified A4 PDF pages; '+pdf.length+' bytes, PDF text and first/last page renders checked');
  }finally{await page.close()}
 }
 try{
