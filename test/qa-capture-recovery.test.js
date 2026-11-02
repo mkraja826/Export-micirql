@@ -6,6 +6,7 @@ import {isTransientQaCaptureError,selectQaCaptureRetries,QA_CAPTURE_RETRY_LIMIT}
  from '../public/tools/qa/capture-recovery.js';
 import {inspectQaHtml,QA_INSPECTOR_VERSION} from '../public/tools/qa/inspector.js';
 import {summarizeQaDiscovery} from '../public/tools/qa/discovery-coverage.js';
+import {classifyQaHttpEvidence} from '../public/tools/qa/http-evidence.js';
 import {selectQaLayoutSamples} from '../public/tools/qa/layout-sampling.js';
 import {evaluateQaExtensionHandshake} from '../public/tools/qa/extension-compat.js';
 
@@ -89,7 +90,7 @@ test('QA recovers a transient HTML page once, keeps partial snapshots provisiona
  };
  const sandbox={window,document,location,URL,URLSearchParams,Date,Math,Promise,Number,
   inspectQaHtml,QA_INSPECTOR_VERSION,selectQaLayoutSamples,evaluateQaExtensionHandshake,
-  summarizeQaDiscovery,selectQaCaptureRetries,isTransientQaCaptureError,QA_CAPTURE_RETRY_LIMIT,
+  summarizeQaDiscovery,classifyQaHttpEvidence,selectQaCaptureRetries,isTransientQaCaptureError,QA_CAPTURE_RETRY_LIMIT,
   setTimeout(){return 1},clearTimeout(){}};
  runInNewContext(source+'\nthis.__qaScan=scan;',sandbox);
  const report=await sandbox.__qaScan(new URL('https://example.com/'));
