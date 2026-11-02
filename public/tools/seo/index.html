@@ -361,6 +361,41 @@ siteButton.addEventListener('click',async()=>{
     }:{observed:false,status:null,reason:robotsResponse.error||'unverified'};
    }catch(error){siteReport.robotsTxtEvidence={observed:false,status:null,reason:'extension_unverified'}}
   }
+  // Bounded, read-only external link checks. Only explicit 404/410 means broken.
+  if(!isDemo){
+   const destinations=new Map();
+   for(const inspectedPage of reports){
+    if(inspectedPage.auditStatus!=='complete'||inspectedPage.partial)continue;
+    for(const destination of inspectedPage.externalLinkTargets||[]){
+     try{
+      const target=new URL(destination);
+      if(!['http:','https:'].includes(target.protocol)||target.origin===url.origin||target.username||target.password)continue;
+      target.hash='';
+      const key=target.href;
+      if(!destinations.has(key))destinations.set(key,new Set());
+      destinations.get(key).add(inspectedPage.url);
+     }catch{}
+    }
+   }
+   const entries=[...destinations.entries()];
+   const selectedExternal=entries.slice(0,30);
+   siteReport.externalLinkCoverage={discovered:entries.length,selected:selectedExternal.length,
+    truncated:entries.length>selectedExternal.length};
+   siteReport.externalLinkDiagnostics=[];
+   for(const [destination,sources] of selectedExternal){
+    let observation;
+    try{
+     observation=await extensionRequest('MICIRQL_SEO_LINK_CHECK','MICIRQL_SEO_LINK_RESULT',destination,16000);
+    }catch{observation={ok:false,classification:'unverified',reason:'extension_unverified'}}
+    const classification=observation.ok&&['reachable','broken','server_error'].includes(observation.classification)
+     ?observation.classification:'unverified';
+    const status=Number.isInteger(observation.status)?observation.status:null;
+    siteReport.externalLinkDiagnostics.push({destination,referringPages:[...sources],
+     status,finalUrl:observation.finalUrl||null,
+     classification:classification==='broken'&&status!==404&&status!==410?'unverified':classification,
+     reason:observation.reason||null});
+   }
+  }
   const progressLabel=document.getElementById('site-progress-label');const scanProgressPanel=document.getElementById('site-progress-panel');const completion=document.createElement('p');completion.id='site-scan-completion';completion.className='seo-completion-message';completion.setAttribute('role','status');const needsRetry=failures.length>0||reports.some(page=>page.partial||page.auditStatus!=='complete');completion.textContent=siteReport.linkVerificationPending?'Page checks complete. Checking internal links before your PDF is ready.':needsRetry?'Your PDF is ready with incomplete page checks clearly noted.':'Your PDF is ready. Select Save PDF report, then Save as PDF in your browser.';progressLabel.textContent=siteReport.linkVerificationPending?'Finalizing report…':'Report ready to save';scanProgressPanel.querySelector('#site-scan-completion')?.remove();scanProgressPanel.append(completion);const resultsJump=document.createElement('button');resultsJump.type='button';resultsJump.className='seo-results-jump';resultsJump.textContent='View audit results';resultsJump.setAttribute('aria-controls','site-results');resultsJump.addEventListener('click',()=>{document.getElementById('site-results').scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});document.getElementById('site-results').focus({preventScroll:true});});scanProgressPanel.append(resultsJump);const pdfNow=document.createElement('button');pdfNow.type='button';pdfNow.id='site-save-pdf-now';pdfNow.textContent=siteReport.linkVerificationPending?'Checking links before PDF…':'Save PDF report';pdfNow.disabled=siteReport.linkVerificationPending;pdfNow.setAttribute('aria-label','Save this website SEO audit as PDF');pdfNow.addEventListener('click',()=>sitePrintButton.click());scanProgressPanel.append(pdfNow);if(needsRetry&&!isDemo&&extensionReady){const retryNow=document.createElement('button');retryNow.type='button';retryNow.className='seo-retry-now';retryNow.textContent='Retry pages that need another check';retryNow.addEventListener('click',()=>retryIncompleteButton.click());scanProgressPanel.append(retryNow)}retryIncompleteButton.disabled=isDemo||!reports.some(page=>page.partial||page.auditStatus!=='complete')&&!failures.length;siteExport.disabled=false;siteExportText.disabled=false;sitePrintButton.disabled=siteReport.linkVerificationPending===true;document.getElementById('site-export-pages-csv').disabled=false;document.getElementById('site-export-issues-csv').disabled=false;
   const coverage=document.createElement('p');coverage.className='notice seo-technical-coverage';coverage.textContent='Audit coverage: '+reports.length+'/'+pages.length+' selected pages analyzed; '+siteReport.coverage.uniqueFinalPages+' unique final HTML pages ('+siteReport.coverage.successfulPercent+'%). '+siteReport.coverage.complete+' fully completed; '+siteReport.coverage.partial+' partial and require reinspection. '+(siteReport.coverage.selectionLimited?'Only '+pages.length+' of '+discovered.pages.length+' discovered pages were selected for this audit. ':'')+(siteReport.coverage.discoveryTruncated?'Discovery reached its page limit; more pages may exist. ':'')+'HTTP response evidence: '+measuredHttp.observed+'/'+measuredHttp.analyzed+' inspected pages ('+measuredHttp.percent+'%); missing evidence is unverified ('+measuredHttp.reasons.apiUnavailable+' API unavailable, '+measuredHttp.reasons.noResponseEvent+' no browser response event, '+measuredHttp.reasons.unknown+' unspecified). Capture failures: '+failures.length+' ('+failureDiagnostics.timeout+' timeout, '+failureDiagnostics.extension+' extension, '+failureDiagnostics.incompleteHtml+' incomplete HTML, '+failureDiagnostics.other+' other). Retry diagnostics: '+retryDiagnostics.retried+' pages retried, '+retryDiagnostics.recovered+' recovered, '+retryDiagnostics.stillPartial+' still partial after retry. Unvisited pages are not scored.';siteResults.append(coverage);
   const roleSummary=document.createElement('div');roleSummary.className='summary';roleSummary.id='site-role-summary';
