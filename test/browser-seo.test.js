@@ -1304,7 +1304,7 @@ test('printable audit prioritizes confirmed 404/410 links and includes referring
  const html=readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
  assert.match(html,/issues\.unshift\(\{code:'verified_broken_internal_links'/);
  assert.match(html,/const brokenLinkEvidence=brokenLinks\.length/);
- assert.match(html,/\+brokenLinkEvidence\+diagnosticSummary\+linkDiagnosticEvidence\+'<h2>Score breakdown/);
+ assert.match(html,/\+brokenLinkEvidence\+externalLinkEvidence\+diagnosticSummary\+linkDiagnosticEvidence\+'<h2>Score breakdown/);
  assert.match(html,/row\.referringPages\|\|\[\]/);
 });
 
