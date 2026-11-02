@@ -315,6 +315,12 @@ async function readQaLayout(rawUrl){
    try{
     await cdp(target,'Emulation.setDeviceMetricsOverride',{width,height:PRESETS[width],deviceScaleFactor:1,mobile:width===375});
     await wait(320);
+    // A page can redirect after the initial load. Revalidate origin before every
+    // viewport observation so an unrelated site is never inspected by mistake.
+    const current=await chrome.tabs.get(tab.id);
+    const currentUrl=new URL(current.url||'');
+    if(!['http:','https:'].includes(currentUrl.protocol)||currentUrl.origin!==parsed.origin)
+     throw Error('QA layout page navigated outside the selected website');
     const results=await chrome.scripting.executeScript({target:{tabId:tab.id},func:()=>{
      const root=document.documentElement,body=document.body;
      const viewportWidth=window.innerWidth;
