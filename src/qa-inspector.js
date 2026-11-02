@@ -1,5 +1,5 @@
 // MiCirql QA Lab: bounded static HTML evidence, not executable journey testing.
-export const QA_INSPECTOR_VERSION='micirql-qa-v1';
+export const QA_INSPECTOR_VERSION='micirql-qa-v1.1';
 const attr=(tag,name)=>{
  const match=String(tag).match(new RegExp('(?:^|\\s)'+name+'\\s*=\\s*(?:"([^"]*)"|\\x27([^\\x27]*)\\x27|([^\\s>]+))','i'));
  return match?match[1]??match[2]??match[3]:'';
@@ -25,6 +25,14 @@ export function inspectQaHtml(html,url,options={}){
  if(headingJumps)add('heading_jump','low',headingJumps+' heading transition(s) skip levels. Review reading order.');
  const ids=new Set([...cleaned.matchAll(/<[a-z][^>]*\bid\s*=\s*(?:"([^"]+)"|'([^']+)')[^>]*>/gi)].map(match=>match[1]||match[2]));
  const labelMatches=[...cleaned.matchAll(/<label\b[^>]*>[\s\S]*?<\/label\s*>/gi)];
+ // A referenced ID must resolve in this HTML snapshot before it counts as a name.
+ const hasNameReference=tag=>attr(tag,'aria-labelledby').trim().split(/\s+/).some(id=>id&&ids.has(id));
+ const hasNameAttribute=tag=>Boolean(attr(tag,'aria-label').trim()||hasNameReference(tag)||attr(tag,'title').trim());
+ const hasAltName=inside=>[...inside.matchAll(/<img\b[^>]*>/gi)].some(item=>Boolean(attr(item[0],'alt').trim()));
+ const labelledWithText=match=>{
+  const inner=match[0].replace(/^<label\b[^>]*>/i,'').replace(/<\/label\s*>$/i,'');
+  return Boolean(strip(inner)||hasAltName(inner));
+ };
 
  // Identify duplicate IDs, which can break labels and in-page navigation.
  const idValues=[...cleaned.matchAll(/<[a-z][^>]*\bid\s*=\s*(?:"([^"]+)"|'([^']+)')[^>]*>/gi)].map(match=>match[1]||match[2]);
@@ -35,21 +43,22 @@ export function inspectQaHtml(html,url,options={}){
   const tag=match[0],target=attr(tag,'target').toLowerCase(),rel=attr(tag,'rel').toLowerCase();
   if(target==='_blank'&&!/\bnoopener\b/.test(rel))add('new_tab_without_noopener','info','A new-tab link does not explicitly include noopener. Modern browsers generally protect these links.','a');
  }
- const labels=new Set(labelMatches.map(match=>attr(match[0].split('>')[0]+'>','for')).filter(Boolean));
- const wrappedControlPositions=labelMatches.map(match=>({from:match.index,to:match.index+match[0].length}));
+ const namedLabels=labelMatches.filter(labelledWithText);
+ const labels=new Set(namedLabels.map(match=>attr(match[0].split('>')[0]+'>','for')).filter(Boolean));
+ const wrappedControlPositions=namedLabels.map(match=>({from:match.index,to:match.index+match[0].length}));
  const controls=[...cleaned.matchAll(/<(input|select|textarea)\b[^>]*>/gi)];
  for(const match of controls){
   const tag=match[0],type=attr(tag,'type').toLowerCase();
   if(['hidden','submit','button','reset','image'].includes(type))continue;
   const id=attr(tag,'id');
   const wrapped=wrappedControlPositions.some(range=>match.index>=range.from&&match.index<range.to);
-  if(!attr(tag,'aria-label')&&!attr(tag,'aria-labelledby')&&!(id&&labels.has(id))&&!wrapped)
-   add('unlabelled_control','medium','Form field lacks a detectable accessible label.',tagName(tag));
+  if(!hasNameAttribute(tag)&&!(id&&labels.has(id))&&!wrapped)
+   add('unlabelled_control','medium','Form field may lack an accessible name in this HTML snapshot.',tagName(tag));
  }
  const buttons=[...cleaned.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button\s*>/gi)];
  for(const match of buttons){
   const opening=match[0].split('>')[0]+'>',inside=match[2];
-  const named=strip(inside)||attr(opening,'aria-label')||attr(opening,'aria-labelledby')||attr(opening,'title')||[...inside.matchAll(/<img\b[^>]*>/gi)].some(item=>attr(item[0],'alt'));
+  const named=Boolean(strip(inside)||hasNameAttribute(opening)||hasAltName(inside));
   if(!named)add('empty_button','medium','Button has no detectable accessible name.','button');
  }
  const images=[...cleaned.matchAll(/<img\b[^>]*>/gi)];
@@ -67,7 +76,7 @@ export function inspectQaHtml(html,url,options={}){
    let fragment=href.slice(1);try{fragment=decodeURIComponent(fragment)}catch{}
    if(fragment&&!ids.has(fragment))add('missing_anchor','low','In-page anchor target not found in captured HTML: '+href,href);
   }
-  const named=strip(inside)||attr(opening,'aria-label')||attr(opening,'aria-labelledby')||attr(opening,'title')||[...inside.matchAll(/<img\b[^>]*>/gi)].some(item=>attr(item[0],'alt'));
+  const named=Boolean(strip(inside)||hasNameAttribute(opening)||hasAltName(inside));
   if(!named)add('unnamed_link','medium','Link has no detectable accessible name.',href||'link');
  }
  if(partial)for(const finding of findings){finding.evidenceConfidence='provisional';finding.requiresRecapture=true;}
