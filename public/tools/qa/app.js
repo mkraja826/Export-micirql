@@ -227,7 +227,12 @@ function render(report){
 async function scan(url){
  if(!connected)throw Error('Install or update the MiCirql Chrome extension (inspection protocol v3) in desktop Chrome before running a live scan.');
  updateProgress(0,1,'Discovering public website pages in Chrome…');
- const discovered=await extensionRequest('MICIRQL_DISCOVER','MICIRQL_DISCOVER_RESULT',url.href,180000);
+ let discovered;
+ try{discovered=await extensionRequest('MICIRQL_DISCOVER','MICIRQL_DISCOVER_RESULT',url.href,180000)}
+ catch(error){
+  discovered={ok:false,pages:[],errors:[],scanned:0,truncated:false,
+   error:String(error?.message||'Chrome discovery did not return a result').slice(0,240)};
+ }
  const entries=Array.isArray(discovered.pages)?discovered.pages:[];
  const pages=[];
  for(const entry of entries){
