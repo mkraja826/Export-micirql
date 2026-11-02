@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {assessSeoSiteRisk,SITE_RISK_VERSION} from '../public/tools/seo/site-risk.js';
 const page=(url,extras={})=>({url,auditStatus:'complete',score:97,partial:false,pageRole:'public',...extras});
 const make=(reports,issueCenter=[],extras={})=>({reports,issueCenter,pagesSelected:reports.length,failures:[],coverage:{},...extras});
@@ -52,3 +53,14 @@ test('unknown issue URL cannot imply confirmed website risk',()=>{
  const risk=assessSeoSiteRisk(make([page('https://example.test/')],[issue('noindex','high',['https://external.test/'],{verified:true})]));
  assert.equal(risk.findings.length,0);
 });
+
+test('Dashboard and PDF integrate independent risk evidence without replacing page score',()=>{
+ const fs=requireFileText();
+ assert.match(fs,/import \{assessSeoSiteRisk\} from '\.\/site-risk\.js'/);
+ assert.match(fs,/siteReport\.siteRisk=assessSeoSiteRisk\(siteReport\)/);
+ assert.match(fs,/Independent risk evidence:/);
+ assert.match(fs,/No numeric website-health score has been assigned/);
+});
+function requireFileText(){
+ return readFileSync(new URL('../public/tools/seo/index.html',import.meta.url),'utf8');
+}
