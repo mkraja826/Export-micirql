@@ -104,7 +104,7 @@ function render(report){
    (discovery.truncated?' · More pages may exist beyond the 60-page limit':'')+'.';
   const caution=discovery.status==='completed'?'All discovered URLs attempted within this crawl cap; this does not prove every website page exists in the crawl.':
    'Crawl coverage is incomplete or unconfirmed. Unreached pages have no QA findings and are not counted as healthy.';
-  discoverySummary.textContent=resultText+' '+caution+(discovery.error?' Discovery error: '+discovery.error+'.':'');
+  discoverySummary.textContent=resultText+' '+caution+(discovery.inconsistentCount?' Extension discovery totals are inconsistent; treat coverage as unverified.':'')+(discovery.error?' Discovery error: '+discovery.error+'.':'');
   for(const issue of discovery.errors||[]){
    const entry=node('details');
    entry.append(node('summary',issue.url+' · discovery not verified'),
@@ -243,7 +243,7 @@ async function scan(url){
  const discovery=summarizeQaDiscovery(url.href,discovered,pages);
  const reports=[],failures=[];
  const layoutBudget=layoutSupported?Math.min(3,pages.length):0;
- const progressTotal=pages.length+layoutBudget;
+ const progressTotal=Math.max(1,pages.length+layoutBudget);
  for(let i=0;i<pages.length;i++){
   updateProgress(i,progressTotal,'Inspecting HTML page '+(i+1)+' of '+pages.length+'…');
   try{
