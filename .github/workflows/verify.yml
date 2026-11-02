@@ -26,6 +26,8 @@ jobs:
         run: node scripts/seo-mobile-qa.mjs
       - name: Test QA Lab Chromium A4 PDF pagination and 60-page reports
         run: node scripts/qa-pdf-qa.mjs
+      - name: Test SEO Studio Chromium A4 PDF risk evidence and pagination
+        run: node scripts/seo-pdf-qa.mjs
       - name: Read-only QA extension smoke on public test sites (informational)
         continue-on-error: true
         timeout-minutes: 2
