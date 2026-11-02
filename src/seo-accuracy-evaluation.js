@@ -76,6 +76,12 @@ export function evaluateSeoDetectionAccuracy(pairs){
  if(!Array.isArray(pairs)||!pairs.length)throw Error('Provide at least one audit and ground-truth pair');
  const results=pairs.map(p=>evaluateOne(p.audit,p.groundTruth));
  const rows=results.flatMap(item=>item.rows.map(r=>({...r,website:item.website})));
+ const distinct=new Set();
+ for(const row of rows){
+  const key=row.website+'|'+row.url+'|'+row.code;
+  if(distinct.has(key))throw Error('Duplicate cross-dataset URL and issue label: '+key);
+  distinct.add(key);
+ }
  const eligible=rows.filter(r=>r.status==='evaluated');
  const count={tp:0,fp:0,tn:0,fn:0};
  for(const row of eligible){
@@ -89,10 +95,14 @@ export function evaluateSeoDetectionAccuracy(pairs){
  const recall=metric(count.tp,positives);
  const falsePositiveRate=metric(count.fp,negatives);
  const specificity=metric(count.tn,negatives);
- const sites=new Set(eligible.map(r=>r.website)).size;
- // These thresholds are proposed acceptance gates, NOT empirically validated.
- const sufficientlyRepresentative=eligible.length>=100&&positives>=30&&negatives>=30&&sites>=5;
- const meetsTargets=sufficientlyRepresentative&&precision!==null&&recall!==null&&
+ const perSite=new Map();
+ for(const row of eligible)perSite.set(row.website,(perSite.get(row.website)||0)+1);
+ const sites=perSite.size;
+ // These are proposed dataset screening thresholds, NOT a certification of data quality.
+ const sampleThresholdMet=eligible.length>=100&&positives>=30&&negatives>=30&&
+  sites>=5&&[...perSite.values()].every(count=>count>=10)&&
+  (rows.length-eligible.length)<=Math.floor(rows.length*0.1);
+ const meetsTargets=sampleThresholdMet&&precision!==null&&recall!==null&&
   precision>=0.95&&recall>=0.95;
  return {version:'micirql-detection-benchmark-v1',source:'independently-reviewed URL-level evidence',
   claims:'Benchmark results apply only to reviewed URLs and labeled issue codes, not full Google rankings or a Semrush-equivalent health score.',
@@ -102,10 +112,14 @@ export function evaluateSeoDetectionAccuracy(pairs){
    unknownTruth:rows.filter(r=>r.status==='unknown_ground_truth').length
   },sites,positives,negatives,confusion:count,
   precision,recall,falsePositiveRate,specificity,
-  readyForReleaseClaim:sufficientlyRepresentative,
-  targetMet:meetsTargets,
-  verdict:!sufficientlyRepresentative?'insufficient_independent_evidence':
-   meetsTargets?'proposed_accuracy_target_met':'proposed_accuracy_target_not_met',
+  sampleThresholdMet, targetMet:meetsTargets,
+  // Human verification of provenance, sampling and independent labels is mandatory.
+  // Passing metrics from self-supplied JSON cannot certify real-world accuracy.
+  readyForReleaseClaim:false,
+  independentReviewSignoffRequired:true,
+  verdict:!sampleThresholdMet?'insufficient_independent_evidence':
+   meetsTargets?'proposed_target_met_for_submitted_labels':'proposed_target_not_met',
+  publicationWarning:'This evaluator cannot authenticate manual evidence or sampling independence. Human review is required before public accuracy claims.',
   examples:rows.filter(r=>r.status==='evaluated'&&
    ((r.expected==='present')!==r.detected)).slice(0,25).map(r=>({
     website:r.website,url:r.url,code:r.code,expected:r.expected,detected:r.detected
