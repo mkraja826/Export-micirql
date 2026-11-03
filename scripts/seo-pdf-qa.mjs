@@ -39,9 +39,13 @@ const cases=[
    {destination:'https://external.example/blocked',classification:'unverified',status:null,referringPages:[home]}
   ],issueCenter:[]
  }),
-  must:['Technical verification coverage','robots.txt syntax and crawl directives','DNS resolution and crawl failures',
-   '1 browser-observed DNS resolution failure','External link verification','1 confirmed broken external destination',
-   'https://external.example/gone','https://fixture.example/service-1','Timeouts and blocked checks are not counted as broken']},
+  // pdftotext -layout can interleave columns when a long table-cell label wraps.
+  // Assert full labels in the rendered HTML, plus distinct evidence snippets in PDF text.
+  mustHtml:['robots.txt syntax and crawl directives','DNS resolution and crawl failures',
+   '1 browser-observed DNS resolution failure'],
+  must:['Technical verification coverage','robots.txt','DNS resolution','External link verification',
+   '1 confirmed broken external destination','https://external.example/gone',
+   'https://fixture.example/service-1','Timeouts and blocked checks are not counted as broken']},
  {name:'incomplete',data:report({pagesSelected:35,failures:[{url:home+'missing',reason:'Navigation timed out'}],coverage:{discoveryTruncated:true},issueCenter:[]}),
   must:['Audit evidence incomplete','No numeric website-health score has been assigned','97/100']}
 ];
@@ -51,6 +55,7 @@ try{
  for(const item of cases){
   printedHtml='';printer(item.data);
   if(!printedHtml.includes('Executive summary'))throw Error(item.name+': missing report HTML');
+  for(const phrase of item.mustHtml||[])if(!printedHtml.includes(phrase))throw Error(item.name+': report HTML missing '+phrase);
   const tab=await browser.newPage({viewport:{width:1100,height:800}});
   const errors=[];tab.on('pageerror',e=>errors.push(e.message));
   await tab.setContent(printedHtml,{waitUntil:'load'});
