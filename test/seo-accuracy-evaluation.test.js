@@ -8,7 +8,7 @@ const evidence=(detail='Browser-verified response')=>({
 const page=(url,extra={})=>({url,requestedUrl:url,auditStatus:'complete',partial:false,score:90,...extra});
 const issue=(code,urls)=>({code,severity:'high',affectedUrls:urls});
 const pair=(audit,labels,website=site)=>({
- audit:{website,reports:audit.reports,issueCenter:audit.issueCenter||[]},
+ audit:{website,generatedAt:'2026-11-02T12:00:00Z',reports:audit.reports,issueCenter:audit.issueCenter||[]},
  groundTruth:{schemaVersion:SEO_GROUND_TRUTH_VERSION,website,reviewer:'Independent reviewer',
   labels:labels.map(l=>({evidence:evidence(),...l}))}
 });
@@ -44,7 +44,7 @@ test('uninspected and unknown truth labels abstain instead of inventing negative
  ])]);
  assert.equal(value.eligibleLabels,1);
  assert.equal(value.abstained,3);
- assert.deepEqual(value.abstainReasons,{notInspected:2,unknownTruth:1});
+ assert.deepEqual(value.abstainReasons,{notInspected:2,unknownTruth:1,auditTimeMissing:0,staleEvidence:0});
  assert.deepEqual(value.confusion,{tp:0,fp:0,tn:1,fn:0});
 });
 test('verified HTTP error pages are evaluated for HTTP findings without fake HTML scores',()=>{
@@ -126,4 +126,46 @@ test('unbalanced site sampling does not qualify for a 95% claim',()=>{
  assert.equal(r.sampleThresholdMet,false);
  assert.equal(r.readyForReleaseClaim,false);
  assert.equal(r.verdict,'insufficient_independent_evidence');
+});
+
+test('older audits are excluded from live accuracy estimates instead of counted as errors',()=>{
+ const url=site+'legacy';
+ const sample=pair({reports:[page(url)],issueCenter:[issue('noindex',[url])]},
+  [{url,code:'noindex',expected:'absent'}]);
+ sample.audit.generatedAt='2026-10-24T12:00:00Z';
+ const r=evaluateSeoDetectionAccuracy([sample]);
+ assert.equal(r.eligibleLabels,0);
+ assert.equal(r.abstained,1);
+ assert.equal(r.abstainReasons.staleEvidence,1);
+ assert.equal(r.confusion.fp,0);
+ assert.equal(r.precision,null);
+ assert.equal(r.readyForReleaseClaim,false);
+});
+test('missing audit timestamp is not certified as fresh by evidence timestamps',()=>{
+ const url=site+'no-date';
+ const sample=pair({reports:[page(url)],issueCenter:[]},
+  [{url,code:'missing_title',expected:'present'}]);
+ delete sample.audit.generatedAt;
+ const r=evaluateSeoDetectionAccuracy([sample]);
+ assert.equal(r.abstainReasons.auditTimeMissing,1);
+ assert.equal(r.confusion.fn,0);
+ assert.equal(r.recall,null);
+});
+test('evidence must include an unambiguous timezone',()=>{
+ const url=site+'date';
+ const sample=pair({reports:[page(url)],issueCenter:[]},
+  [{url,code:'missing_title',expected:'absent'}]);
+ sample.groundTruth.labels[0].evidence.observedAt='2026-11-02T12:00:00';
+ const r=evaluateSeoDetectionAccuracy([sample]);
+ assert.equal(r.abstainReasons.staleEvidence,1);
+ assert.equal(r.eligibleLabels,0);
+});
+test('one-day boundary includes 24 hours, excludes 24 hours and one second',()=>{
+ const url=site+'boundary';
+ const sample=pair({reports:[page(url)],issueCenter:[]},
+  [{url,code:'missing_title',expected:'absent'}]);
+ sample.groundTruth.labels[0].evidence.observedAt='2026-11-03T12:00:00Z';
+ assert.equal(evaluateSeoDetectionAccuracy([sample]).eligibleLabels,1);
+ sample.groundTruth.labels[0].evidence.observedAt='2026-11-03T12:00:01Z';
+ assert.equal(evaluateSeoDetectionAccuracy([sample]).eligibleLabels,0);
 });
