@@ -9,7 +9,7 @@ test('accuracy CLI evaluates offline JSON evidence and writes a machine-readable
  const dir=mkdtempSync(join(tmpdir(),'micirql-seo-accuracy-'));
  try{
   const url='https://fixture.test/';
-  const audit={website:url,reports:[{url,auditStatus:'complete',partial:false,score:90}],
+  const audit={website:url,generatedAt:'2026-11-02T12:00:00Z',reports:[{url,auditStatus:'complete',partial:false,score:90}],
    issueCenter:[{code:'http_noindex',severity:'high',affectedUrls:[url]}]};
   const truth={schemaVersion:'micirql-seo-ground-truth-v1',website:url,reviewer:'Test reviewer',
    labels:[{url,code:'http_noindex',expected:'present',evidence:{
