@@ -15,6 +15,8 @@ test('review queue is unreviewed, balanced, bounded, deterministic, and does not
  assert.deepEqual(first,second);
  assert.equal(JSON.stringify(audit),before);
  assert.equal(first.status,'draft_unreviewed');
+ assert.equal(first.provenance.sourceGeneratedAt,null);
+ assert.match(first.provenance.freshnessRequirement,/24 hours/);
  assert.equal(first.reviewer,null);
  assert.equal(first.selectedCount,6);
  assert.ok(first.candidates.detectedCandidates>0);
