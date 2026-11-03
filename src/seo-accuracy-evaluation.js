@@ -49,6 +49,11 @@ function evaluateOne(audit,groundTruth){
   }
  }
  const found=detectionFor(audit);
+ // Time-sensitive evidence must be collected near the snapshot it evaluates.
+ // When timing cannot be established we abstain, rather than inflate precision.
+ const auditTime=typeof audit.generatedAt==='string'&&/(Z|[+-]\\d\\d:\\d\\d)$/i.test(audit.generatedAt)&&
+  Number.isFinite(Date.parse(audit.generatedAt))?Date.parse(audit.generatedAt):null;
+ const windowMs=24*60*60*1000;
  const seen=new Set(),rows=[];
  for(const label of groundTruth.labels){
   const key=urlKey(label?.url);
@@ -65,8 +70,13 @@ function evaluateOne(audit,groundTruth){
    throw Error('Independent, timestamped URL-level evidence required for '+id);
   const page=pages.get(key);
   const eligible=pageInspected(page)||(isHttpCode(label.code)&&verifiedHttpError(page));
+  const observedTime=typeof evidence?.observedAt==='string'&&
+   /(Z|[+-]\\d\\d:\\d\\d)$/i.test(evidence.observedAt)?Date.parse(evidence.observedAt):NaN;
   const status=label.expected==='unknown'?'unknown_ground_truth':
-   !eligible?'not_inspected':'evaluated';
+   !eligible?'not_inspected':
+   auditTime===null?'audit_time_missing':
+   !Number.isFinite(observedTime)||Math.abs(observedTime-auditTime)>windowMs?'stale_evidence':
+   'evaluated';
   rows.push({url:key,code:label.code,expected:label.expected,
    detected:found.has(id),status,evidenceType:evidence?.type||null});
  }
@@ -105,12 +115,15 @@ export function evaluateSeoDetectionAccuracy(pairs){
  const meetsTargets=sampleThresholdMet&&precision!==null&&recall!==null&&
   precision>=0.95&&recall>=0.95;
  return {version:'micirql-detection-benchmark-v1',source:'independently-reviewed URL-level evidence',
-  claims:'Benchmark results apply only to reviewed URLs and labeled issue codes, not full Google rankings or a Semrush-equivalent health score.',
+  claims:'Benchmark results apply only to reviewed URLs and labeled issue codes, not full Google rankings or a Semrush-equivalent health score. URL evidence must be dated within 24 hours of the MiCirql audit.',
   totalLabels:rows.length,eligibleLabels:eligible.length,
   abstained:rows.length-eligible.length,abstainReasons:{
    notInspected:rows.filter(r=>r.status==='not_inspected').length,
-   unknownTruth:rows.filter(r=>r.status==='unknown_ground_truth').length
+   unknownTruth:rows.filter(r=>r.status==='unknown_ground_truth').length,
+   auditTimeMissing:rows.filter(r=>r.status==='audit_time_missing').length,
+   staleEvidence:rows.filter(r=>r.status==='stale_evidence').length
   },sites,positives,negatives,confusion:count,
+  evidenceWindowHours:24,
   precision,recall,falsePositiveRate,specificity,
   sampleThresholdMet, targetMet:meetsTargets,
   // Human verification of provenance, sampling and independent labels is mandatory.
