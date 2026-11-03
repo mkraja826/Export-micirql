@@ -66,6 +66,7 @@ export function createSeoReviewQueue(audit,{maxCases=60,codes=null}={}){
   status:'draft_unreviewed',reviewer:null,
   instructions:'Review each URL and issue independently. Set expected to present or absent only with timestamped independent-http, independent-html or independent-link evidence. Then copy approved labels into micirql-seo-ground-truth-v1 format.',
   provenance:{source:'MiCirql audit JSON',sourceScoringVersion:audit.scoringVersion||null,
+   sourceGeneratedAt:audit.generatedAt||null,freshnessRequirement:'Independent evidence within 24 hours of audit generatedAt',
    inspectedPublicUrls:inspected.size,sourceIssueGroups:audit.issueCenter.length},
   candidates:count,totalCandidates:positives.length+negatives.length,
   selectedCount:labels.length,labels};
