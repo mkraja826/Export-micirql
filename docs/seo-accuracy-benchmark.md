@@ -5,10 +5,11 @@ This tool evaluates **detection accuracy** on independently adjudicated URL + is
 ## Evidence collection
 
 1. Export a normal MiCirql SEO audit JSON for a website. Retain `website`, `reports[]` and `issueCenter[]`. Preserve unscored HTTP error, partial and failed captures.
-2. An independent reviewer checks specific URLs for a specific finding. Record the original inspected URL, issue code, expected result and timestamp. Use real browser response/header evidence for HTTP checks; inspected page HTML for HTML checks; independently checked destination responses for link checks. Do not infer URL-level truth from a site-level summary.
-3. Store a separate ground-truth JSON alongside the audit. Never edit the MiCirql audit to make it agree with the reviewer.
-4. Repeat across sites of different industries and technical stacks, including both positive and negative cases. Record site selection and reviewer notes outside the evaluator.
-5. Re-run the benchmark after releases. Review every false positive and false negative before changing detection code. Keep a held-out set that was not used to tune the rules.
+2. **Capture timing is mandatory:** the MiCirql audit JSON must have a timezone-qualified `generatedAt`, and independent evidence must be observed within 24 hours before or after the audit snapshot. Older reports cannot be used for current truth: the evaluator will abstain with `staleEvidence` or `auditTimeMissing` rather than claim false positives or false negatives. Never change timestamps merely to make a comparison pass.
+3. An independent reviewer checks specific URLs for a specific finding. Record the original inspected URL, issue code, expected result and timestamp. Use real browser response/header evidence for HTTP checks; inspected page HTML for HTML checks; independently checked destination responses for link checks. Do not infer URL-level truth from a site-level summary.
+4. Store a separate ground-truth JSON alongside the audit. Never edit the MiCirql audit to make it agree with the reviewer.
+5. Repeat across sites of different industries and technical stacks, including both positive and negative cases. Record site selection and reviewer notes outside the evaluator.
+6. Re-run the benchmark after releases. Review every false positive and false negative before changing detection code. Keep a held-out set that was not used to tune the rules.
 
 ## Example independently labeled input
 
@@ -43,6 +44,8 @@ Create `labels.json` from **actual observed evidence** — replace all sample va
   ]
 }
 ```
+
+The audit must contain an original `generatedAt` ISO 8601 timestamp with explicit timezone (`Z` or `±hh:mm`). Labels with valid evidence more than 24 hours away from that snapshot are excluded; missing audit timestamps also exclude all positive/negative labels. This protects the benchmark from comparing a changed website to an old scan, but does not eliminate changes within the window.
 
 Supported `expected` values are `present`, `absent`, and `unknown`. Evidence types are `independent-http`, `independent-html` and `independent-link`. For known positive and negative labels, a timestamped, nonblank evidence explanation is required. Labels without a complete MiCirql inspection (or a verified HTTP error for an HTTP issue) are reported as **abstentions**, not false negatives or true negatives. An unknown label does not contribute to precision or recall.
 
@@ -81,3 +84,7 @@ This prepares a bounded, deterministic queue of detected findings and undetected
 A reviewer must open each URL, independently inspect the relevant HTML/headers/link target, record whether the finding is `present` or `absent`, and record timestamped evidence using the ground-truth format above. Leave inaccessible or uncertain URLs as `unknown` and retain abstentions. Use additional sampling to cover issue codes that never appear in the source audit; the queue generator cannot automatically invent negative controls for checks it did not observe.
 
 For JV Dental, the provided Semrush overview has no affected URL list, so this process requires an actual MiCirql audit JSON and independent inspection. The Semrush overview is useful for selecting investigation topics but cannot supply verified URL-level labels.
+
+## Historical audit caution
+
+The earlier MiCirql JV Dental JSON audit was captured on 24 October 2026. It **must not** be compared directly with live November 2026 website evidence for a quantitative accuracy claim; a fresh capture and near-simultaneous independent review are required. The Semrush report summary remains discovery context, not URL-level ground truth.
