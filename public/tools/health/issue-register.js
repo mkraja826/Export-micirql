@@ -36,7 +36,7 @@ export function buildIssueRegister(report){
  for(const link of report.sections?.links?.report?.links||[]){
   if(!['broken','server_error'].includes(link.classification))continue;
   const url=norm(link.destination),code=link.classification;
-  add({key:'http:'+code+':'+url,title:code==='broken'?'Confirmed broken internal destination':'Observed server error',
+  add({key:'http:'+code+':'+url,title:code==='broken'?'Fix confirmed broken internal destination':'Investigate observed server error',
    severity:'high',source:'Links',urls:[url],
    evidence:['HTTP '+String(link.status),...(link.referringPages||[]).slice(0,3).map(x=>'Linked from '+x)],
    verification:'observed_http',status:'finding'});
