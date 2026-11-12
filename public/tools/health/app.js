@@ -123,7 +123,7 @@ function render(report){
    for(const issue of register.items.slice(0,18)){
     const details=issue.verification.replaceAll('_',' ')+' · '+issue.sources.join(' / ')+
      ' · '+issue.affectedPages.length+' affected page(s); '+
-     issue.occurrences+' occurrence(s)'+
+     issue.occurrences+' detector observation(s) (may overlap across tools)'+
      (issue.evidence.length?' · Evidence: '+issue.evidence.slice(0,2).join('; '):'')+
      (issue.affectedPages.length?' · Pages: '+issue.affectedPages.slice(0,2).join(', '):'');
     finding(registerNode,issue.severity.toUpperCase()+' · '+issue.title,details);
