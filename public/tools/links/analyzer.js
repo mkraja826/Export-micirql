@@ -75,8 +75,9 @@ export function summarizeSitemapEvidence(observation,origin){
  const xml=body.replace(/<\!\[CDATA\[([\s\S]*?)\]\]>/g,(_,v)=>v);
  const locs=[...xml.matchAll(/<loc(?:\s[^>]*)?>\s*([^<]+?)\s*<\/loc\s*>/gi)].map(m=>m[1].replace(/&amp;/gi,'&').trim());
  const urls=[...new Set(locs.map(value=>normalizeLinkTarget(value,origin)).filter(Boolean))];
- const external=urls.filter(url=>new URL(url).origin!==origin).length;
- return {state:locs.length?'checked':'needs_review',status,urls:urls.filter(url=>new URL(url).origin===origin).slice(0,500),
+ const siteOrigin=new URL(origin).origin;
+ const external=urls.filter(url=>new URL(url).origin!==siteOrigin).length;
+ return {state:locs.length?'checked':'needs_review',status,urls:urls.filter(url=>new URL(url).origin===siteOrigin).slice(0,500),
   listedCount:locs.length,externalCount:external,
   message:locs.length?'Sitemap locations parsed; this is not a full XML schema validation':'No sitemap <loc> elements observed; review sitemap format'};
 }
