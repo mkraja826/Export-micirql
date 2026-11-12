@@ -36,6 +36,8 @@ jobs:
         run: node scripts/accessibility-pdf-qa.mjs
       - name: Test Security Inspector Chromium A4 PDF evidence and scope
         run: node scripts/security-pdf-qa.mjs
+      - name: Test Performance Lab Chromium A4 PDF and unverified metrics
+        run: node scripts/performance-pdf-qa.mjs
       - name: Read-only QA extension smoke on public test sites (informational)
         continue-on-error: true
         timeout-minutes: 2
@@ -89,6 +91,8 @@ jobs:
           node --check public/tools/accessibility/app.js
           node --check public/tools/security/analyzer.js
           node --check public/tools/security/app.js
+          node --check public/tools/performance/analyzer.js
+          node --check public/tools/performance/app.js
           node --check public/tools/screenshots/studio.js
           node --check extension/background.js
           node --check extension/bridge.js
