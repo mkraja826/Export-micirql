@@ -27,7 +27,7 @@ async function main(){
   }else if(argv[i]==='--enforce')enforce=true;
   else throw Error('Unknown argument '+argv[i]);
  }
- const outputPaths=[output,coverageOutput].filter(Boolean).map(resolve);
+ const outputPaths=[output,coverageOutput].filter(Boolean).map(p=>resolve(p));
  if(new Set(outputPaths).size!==outputPaths.length||outputPaths.some(p=>inputs.includes(p)))
   throw Error('Benchmark outputs must be distinct from each other and all audit/label inputs');
  const result=evaluateSeoDetectionAccuracy(pairs);
