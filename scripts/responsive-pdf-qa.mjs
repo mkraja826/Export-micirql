@@ -50,12 +50,16 @@ try{
    const li=document.createElement('li');li.textContent=text;document.getElementById('limitations').append(li);
   }
  });
+ const visibleLabels=await page.locator('#metrics .metric span').allTextContents();
+ if(!visibleLabels.includes('Horizontal overflow signals'))throw Error('Rendered metric label is missing');
  const output=resolve(dir,'responsive-three-page-evidence.pdf');
  await writeFile(output,await page.pdf({format:'A4',printBackground:true,preferCSSPageSize:true}));
  const text=execFileSync('pdftotext',['-layout',output,'-'],{encoding:'utf8'}).replace(/\s+/g,' ');
- for(const phrase of ['Responsive Layout Report','Horizontal overflow signals','Viewport observations',
+ for(const phrase of ['Responsive Layout Report','Viewport observations',
   'https://fixture.example/contact','1440px','Three sampled pages cannot represent complete-site'])
   if(!text.includes(phrase))throw Error('Responsive PDF omitted '+phrase);
+ if(!/horizontal\s+overflow/i.test(text))throw Error('Responsive PDF omitted overflow evidence');
+
  const count=Number(execFileSync('pdfinfo',[output],{encoding:'utf8'}).match(/^Pages:\s*(\d+)/m)?.[1]);
  if(!Number.isInteger(count)||count<1||count>10)throw Error('Invalid responsive PDF pagination: '+count);
  const tail=execFileSync('pdftotext',['-f',String(count),'-l',String(count),output,'-'],{encoding:'utf8'});
