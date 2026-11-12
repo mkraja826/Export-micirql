@@ -75,6 +75,14 @@ The uploaded Semrush overview reports Site Health 89%, 41 pages, two errors, 82 
 
 This evaluates labeled finding detection for pages actually inspected. It does not independently certify site-risk severity, importance of a landing page, crawl completeness beyond selected URLs, search indexing, rankings, traffic, or AI-bot accessibility. Site-risk classification is covered by separate synthetic rules until independently adjudicated site-risk scenarios are collected. Do not add real user data, private credentials or proprietary customer HTML to repository fixtures.
 
+## Gather an actual browser audit from public test websites
+
+A separate GitHub Actions workflow, **Capture SEO Real-Site Evidence (Informational)**, uses the shipped SEO Studio page and installed Chrome extension to inspect a small, read-only public test site. It requests at most 10 pages per scan and downloads the **real, non-demo** MiCirql site-audit JSON. It then creates an explicitly **unreviewed** issue-code review queue. The workflow does not independently verify any detected or undetected finding.
+
+To run it on GitHub, open **Actions → Capture SEO Real-Site Evidence (Informational) → Run workflow** on `main`. Download the `seo-live-review-candidates` artifact from the completed run. The ZIP includes `summary.json`, and, **only if capture actually succeeded**, an `*-audit.json` plus `*-unreviewed-queue.json`. A green informational workflow alone is not evidence of successful capture; inspect `summary.status` and require `captured_unreviewed`.
+
+The workflow only targets `httpbin.org` or `httpbingo.org` public link demos and retains artifacts for two days. This is a **first live collection smoke test**, not a five-site representative accuracy benchmark. A separate independent reviewer must assess selected URL/code pairs while the audit and independent evidence are within 24 hours of each other. Older artifacts are not eligible for current-truth evaluation. Do not invent timestamps or use self-reported detection results as ground truth.
+
 ## Prepare independent-review cases from an existing MiCirql audit
 
 Run the read-only draft generator:
