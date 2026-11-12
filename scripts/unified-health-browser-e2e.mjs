@@ -112,6 +112,7 @@ try{
   progress:document.querySelector('#progress')?.value,
   metrics:[...document.querySelectorAll('#metrics .metric')].map(x=>x.textContent),
   priorities:document.querySelector('#priorities')?.textContent||'',
+  issueRegister:document.querySelector('#issue-register')?.textContent||'',
   sections:[...document.querySelectorAll('#sections .sect h2')].map(x=>x.textContent),
   sectionText:document.querySelector('#sections')?.textContent||'',
   pages:[...document.querySelectorAll('#pages tr')].map(x=>x.textContent),
@@ -131,6 +132,10 @@ try{
   throw Error('Unified website scan failed to request safe-only Chrome discovery');
  const requestedLinks=evidence.requests.filter(x=>x.type==='MICIRQL_SEO_LINK_CHECK');
  if(requestedLinks.length!==4)throw Error('Unexpected unique link destination count: '+requestedLinks.length);
+ if(!evidence.issueRegister.includes('Source HTML captures need verification')||
+  !evidence.issueRegister.includes('observed http')||
+  !evidence.priorities.includes('Source HTML captures need verification'))
+  throw Error('Issue register and executive summary disagree about verified and unverified evidence');
  if(!evidence.priorities.includes('HTTP 404')||
   !evidence.sectionText.includes('1 confirmed 404/410')||
   !evidence.sectionText.includes('1 unverified')||
@@ -144,6 +149,7 @@ try{
  const text=execFileSync('pdftotext',['-layout',file,'-'],{encoding:'utf8',maxBuffer:6000000})
   .replace(/\s+/g,' ');
  for(const phrase of ['MiCirql Website Health Report','Link & Sitemap Inspector','HTTP 404',
+  'Issue evidence register','Source HTML captures need verification',
   'Accessibility Studio','Security Inspector','Performance Lab',
   'Screenshot Studio','not run','/partial','unverified']){
   if(!text.includes(phrase))throw Error('End-to-end PDF missing '+phrase);
