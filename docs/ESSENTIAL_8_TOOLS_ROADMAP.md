@@ -30,6 +30,16 @@ One website URL → bounded, user-approved website inspection → explicit cover
 7. **Performance milestone 1 (implemented; release verification pending):** one safe public page in a temporary Chrome tab; bounded navigation-response, DOM-ready, load-event and optional FCP timing, plus up to 250 privacy-safe resource timing entries. No simulated throttling, cold-cache control, Lighthouse rating, CPU profiling, field LCP/CLS/INP or completeness claims. Independent Chrome browser QA and repeatability testing must follow.
 8. **Hardening:** extension compatibility, 60-page stress/recovery, A4 PDF pagination, responsive QA, cross-site evidence benchmark, CI/deploy, accessibility, privacy, cost and scale.
 
+## Unified Website Health — Milestone 1 (implemented, validation pending)
+
+- Beginner entrypoint: the tools.micirql.com homepage URL field opens `/tools/health/?url=...`. A separate catalog entry is intentionally not added, keeping the original 15-tool registry unchanged.
+- Browser-extension-first capture: discover up to 60 same-origin pages; capture each selected HTML document **once**, then reuse that DOM snapshot for SEO, QA, accessibility and link extraction.
+- Additional bounded observations: up to 60 unique safe passive internal destination requests, up to three layout samples at 375/768/1440, up to three passive security-header observations, one optional unthrottled performance navigation, and standard sitemap response evidence.
+- Eight visible PDF sections: SEO, QA, Links, Responsive, Accessibility, Security, Performance, Screenshots. Screenshot Studio is explicitly `not_run` because screenshot ZIP generation is separate and opt-in, not silently bundled into the report.
+- Evidence policy: `checked`, `partial`, `not_verified` and `not_run` are reported per tool. Navigation failure or missing browser support must not be converted to a clean result. Only observed HTTP 404/410 is a confirmed broken destination.
+- No global health score, invented field Web Vitals, WCAG certification, security exploitability ratings, or automatic customer-site changes. SEO HTML scores remain clearly labeled per-page heuristics.
+- Acceptance gates: full main-branch unit/Worker tests, shared-analyzer fixtures, 60-page A4 PDF output, deployed route smoke, Chrome v0.3.22+ real-site integration and scoped reliability/accuracy benchmark. Beta remains limited until all release checks succeed.
+
 ## Release gates for each standalone tool
 
 - Consistent URL validation, clear opt-in and a maximum of 60 selected pages.
