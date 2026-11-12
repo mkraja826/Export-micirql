@@ -34,9 +34,9 @@ export const tools = [
   {
     "id": "performance",
     "name": "Performance Lab",
-    "description": "Loading performance, assets and Core Web Vitals.",
-    "status": "planned",
-    "path": null,
+    "description": "One unthrottled Chrome navigation, timing and partial resource evidence; no field Web Vitals.",
+    "status": "limited",
+    "path": "/tools/performance/",
     "icon": "gauge"
   },
   {
