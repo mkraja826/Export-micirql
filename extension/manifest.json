@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "MiCirql Tools — Website Capture",
-  "version": "0.3.20",
+  "version": "0.3.21",
   "description": "Browser-local screenshots, SEO audits, and read-only QA layout, navigation, link and sitemap evidence for public websites.",
   "permissions": [
     "debugger",
