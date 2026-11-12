@@ -110,6 +110,28 @@ function render(report){
   finding($('priorities'),priority.priority.toUpperCase()+' · '+priority.source+' · '+priority.title,
    priority.evidence+' · '+(priority.details||''));
  }
+ const register=report.issueRegister;
+ const registerNode=$('issue-register');
+ if(registerNode){
+  registerNode.replaceChildren();
+  if(register){
+   const counts=register.summary;
+   registerNode.append(el('p',
+    counts.high+' high, '+counts.medium+' medium, '+counts.low+' low; '+
+    counts.review+' review candidates; '+counts.informational+' informational; '+
+    counts.incomplete+' incomplete coverage groups.','small'));
+   for(const issue of register.items.slice(0,18)){
+    const details=issue.verification.replaceAll('_',' ')+' · '+issue.sources.join(' / ')+
+     ' · '+issue.affectedPages.length+' affected page(s); '+
+     issue.occurrences+' occurrence(s)'+
+     (issue.evidence.length?' · Evidence: '+issue.evidence.slice(0,2).join('; '):'')+
+     (issue.affectedPages.length?' · Pages: '+issue.affectedPages.slice(0,2).join(', '):'');
+    finding(registerNode,issue.severity.toUpperCase()+' · '+issue.title,details);
+   }
+   if(register.items.length>18)registerNode.append(el('p',
+    (register.items.length-18)+' additional groups not expanded. Source inspection sections retain their underlying findings.','small muted'));
+  }else registerNode.append(el('p','Issue evidence register unavailable for this report.','muted small'));
+ }
  $('sections').replaceChildren();
  const seo=report.sections.seo;
  let block=section('SEO inspection',seo.status,seo.checked+' / '+seo.total+
