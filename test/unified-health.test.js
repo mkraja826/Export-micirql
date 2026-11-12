@@ -90,7 +90,7 @@ test('one combined report preserves separate evidence and HTTP 404 priorities',(
  assert.equal(report.priorities[0].source,'Links');
  assert.match(report.priorities[0].evidence,/HTTP 404/);
  assert.ok(!('healthScore' in report));assert.ok(!('score' in report));
- assert.ok(report.scope.note.includes('same'));
+ assert.ok(report.scope.note.includes('share'));
  assert.equal(report.scope.sourceHtmlCaptures,2);
 });
 test('partial source coverage and independent unrun browser checks are explicit',()=>{
