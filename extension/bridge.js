@@ -57,6 +57,12 @@ window.addEventListener('message',async event=>{
   catch(error){result={ok:false,error:error.message||'Robots evidence unavailable'}}
   reply('MICIRQL_SEO_ROBOTS_RESULT',id,result||{ok:false,error:'No robots response'});
  }
+ if(type==='MICIRQL_LINK_SITEMAP'){
+  let result;
+  try{result=await chrome.runtime.sendMessage({type:'READ_LINK_SITEMAP',url:event.data.url})}
+  catch(error){result={ok:false,observed:false,error:error.message||'Sitemap inspection failed'}}
+  reply('MICIRQL_LINK_SITEMAP_RESULT',id,result||{ok:false,observed:false,error:'No sitemap response'});
+ }
  if(type==='MICIRQL_SEO_READ'){
   let result;
   try{result=await chrome.runtime.sendMessage({type:'READ_SEO_HTML',url:event.data.url})}
