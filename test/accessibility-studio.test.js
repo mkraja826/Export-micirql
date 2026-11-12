@@ -43,7 +43,7 @@ test('duplicate ID findings are grouped with counts and bounded evidence samples
 });
 test('partial HTML, unavailable HTML and confirmed server error never get fabricated clean findings',()=>{
  const partial=analyze(site,good,{partial:true});
- const missing=analyze(site,undefined);
+ const missing=analyze(site,'');
  const http=analyze(site,good,{httpStatus:503});
  for(const item of [partial,missing,http]){assert.equal(item.status,'unverified');assert.equal(item.signalCount,0)}
  assert.equal(http.reason,'observed_http_503');
