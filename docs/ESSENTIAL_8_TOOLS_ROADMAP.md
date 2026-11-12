@@ -17,7 +17,7 @@ One website URL → bounded, user-approved website inspection → explicit cover
 | Responsive Lab | Limited beta implementation | 3 sampled pages / 375, 768, 1440 CSS-pixel observations; CI/PDF gates and real-browser smoke; screenshot-backed clipping detection remains future work |
 | Accessibility Studio | Limited beta implementation | QA-derived source signals on up to 60 pages; Chrome viewport control observations on 3 pages; manual contrast, keyboard and screen-reader checks still required |
 | Security Inspector | Limited beta implementation | Three safe public page samples; credential-free browser-side HTTP header evidence, no redirects followed or false security score; CI and live browser smoke pending |
-| Performance Lab | Planned | Repeatable synthetic lab timings with clearly separated field Web Vitals |
+| Performance Lab | Limited beta implementation | One unthrottled local-Chrome page navigation: navigation events, optional FCP and partial resource sizes; no LCP/CLS/INP field claims; CI/PDF and real-browser release gates pending |
 
 ## Ordered engineering work
 
@@ -27,7 +27,7 @@ One website URL → bounded, user-approved website inspection → explicit cover
 4. **Unified report milestone 1:** read-only combination of SEO, Links, QA and Responsive summaries. Each section includes `checked / partial / not_verified`, inspection timestamps, evidence URLs and unscored failures.
 5. **Accessibility milestone 1 (implemented; CI and browser QA pending):** reuse QA source checks for up to 60 pages, add HTML language/title review, sample up to 3 pages of read-only accessible-control observations, and produce an A4 review report. Keyboard traversal, computed contrast, and screen readers remain manual/out of scope. Never certify WCAG conformance from these signals.
 6. **Security milestone 1 (implemented, release QA pending):** reuse the extension for a bounded passive GET of three safe public pages. Report HTTPS URL scheme, HSTS, CSP, MIME sniffing, referrer, permissions and frame policies; classify 3xx/HTTP errors/blocked requests independently. Do NOT claim a verified TLS certificate, scan private networks, test open ports, or turn missing headers into confirmed vulnerabilities. Real-browser, CORS and DNS-rebinding boundaries require further validation.
-7. **Performance milestone 1:** browser-local timing and resource metrics. Lab values are not equivalent to Core Web Vitals from real-user field data.
+7. **Performance milestone 1 (implemented; release verification pending):** one safe public page in a temporary Chrome tab; bounded navigation-response, DOM-ready, load-event and optional FCP timing, plus up to 250 privacy-safe resource timing entries. No simulated throttling, cold-cache control, Lighthouse rating, CPU profiling, field LCP/CLS/INP or completeness claims. Independent Chrome browser QA and repeatability testing must follow.
 8. **Hardening:** extension compatibility, 60-page stress/recovery, A4 PDF pagination, responsive QA, cross-site evidence benchmark, CI/deploy, accessibility, privacy, cost and scale.
 
 ## Release gates for each standalone tool
