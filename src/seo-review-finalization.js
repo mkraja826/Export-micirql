@@ -6,7 +6,7 @@ import {SEO_GROUND_TRUTH_VERSION} from './seo-accuracy-evaluation.js';
 const decisions=new Set(['present','absent','unknown']);
 const evidenceTypes=new Set(['independent-http','independent-html','independent-link']);
 const nonblank=v=>typeof v==='string'&&v.trim().length>0;
-const zonedTime=v=>typeof v==='string'&&/(Z|[+-]\\d{2}:\\d{2})$/i.test(v)&&
+const zonedTime=v=>typeof v==='string'&&/(Z|[+-]\d{2}:\d{2})$/i.test(v)&&
  Number.isFinite(Date.parse(v))?Date.parse(v):null;
 const urlKey=value=>{
  try{
