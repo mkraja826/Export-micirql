@@ -79,9 +79,9 @@ Run the read-only draft generator:
 node scripts/prepare-seo-review.mjs audit-jvdental.json --output review-draft.json --max 60
 ```
 
-This prepares a bounded, deterministic queue of detected findings and undetected controls for reviewers. **All labels are set to `unknown` and contain no fabricated verification evidence.** The generated `micirql-seo-review-queue-v1` file is a working draft, **not** directly accepted as `micirql-seo-ground-truth-v1`.
+This prepares a bounded, deterministic queue of detected findings and undetected controls for reviewers. Sampling alternates these two candidate categories and **round-robins across detected SEO issue codes**, so a high-volume issue type does not dominate a limited queue. The draft's `sampling` section reports which codes actually entered the selected sample, including per-code detected-candidate and undetected-control counts. **All labels are set to `unknown` and contain no fabricated verification evidence.** The generated `micirql-seo-review-queue-v1` file is a working draft, **not** directly accepted as `micirql-seo-ground-truth-v1`.
 
-A reviewer must open each URL, independently inspect the relevant HTML/headers/link target, record whether the finding is `present` or `absent`, and record timestamped evidence using the ground-truth format above. Leave inaccessible or uncertain URLs as `unknown` and retain abstentions. Use additional sampling to cover issue codes that never appear in the source audit; the queue generator cannot automatically invent negative controls for checks it did not observe.
+A reviewer must open each URL, independently inspect the relevant HTML/headers/link target, record whether the finding is `present` or `absent`, and record timestamped evidence using the ground-truth format above. Leave inaccessible or uncertain URLs as `unknown` and retain abstentions. Use additional sampling to cover issue codes that never appear in the source audit; the queue generator cannot automatically invent negative controls for checks it did not observe. Reviewer queues are intended to broaden coverage, **not** constitute random sampling or guarantee an unbiased accuracy estimate. Record how sites and URLs were chosen, keep a held-out sample and independently inspect both reported and unreported findings.
 
 ### Finalize independently reviewed evidence
 
