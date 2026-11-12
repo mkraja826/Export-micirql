@@ -122,7 +122,7 @@ test('read-only QA observations report bounded navigation and form counts, with 
  const app=readFileSync(new URL('../public/tools/qa/app.js',import.meta.url),'utf8');
  const source=readFileSync(new URL('../extension/background.js',import.meta.url),'utf8');
  const manifest=JSON.parse(readFileSync(new URL('../extension/manifest.json',import.meta.url),'utf8'));
- assert.equal(manifest.version,'0.3.22');
+ assert.equal(manifest.version,'0.3.23');
  for(const field of ['placeholderNavigationLinks','scriptedNavigationLinks','missingNavigationFragmentTargets','implicitSubmitButtons']){
   assert.ok(source.includes(field),'Extension must provide '+field);
   assert.ok(app.includes(field),'Report must show '+field);
