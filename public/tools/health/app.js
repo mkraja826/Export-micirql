@@ -3,7 +3,7 @@ import {selectQaLayoutSamples} from '../qa/layout-sampling.js';
 import {chooseSecurityPages} from '../security/analyzer.js';
 const $=id=>document.getElementById(id);
 const input=$('url'),button=$('run'),form=$('audit'),status=$('extension-status'),bar=$('progress');
-const REQUIRED=['discover','seo-http-evidence','qa-layout','links-sitemap','security-headers','performance-navigation'];
+const REQUIRED=['discover','seo-http-evidence','qa-layout','links-sitemap','security-headers','performance-navigation','safe-page-discovery'];
 let connected=false,busy=false,latest=null;
 function isCompatible(data){
  return data?.protocol===3&&Array.isArray(data.capabilities)&&
@@ -12,7 +12,7 @@ function isCompatible(data){
 function ready(value){
  connected=value;button.disabled=busy||!value;
  status.textContent=value?'MiCirql Chrome extension connected. Unified read-only scan is available.':
-  'Updated MiCirql Chrome extension v0.3.22+ is required for this scan.';
+  'Updated MiCirql Chrome extension v0.3.23+ is required for this scan.';
  $('extension-help').hidden=value;
 }
 window.addEventListener('message',e=>{
@@ -29,7 +29,7 @@ function normalize(value){
  url.search='';url.hash='';
  return url.href;
 }
-function request(type,replyType,url,timeoutMs=55000,progressType=null){
+function request(type,replyType,url,timeoutMs=55000,progressType=null,extra=null){
  return new Promise((resolve,reject)=>{
   const id='unified-'+Date.now()+'-'+Math.random().toString(36).slice(2);
   let timeout=null;const started=Date.now(),hardLimit=1200000;
@@ -52,7 +52,7 @@ function request(type,replyType,url,timeoutMs=55000,progressType=null){
    cleanup();resolve(event.data);
   };
   window.addEventListener('message',listen);arm();
-  window.postMessage({source:'micirql-web',type,id,url},location.origin);
+  window.postMessage({source:'micirql-web',type,id,url,...(extra||{})},location.origin);
  });
 }
 function progress(message,value){
@@ -208,7 +208,7 @@ form.addEventListener('submit',async event=>{
   progress('Discovering up to 60 public pages…',2);
   let discovery={ok:false,pages:[],truncated:true};
   try{discovery=await request('MICIRQL_DISCOVER','MICIRQL_DISCOVER_RESULT',entry,
-   600000,'MICIRQL_DISCOVER_PROGRESS')}
+   600000,'MICIRQL_DISCOVER_PROGRESS',{safeOnly:true})}
   catch{/* The entry page can still be inspected, with discovery marked incomplete. */}
   const urls=selectUnifiedPages(discovery.ok?discovery.pages:[],entry,60);
   const discoveryTruncated=discovery.ok?discovery.truncated===true:true;
