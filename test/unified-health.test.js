@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {selectUnifiedPages,inspectUnifiedCapture,buildUnifiedHealthReport,UNIFIED_MAX_PAGES} from '../public/tools/health/analyzer.js';
+import {selectUnifiedPages,inspectUnifiedCapture,buildUnifiedHealthReport,isSafeUnifiedPage,UNIFIED_MAX_PAGES} from '../public/tools/health/analyzer.js';
 const site='https://unified.example/';
 const html=page=>`<!doctype html><html lang="en"><head><meta charset="utf-8">
 <title>${page} - Example</title><meta name="description" content="Demonstration of a readable customer page showing services and contact options.">
@@ -21,6 +21,20 @@ test('unified discovery selects a bounded same-origin page set, entry first',()=
  assert.equal(UNIFIED_MAX_PAGES,60);
  assert.ok(selected.every(p=>new URL(p).origin===new URL(site).origin));
  assert.throws(()=>selectUnifiedPages(candidates,site,61),/1 and 60/);
+});
+test('unsafe entered and discovered URLs never become page capture candidates',()=>{
+ const blocked=[site+'logout',site+'api/delete',site+'checkout',site+'admin',site+'report.pdf',
+  site+'?token=private','http://127.0.0.1/','http://localhost/','file:///etc/passwd',
+  'https://user:secret@unified.example/'];
+ for(const item of blocked){
+  assert.equal(isSafeUnifiedPage(item),false,item);
+  assert.throws(()=>selectUnifiedPages([],item),/safe public HTML page/,item);
+ }
+ const chosen=selectUnifiedPages([
+  site+'about',site+'contact?token=private',site+'api/delete',site+'logout',
+  site+'assets.js','https://untrusted.example/',site+'contact'
+ ],site);
+ assert.deepEqual(chosen,[site,site+'about',site+'contact']);
 });
 test('one HTML capture feeds SEO, QA, accessibility, and internal links',()=>{
  const record=analyzed();
