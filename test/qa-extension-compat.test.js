@@ -45,7 +45,7 @@ test('QA current extension may perform three-viewport inspection when capabiliti
  assert.equal(result.status,'ready');
  assert.match(result.message,/v0\.3\.18/);
  const currentManifest=JSON.parse(readFileSync(new URL('../extension/manifest.json',import.meta.url),'utf8'));
- assert.equal(currentManifest.version,'0.3.22');
+ assert.equal(currentManifest.version,'0.3.23');
 });
 test('QA frontend treats invalid protocol as incompatible, without marking it connected',()=>{
  const src=readFileSync(new URL('../public/tools/qa/app.js',import.meta.url),'utf8');
