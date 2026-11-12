@@ -83,6 +83,20 @@ This prepares a bounded, deterministic queue of detected findings and undetected
 
 A reviewer must open each URL, independently inspect the relevant HTML/headers/link target, record whether the finding is `present` or `absent`, and record timestamped evidence using the ground-truth format above. Leave inaccessible or uncertain URLs as `unknown` and retain abstentions. Use additional sampling to cover issue codes that never appear in the source audit; the queue generator cannot automatically invent negative controls for checks it did not observe.
 
+### Finalize independently reviewed evidence
+
+1. Keep `review-draft.json` unchanged as the original case manifest.
+2. Copy it to `reviewed-copy.json`. In that copy, set `reviewer` to the actual reviewer identity. Independently check each URL and issue code; edit only the `expected` and `evidence` fields within each label.
+3. For each `present` or `absent` decision, supply `evidence.type` (`independent-html`, `independent-http`, or `independent-link`), `evidence.observedAt` with a timezone, and a descriptive `evidence.detail`. No measurement may be more than 24 hours from the original audit's `generatedAt`.
+4. Leave cases that could not be independently verified at `unknown`, with `evidence: null`.
+
+```bash
+node scripts/finalize-seo-review.mjs --original review-draft.json --reviewed reviewed-copy.json --output labels.json
+node scripts/evaluate-seo-accuracy.mjs --pair audit-jvdental.json labels.json --output benchmark.json
+```
+
+The finalization command rejects changed case URLs or codes, missing reviewer names, unsupported decisions, missing evidence, stale timestamps and accidental overwrite of the source/annotated files. This is **format and evidence-completeness validation**, not proof that evidence is authentic. The output explicitly remains `self_reported_unverified`; no release claim is permitted without independent human sign-off. Avoid committing real customer data or identifying reviewer details to the public repository.
+
 For JV Dental, the provided Semrush overview has no affected URL list, so this process requires an actual MiCirql audit JSON and independent inspection. The Semrush overview is useful for selecting investigation topics but cannot supply verified URL-level labels.
 
 ## Historical audit caution
