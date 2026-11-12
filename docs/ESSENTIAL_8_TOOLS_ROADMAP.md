@@ -13,17 +13,17 @@ One website URL → bounded, user-approved website inspection → explicit cover
 | Screenshot Studio | Available | Browser QA with 60-page/3-width ZIP reliability and clear failures |
 | SEO Studio | Limited beta | Independent accuracy benchmarks; PDF completeness and evidence provenance |
 | QA Testing Lab | Limited beta | Consistent accessible-name/layout evidence, browser coverage and A4 PDF |
-| Link & Sitemap Inspector | Limited beta implementation | CI green; extension v0.3.20+; real public-site smoke; PDF evidence and 60-link cap |
-| Responsive Lab | Planned | Shared viewport engine, overflow/clipping evidence, 375/768/1440 checks |
+| Link & Sitemap Inspector | Limited beta; release CI validated | Live site smoke with extension v0.3.20+; resume, redirects and sitemap indexes |
+| Responsive Lab | Limited beta implementation | 3 sampled pages / 375, 768, 1440 CSS-pixel observations; CI/PDF gates and real-browser smoke; screenshot-backed clipping detection remains future work |
 | Accessibility Studio | Planned | Automated WCAG-aligned checks, keyboard tests and honest manual-test caveats |
 | Security Inspector | Planned | Safe passive HTTPS/header checks, no intrusive scans, no unverifiable grades |
 | Performance Lab | Planned | Repeatable synthetic lab timings with clearly separated field Web Vitals |
 
 ## Ordered engineering work
 
-1. **Links milestone 1 (current):** extension-based same-origin page discovery (60 max), HTML link extraction, HTTP destination checks (60 unique max), standard sitemap observation, referring-page evidence, print-friendly PDF, CI.
+1. **Links milestone 1 (implemented and CI verified):** extension-based same-origin page discovery (60 max), HTML link extraction, HTTP destination checks (60 unique max), standard sitemap observation, referring-page evidence, print-friendly PDF, CI.
 2. **Links milestone 2:** link-check retry and resume, sitemap index support, canonical sitemap comparison, redirect chain evidence and independent browser smoke. Do not count DNS/timeout/403 as confirmed broken links.
-3. **Responsive milestone 1:** reuse local Chromium screenshots and QA viewport observations. Record horizontal overflow, width mismatch, clipping and evidence for 375/768/1440. Avoid numerical design grades.
+3. **Responsive milestone 1 (implemented, release validation in progress):** reuse QA viewport observations at 375/768/1440 on three sampled pages; record overflow and mobile viewport signals, missing measurements and evidence. Screenshot-backed clipping or overlap detection is NOT in this beta. Avoid numerical design grades.
 4. **Unified report milestone 1:** read-only combination of SEO, Links, QA and Responsive summaries. Each section includes `checked / partial / not_verified`, inspection timestamps, evidence URLs and unscored failures.
 5. **Accessibility milestone 1:** automated semantic checks + keyboard tests. Explain that automated passes do not certify full WCAG conformance.
 6. **Security milestone 1:** passive headers, TLS/HTTPS indicators and redirect policies. SSRF/cross-origin safety boundaries must be reviewed independently.
