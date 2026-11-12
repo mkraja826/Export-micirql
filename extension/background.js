@@ -511,11 +511,11 @@ async function readSecurityHeaders(rawUrl){
  const target=new URL(rawUrl);
  if(!['http:','https:'].includes(target.protocol)||target.username||target.password)
   throw Error('Only HTTP(S) public sites without credentials can be inspected');
- const host=target.hostname.toLowerCase().replace(/^\\[|\\]$/g,'');
+ const host=target.hostname.toLowerCase().replace(/^\[|\]$/g,'');
  if(!host||host==='localhost'||host.endsWith('.localhost')||host.endsWith('.local')||
-  host.endsWith('.internal')||/^\\d+\\.\\d+\\.\\d+\\.\\d+$/.test(host)||host.includes(':'))
+  host.endsWith('.internal')||/^\d+\.\d+\.\d+\.\d+$/.test(host)||host.includes(':'))
   throw Error('IP addresses and local/private hostnames are not supported');
- if(target.search||target.hash||/(?:^|\\/)(?:api|logout|log-out|signout|sign-out|delete|remove|destroy|edit|admin|login|signin|signup|register|account|auth|checkout|purchase|payment|reset-password|unsubscribe|cancel|download|export)(?:\\/|$)/i.test(target.pathname))
+ if(target.search||target.hash||/(?:^|\/)(?:api|logout|log-out|signout|sign-out|delete|remove|destroy|edit|admin|login|signin|signup|register|account|auth|checkout|purchase|payment|reset-password|unsubscribe|cancel|download|export)(?:\/|$)/i.test(target.pathname))
   throw Error('Security checks are limited to safe public page paths without query strings');
  const timeout=new AbortController();
  const timer=setTimeout(()=>timeout.abort(),12000);
