@@ -58,9 +58,9 @@ export const tools = [
   {
     "id": "responsive",
     "name": "Responsive Lab",
-    "description": "Breakpoints, layout overflow and device comparisons.",
-    "status": "planned",
-    "path": null,
+    "description": "Browser-measured overflow and mobile viewport checks at 375, 768 and 1440px.",
+    "status": "limited",
+    "path": "/tools/responsive/",
     "icon": "monitor"
   },
   {
