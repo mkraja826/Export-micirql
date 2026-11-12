@@ -5,7 +5,7 @@ const form=$('audit'),button=$('run'),input=$('url'),extension=$('extension-stat
 let connected=false,busy=false,latest=null;
 function setExtensionReady(ready){
  connected=ready;button.disabled=!ready||busy;
- extension.textContent=ready?'Chrome extension connected. Ready for a read-only scan.':'Extension not connected. Install/reload the latest MiCirql extension in desktop Chrome.';
+ extension.textContent=ready?'Chrome extension connected. Ready for a read-only scan.':'Compatible extension not detected. Install or reload MiCirql extension v0.3.20+ in desktop Chrome.';
  $('extension-help').hidden=ready;
 }
 function announce(){
@@ -13,7 +13,10 @@ function announce(){
 }
 window.addEventListener('message',event=>{
  if(event.source!==window||event.origin!==location.origin||event.data?.source!=='micirql-extension')return;
- if(event.data.type==='MICIRQL_EXTENSION_READY')setExtensionReady(true);
+ if(event.data.type==='MICIRQL_EXTENSION_READY'){
+  const compatible=event.data.protocol>=3&&Array.isArray(event.data.capabilities)&&event.data.capabilities.includes('links-sitemap');
+  setExtensionReady(compatible);
+ }
 });
 announce();setTimeout(announce,800);setTimeout(()=>{if(!connected)setExtensionReady(false)},1500);
 function normalizedUrl(value){
