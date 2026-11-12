@@ -41,6 +41,14 @@ export function buildIssueRegister(report){
    evidence:['HTTP '+String(link.status),...(link.referringPages||[]).slice(0,3).map(x=>'Linked from '+x)],
    verification:'observed_http',status:'finding'});
  }
+ const unverifiedPages=Number(report.scope?.sourcePagesUnverified??report.sections?.seo?.unverified??0);
+ if(unverifiedPages>0) add({key:'coverage:source-html',title:'Source HTML captures need verification',
+  severity:'review',source:'Coverage',status:'incomplete',verification:'not_verified',
+  evidence:[unverifiedPages+' source page(s) unverified; SEO, QA and accessibility checks are incomplete on these pages']});
+ if(report.scope?.discoveryTruncated===true)
+  add({key:'coverage:discovery-limit',title:'Website discovery may be incomplete',
+   severity:'review',source:'Coverage',status:'incomplete',verification:'not_verified',
+   evidence:['Page discovery reached a limit or was truncated; not all site pages may have been inspected']});
  const summary=report.sections?.links?.report?.summary||{};
  if(summary.notChecked||summary.unverified)
   add({key:'coverage:internal-links',title:'Internal destinations need verification',
