@@ -1,4 +1,4 @@
-import {selectUnifiedPages,inspectUnifiedCapture,buildUnifiedHealthReport} from './analyzer.js';
+import {selectUnifiedPages,inspectUnifiedCapture,buildUnifiedHealthReport,isSafeUnifiedPage} from './analyzer.js';
 import {selectQaLayoutSamples} from '../qa/layout-sampling.js';
 import {chooseSecurityPages} from '../security/analyzer.js';
 const $=id=>document.getElementById(id);
@@ -24,9 +24,9 @@ function ping(){window.postMessage({source:'micirql-web',type:'MICIRQL_EXTENSION
 ping();setTimeout(ping,800);setTimeout(()=>{if(!connected)ready(false)},1500);
 function normalize(value){
  const raw=value.trim(),url=new URL(/^https?:\/\//i.test(raw)?raw:'https://'+raw);
- if(!['http:','https:'].includes(url.protocol)||url.username||url.password||!url.hostname)
-  throw Error('Enter a valid HTTP(S) website without embedded credentials');
- url.search='';url.hash='';
+ if(!isSafeUnifiedPage(url.href))
+  throw Error('Enter a safe public webpage without query parameters, credentials or action URLs');
+ url.hash='';
  return url.href;
 }
 function request(type,replyType,url,timeoutMs=55000,progressType=null,extra=null){
