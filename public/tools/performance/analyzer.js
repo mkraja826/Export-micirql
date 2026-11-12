@@ -24,7 +24,7 @@ export function validatePerformancePage(value){
  return result;
 }
 function safeTime(value){
- return Number.isFinite(value)&&value>0&&value<=300000?Math.round(value):null;
+ return Number.isFinite(value)&&value>0&&value<=300000?Math.max(1,Math.round(value)):null;
 }
 function safeCount(value){
  return Number.isInteger(value)&&value>=0&&value<=100000?value:null;
