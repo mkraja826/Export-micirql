@@ -50,9 +50,9 @@ export const tools = [
   {
     "id": "security",
     "name": "Security Inspector",
-    "description": "HTTPS, headers and passive security checks.",
-    "status": "planned",
-    "path": null,
+    "description": "Passive HTTPS and response-header observations with explicit review limits.",
+    "status": "limited",
+    "path": "/tools/security/",
     "icon": "shield"
   },
   {
