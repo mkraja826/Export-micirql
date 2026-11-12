@@ -540,6 +540,72 @@ async function readSecurityHeaders(rawUrl){
    reason:error?.name==='AbortError'?'timeout':'network_or_cors_unverified'};
  }finally{clearTimeout(timer)}
 }
+// A single, unthrottled Chrome tab navigation used only for website performance
+// timing evidence. No page content, resource URLs, cookies or request bodies
+// are returned; a tab redirect outside the exact chosen page is unverified.
+let performanceBusy=false;
+async function readPerformanceObservation(rawUrl){
+ const target=new URL(rawUrl);
+ if(!['http:','https:'].includes(target.protocol)||target.username||target.password||
+  target.search||target.hash||(target.port&&target.port!=='80'&&target.port!=='443'))
+  throw Error('Enter a public HTTP(S) page without credentials, query parameters or custom ports');
+ const host=target.hostname.toLowerCase().replace(/^\[|\]$/g,'');
+ if(!host.includes('.')||host==='localhost'||host.endsWith('.localhost')||
+  host.endsWith('.local')||host.endsWith('.internal')||
+  /^\d+\.\d+\.\d+\.\d+$/.test(host)||host.includes(':')||
+  /\.(?:pdf|zip|png|jpe?g|gif|svg|webp|css|js|json|xml|mp4|mp3|woff2?)$/i.test(target.pathname)||
+  /(?:^|\/)(?:api|logout|log-out|signout|sign-out|delete|remove|destroy|edit|admin|login|signin|signup|register|account|auth|checkout|purchase|payment|reset-password|unsubscribe|cancel|download|export)(?:\/|$)/i.test(target.pathname))
+  throw Error('Only safe public page paths are accepted for this browser observation');
+ let tab=null;
+ try{
+  tab=await chrome.tabs.create({url:target.href,active:false});
+  await waitForUsableTab(tab.id,target.href,30000);
+  // Let the paint timing and resource performance entries settle briefly.
+  await wait(900);
+  const loaded=await chrome.tabs.get(tab.id);
+  let actual;
+  try{actual=new URL(loaded.url||'')}catch{throw Error('Chrome could not confirm loaded page URL')}
+  if(actual.origin!==target.origin||actual.pathname!==target.pathname||
+   actual.search||actual.hash)
+   return {ok:true,observed:false,url:target.href,reason:'navigation_redirected_or_changed'};
+  const scripts=await chrome.scripting.executeScript({target:{tabId:tab.id},func:()=>{
+   const readyState=document.readyState;
+   const nav=performance.getEntriesByType('navigation')[0];
+   if(!nav)return {readyState,observed:false,reason:'navigation_timing_unavailable'};
+   const ms=value=>Number.isFinite(value)&&value>0&&value<=300000?value:null;
+   const paint=performance.getEntriesByType('paint').find(x=>x.name==='first-contentful-paint');
+   const entries=performance.getEntriesByType('resource');
+   const selected=entries.slice(0,250),byInitiatorType={script:0,css:0,img:0,font:0,
+    fetch:0,xmlhttprequest:0,link:0,other:0};
+   let reportedTransferBytes=0,entriesWithTransferSize=0,entriesWithoutTransferSize=0;
+   for(const item of selected){
+    const kind=Object.hasOwn(byInitiatorType,item.initiatorType)?item.initiatorType:'other';
+    byInitiatorType[kind]++;
+    // A size of zero is ambiguous: cached or hidden by TAO. Never call it zero network cost.
+    if(Number.isFinite(item.transferSize)&&item.transferSize>0){
+     entriesWithTransferSize++;
+     reportedTransferBytes+=item.transferSize;
+    }else entriesWithoutTransferSize++;
+   }
+   return {readyState,observed:readyState==='complete',
+    reason:readyState==='complete'?null:'document_load_not_complete',
+    timing:{responseStartMs:ms(nav.responseStart),responseEndMs:ms(nav.responseEnd),
+     domContentLoadedMs:ms(nav.domContentLoadedEventEnd),loadEventMs:ms(nav.loadEventEnd),
+     firstContentfulPaintMs:ms(paint?.startTime)},
+    resources:{entryCount:selected.length,entriesWithTransferSize,
+     entriesWithoutTransferSize,reportedTransferBytes:Math.round(reportedTransferBytes),
+     selectionTruncated:entries.length>250,byInitiatorType}};
+  }});
+  const obs=scripts?.[0]?.result;
+  if(!obs?.observed)return {ok:true,observed:false,url:target.href,
+   reason:obs?.reason||'navigation_timing_unavailable'};
+  return {ok:true,observed:true,url:target.href,scope:'one_unthrottled_browser_navigation',
+   readyState:obs.readyState,timing:obs.timing,resources:obs.resources};
+ }catch(error){
+  return {ok:true,observed:false,url:target.href,
+   reason:String(error?.message||'browser_observation_failed').slice(0,140)};
+ }finally{if(tab?.id){try{await chrome.tabs.remove(tab.id)}catch{}}}
+}
 chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
  if(sender.id!==chrome.runtime.id)return false;
  // The first-party site bridge can request page inspection; reject other web-tab senders.
@@ -563,6 +629,14 @@ chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
  }
  if(message?.type==='READ_SEO_ROBOTS'){
   readRobotsTxt(message.url).then(sendResponse).catch(error=>sendResponse({ok:false,error:error.message||'Robots request failed'}));
+  return true;
+ }
+ if(message?.type==='READ_PERFORMANCE_OBSERVATION'){
+  if(performanceBusy){sendResponse({ok:false,observed:false,error:'Another Performance Lab observation is running'});return false;}
+  performanceBusy=true;
+  readPerformanceObservation(message.url).then(sendResponse).catch(error=>
+   sendResponse({ok:false,observed:false,error:error.message||'Performance observation failed'}))
+   .finally(()=>{performanceBusy=false});
   return true;
  }
  if(message?.type==='READ_SECURITY_HEADERS'){
