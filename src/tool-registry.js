@@ -66,9 +66,9 @@ export const tools = [
   {
     "id": "links",
     "name": "Link & Sitemap Inspector",
-    "description": "Internal links, redirects, errors and sitemaps.",
-    "status": "planned",
-    "path": null,
+    "description": "Read-only internal link checks, HTTP 404/410 evidence and standard sitemap inspection.",
+    "status": "limited",
+    "path": "/tools/links/",
     "icon": "link"
   },
   {
