@@ -63,8 +63,8 @@ function buildBenchmarkCoverage(rows){
    fn?'false_negatives_observed':fp?'false_positives_observed':
    item.eligibleLabels?'no_disagreements_in_sample':'not_evaluated';
   const priority=fn?1:fp?2:coverageScreenMet?4:3;
-  const recommendedAction=fn?'Investigate independently confirmed missed findings first.':
-   fp?'Investigate independently confirmed false alarms.':
+  const recommendedAction=fn?'Review evidence for reviewer-labeled missed findings first.':
+   fp?'Review evidence for reviewer-labeled false alarms.':
    !coverageScreenMet?'Collect more balanced, fresh independent evidence.':
    'Retest using held-out independent labels; no errors observed in this sample.';
   return {code:item.code,totalLabels:item.totalLabels,eligibleLabels:item.eligibleLabels,
