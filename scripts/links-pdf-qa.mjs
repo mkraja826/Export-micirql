@@ -30,7 +30,7 @@ try{
   const table=document.getElementById('destinations');
   for(let i=0;i<60;i++){
    const tr=document.createElement('tr');
-   for(const value of ['https://fixture.example/deep/path/'+i,i<3?'Confirmed broken':i<5?'Server error':i<10?'Unverified':'Reachable',i<3?'404':i<5?'503':'200','https://fixture.example/source/'+i]){
+   for(const value of ['https://f.test/p/'+i,i<3?'Confirmed broken':i<5?'Server error':i<10?'Unverified':'Reachable',i<3?'404':i<5?'503':'200','https://f.test/s/'+i]){
     const cell=document.createElement('td');cell.textContent=value;tr.append(cell);
    }
    table.append(tr);
@@ -41,7 +41,7 @@ try{
  await writeFile(output,pdf);
  const text=execFileSync('pdftotext',['-layout',output,'-'],{encoding:'utf8',maxBuffer:5_000_000}).replace(/\s+/g,' ');
  for(const phrase of ['Link & Sitemap Report','Confirmed broken','Sitemap verification',
-  'https://fixture.example/deep/path/59','https://fixture.example/source/59','End of report coverage statement'])
+  'https://f.test/p/59','https://f.test/s/59','End of report coverage statement'])
   if(!text.includes(phrase))throw Error('Link inspector PDF missing '+phrase);
  const count=Number(execFileSync('pdfinfo',[output],{encoding:'utf8'}).match(/^Pages:\s*(\d+)/m)?.[1]||0);
  if(count<2||count>25)throw Error('Link inspector report pagination outside reasonable bounds: '+count);
