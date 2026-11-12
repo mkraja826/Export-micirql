@@ -18,6 +18,79 @@ const verifiedHttpError=p=>publicPage(p)&&p?.auditStatus==='invalid_http_status'
  Number.isInteger(p.httpVerification.status)&&p.httpVerification.status>=400;
 const isHttpCode=code=>/^http_/.test(code);
 const metric=(n,d)=>d?n/d:null;
+// Screening guidance for reviewer effort, not statistical certification of an SEO rule.
+const codeScreen={minEligible:20,minPositive:5,minNegative:5,minSites:2,maxAbstentionRate:0.1};
+function buildBenchmarkCoverage(rows){
+ const grouped=new Map();
+ for(const row of rows){
+  let item=grouped.get(row.code);
+  if(!item){
+   item={code:row.code,totalLabels:0,eligibleLabels:0,
+    abstentions:{notInspected:0,unknownTruth:0,auditTimeMissing:0,staleEvidence:0},
+    websites:new Set(),confusion:{tp:0,fp:0,tn:0,fn:0}};
+   grouped.set(row.code,item);
+  }
+  item.totalLabels++;
+  if(row.status!=='evaluated'){
+   const reason={not_inspected:'notInspected',unknown_ground_truth:'unknownTruth',
+    audit_time_missing:'auditTimeMissing',stale_evidence:'staleEvidence'}[row.status];
+   if(reason)item.abstentions[reason]++;
+   continue;
+  }
+  item.eligibleLabels++;
+  item.websites.add(row.website);
+  if(row.expected==='present'&&row.detected)item.confusion.tp++;
+  else if(row.expected==='present')item.confusion.fn++;
+  else if(row.detected)item.confusion.fp++;
+  else item.confusion.tn++;
+ }
+ const issueCodes=[...grouped.values()].map(item=>{
+  const {tp,fp,tn,fn}=item.confusion;
+  const positives=tp+fn,negatives=fp+tn;
+  const abstained=item.totalLabels-item.eligibleLabels;
+  const abstentionRate=metric(abstained,item.totalLabels);
+  const sites=item.websites.size;
+  const coverageScreenMet=item.eligibleLabels>=codeScreen.minEligible&&
+   positives>=codeScreen.minPositive&&negatives>=codeScreen.minNegative&&
+   sites>=codeScreen.minSites&&abstentionRate<=codeScreen.maxAbstentionRate;
+  const gaps=[];
+  if(item.eligibleLabels<codeScreen.minEligible)gaps.push('more_evaluable_labels');
+  if(positives<codeScreen.minPositive)gaps.push('more_confirmed_positive_cases');
+  if(negatives<codeScreen.minNegative)gaps.push('more_confirmed_negative_cases');
+  if(sites<codeScreen.minSites)gaps.push('more_independent_websites');
+  if(abstentionRate>codeScreen.maxAbstentionRate)gaps.push('resolve_abstentions');
+  const disagreementStatus=fp&&fn?'false_positives_and_false_negatives':
+   fn?'false_negatives_observed':fp?'false_positives_observed':
+   item.eligibleLabels?'no_disagreements_in_sample':'not_evaluated';
+  const priority=fn?1:fp?2:coverageScreenMet?4:3;
+  const recommendedAction=fn?'Investigate independently confirmed missed findings first.':
+   fp?'Investigate independently confirmed false alarms.':
+   !coverageScreenMet?'Collect more balanced, fresh independent evidence.':
+   'Retest using held-out independent labels; no errors observed in this sample.';
+  return {code:item.code,totalLabels:item.totalLabels,eligibleLabels:item.eligibleLabels,
+   abstained,abstentions:item.abstentions,sites,positives,negatives,confusion:item.confusion,
+   precision:metric(tp,tp+fp),recall:metric(tp,positives),
+   falsePositiveRate:metric(fp,negatives),abstentionRate,
+   screeningCoverageMet:coverageScreenMet,
+   evidenceGaps:gaps,disagreementStatus,priority,recommendedAction};
+ }).sort((a,b)=>a.priority-b.priority||
+  (b.confusion.fn+b.confusion.fp)-(a.confusion.fn+a.confusion.fp)||
+  a.code.localeCompare(b.code));
+ return {
+  version:'micirql-benchmark-coverage-v1',
+  scope:'Only issue codes supplied in ground-truth labels are shown; this is not a catalog of every SEO check.',
+  disclaimer:'Counts describe the submitted reviewer sample, not independently authenticated accuracy or statistical certification.',
+  thresholds:codeScreen,
+  representedIssueCodes:issueCodes.length,
+  coverageScreenedCodes:issueCodes.filter(x=>x.screeningCoverageMet).length,
+  issueCodes,
+  reviewPriorities:issueCodes.filter(x=>x.priority!==4).map(x=>({
+   code:x.code,priority:x.priority,disagreementStatus:x.disagreementStatus,
+   falsePositives:x.confusion.fp,falseNegatives:x.confusion.fn,
+   evidenceGaps:x.evidenceGaps,recommendedAction:x.recommendedAction
+  }))
+ };
+}
 const detectionFor=(audit)=>{
  const issueKeys=new Set();
  for(const issue of audit.issueCenter){
@@ -144,6 +217,7 @@ export function evaluateSeoDetectionAccuracy(pairs){
    dominantIssueCodeShare,diversityThresholdMet,
    requirements:'At least 5 issue codes observed on 2+ websites each, 3 codes with positive and negative labels, and no code above 40% of eligible labels'},
   precision,recall,falsePositiveRate,specificity,
+  coverageReport:buildBenchmarkCoverage(rows),
   sampleThresholdMet, targetMet:meetsTargets,
   // Human verification of provenance, sampling and independent labels is mandatory.
   // Passing metrics from self-supplied JSON cannot certify real-world accuracy.
