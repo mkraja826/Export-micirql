@@ -1,0 +1,49 @@
+name: Capture SEO Real-Site Evidence (Informational)
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/seo-evidence.yml'
+      - 'scripts/collect-seo-live-evidence.mjs'
+      - 'src/seo-review-queue.js'
+      - 'public/tools/seo/**'
+      - 'extension/**'
+permissions:
+  contents: read
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install project and browser
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Collect a real SEO Studio browser audit (informational; never ground truth)
+        id: collect
+        continue-on-error: true
+        timeout-minutes: 5
+        run: node scripts/collect-seo-live-evidence.mjs --strict
+      - name: Summarize evidence collection outcome
+        if: always()
+        run: |
+          if test -f dist/seo-live-evidence/summary.json; then
+            node -e "const x=require('./dist/seo-live-evidence/summary.json'); console.log('SEO evidence:', x.status); console.log('Audit:', x.capturedWebsite||'none'); console.log('Accuracy claim permitted:', x.accuracyClaimPermitted)"
+            echo '### SEO real-site evidence (informational only)' >> "$GITHUB_STEP_SUMMARY"
+            node -e "const x=require('./dist/seo-live-evidence/summary.json'); console.log('Status: '+x.status+'; audit website: '+(x.capturedWebsite||'none')+'; no independently verified ground truth was created.')" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'No real-site SEO audit was captured. Do not treat this run as verified.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Upload unreviewed public-test-site audit and evidence summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: seo-live-review-candidates
+          path: dist/seo-live-evidence/
+          if-no-files-found: warn
+          retention-days: 2
