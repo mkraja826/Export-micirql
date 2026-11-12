@@ -18,6 +18,8 @@ const checks=[
 ];
 checks.push(['/tools/screenshots/',async r=>{const t=await r.text();if(!t.includes('Screenshot')||!t.includes('MiCirql'))throw Error('Screenshot Studio missing')}]);
 checks.push(['/tools/seo/',async r=>{const t=await r.text();for(const marker of ['MiCirql SEO Studio','site-export-pdf','site-audit-history','site-progress-report','Print progress report / Save PDF'])if(!t.includes(marker))throw Error('SEO Studio missing marker: '+marker)}]);
+checks.push(['/tools/links/',async r=>{const t=await r.text();for(const marker of ['Link & Sitemap Inspector','Print / Save PDF report','/tools/links/app.js'])if(!t.includes(marker))throw Error('Link Inspector missing: '+marker)}]);
+checks.push(['/tools/responsive/',async r=>{const t=await r.text();for(const marker of ['Responsive Lab','Print / Save PDF report','/tools/responsive/app.js'])if(!t.includes(marker))throw Error('Responsive Lab missing: '+marker)}]);
 // A freshly uploaded ZIP may not be available at every Cloudflare edge immediately.
 // Retry only transient HTTP outcomes for this downloadable asset; a sustained 404
 // or an invalid ZIP must still fail the deployment.
