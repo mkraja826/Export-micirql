@@ -18,14 +18,29 @@ const valid=value=>{
   u.search='';u.hash='';return u.href;
  }catch{return null}
 };
+export function isSafeUnifiedPage(value){
+ try{
+  const u=new URL(value);
+  if(!['http:','https:'].includes(u.protocol)||u.username||u.password||u.search)return false;
+  if(u.port&&u.port!=='80'&&u.port!=='443')return false;
+  const host=u.hostname.toLowerCase().replace(/^\\[|\\]$/g,'');
+  if(!host.includes('.')||host==='localhost'||host.endsWith('.localhost')||
+   host.endsWith('.local')||host.endsWith('.internal')||
+   /^\\d+\\.\\d+\\.\\d+\\.\\d+$/.test(host)||host.includes(':'))return false;
+  if(/\\.(?:pdf|zip|png|jpe?g|gif|svg|webp|css|js|json|xml|mp4|mp3|woff2?)$/i.test(u.pathname))return false;
+  if(/(?:^|\\/)(?:api|logout|log-out|signout|sign-out|delete|remove|destroy|edit|admin|login|signin|signup|register|account|auth|checkout|purchase|payment|reset-password|unsubscribe|cancel|download|export)(?:\\/|$)/i.test(u.pathname))return false;
+  return true;
+ }catch{return false}
+}
 export function selectUnifiedPages(discovery,website,limit=UNIFIED_MAX_PAGES){
- const entry=valid(website);if(!entry)throw Error('Enter a valid HTTP(S) website URL');
+ const entry=valid(website);if(!entry||!isSafeUnifiedPage(website))
+  throw Error('Enter a safe public HTML page without query parameters or action routes');
  if(!Number.isInteger(limit)||limit<1||limit>UNIFIED_MAX_PAGES)throw Error('Page cap must be between 1 and 60');
  const base=new URL(entry).origin;
  const pages=new Set([entry]);
  for(const value of Array.isArray(discovery)?discovery:[]){
   const url=valid(value);
-  if(url&&new URL(url).origin===base)pages.add(url);
+  if(url&&isSafeUnifiedPage(value)&&new URL(url).origin===base)pages.add(url);
   if(pages.size>=limit)break;
  }
  return [...pages];
