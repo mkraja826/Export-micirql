@@ -8,6 +8,7 @@ import {buildLinkAudit} from '../links/analyzer.js';
 import {buildResponsiveReport} from '../responsive/analyzer.js';
 import {buildSecurityReport} from '../security/analyzer.js';
 import {buildPerformanceReport} from '../performance/analyzer.js';
+import {buildIssueRegister,prioritiesFromRegister} from './issue-register.js';
 export const UNIFIED_MAX_PAGES=60;
 export const UNIFIED_LINK_LIMIT=60;
 export const UNIFIED_LAYOUT_LIMIT=3;
@@ -165,43 +166,11 @@ export function buildUnifiedHealthReport({website,pages=[],discoveredPages=0,dis
    'Discovered pages and checked destinations may omit parts of large or dynamic websites.'
   ]
  };
- report.priorities=derivePriorities(report);
+ report.issueRegister=buildIssueRegister(report);
+ report.priorities=prioritiesFromRegister(report.issueRegister);
  return report;
 }
+// Compatibility entry point for callers that do not build a full report.
 export function derivePriorities(report){
- const priorities=[],push=(priority,source,title,evidence,details)=>priorities.push({
-  priority,source,title,evidence,details});
- for(const link of report.sections.links.report.links){
-  if(link.classification==='broken')push('high','Links','Fix confirmed broken internal destination',
-   link.destination+' · HTTP '+link.status,link.referringPages.slice(0,3).join(', '));
-  if(link.classification==='server_error')push('high','Links','Investigate observed HTTP 5xx destination',
-   link.destination+' · HTTP '+link.status,link.referringPages.slice(0,3).join(', '));
- }
- for(const finding of report.sections.seo.findings){
-  if(['high','medium','low'].includes(finding.severity))push(finding.severity==='high'?'review':finding.severity,'SEO',finding.label,
-   finding.affectedPages[0]||'unknown page',finding.affectedPages.length+' affected page(s); '+finding.occurrences+' occurrence(s)');
- }
- for(const finding of report.sections.qa.findings){
-  if(['high','medium','low'].includes(finding.severity))push(finding.severity==='high'?'review':finding.severity,'QA',finding.label,
-   finding.affectedPages[0]||'unknown page',finding.affectedPages.length+' affected page(s); '+finding.occurrences+' occurrence(s)');
- }
- for(const issue of report.sections.responsive.report.signals){
-  if(issue.code==='document_horizontal_overflow')
-   push('review','Responsive','Review measured horizontal document overflow',
-    issue.url+' · '+issue.width+'px',issue.summary);
- }
- for(const sample of report.sections.security.report.pages){
-  for(const issue of sample.checks||[]){
-   if(issue.state==='review'&&['hsts','csp','nosniff'].includes(issue.code))
-    push('review','Security','Review '+issue.label,sample.url,issue.detail);
-  }
- }
- const linkSummary=report.sections.links.report.summary;
- if(linkSummary.notChecked||linkSummary.unverified)push('review','Links','Finish verifying internal destinations',
-  (linkSummary.notChecked||0)+' not checked; '+(linkSummary.unverified||0)+' unverified',
-  'These URLs are not confirmed healthy or broken.');
- const order={high:0,review:1,medium:2,low:3};
- priorities.sort((a,b)=>(order[a.priority]??2)-(order[b.priority]??2)||
-  a.source.localeCompare(b.source)||a.evidence.localeCompare(b.evidence));
- return priorities.slice(0,25);
+ return prioritiesFromRegister(buildIssueRegister(report));
 }
