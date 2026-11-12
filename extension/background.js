@@ -468,6 +468,43 @@ async function readRobotsTxt(rawUrl){
   reason:error?.name==='AbortError'?'timeout':'network_unverified'}}
  finally{clearTimeout(timer)}
 }
+// Bound sitemap inspection to the standard same-origin path. It never executes scripts.
+async function readSitemapEvidence(rawUrl){
+ const website=new URL(rawUrl);
+ if(!['https:','http:'].includes(website.protocol)||website.username||website.password)
+  throw Error('Invalid website URL');
+ const target=new URL('/sitemap.xml',website.origin);
+ const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),12000);
+ try{
+  const response=await fetch(target.href,{method:'GET',redirect:'manual',credentials:'omit',cache:'no-store',signal:controller.signal});
+  const result={ok:true,observed:true,status:response.status,url:target.href,truncated:false,body:null};
+  if(response.status!==200){try{await response.body?.cancel()}catch{}return result}
+  const type=response.headers.get('content-type')||'';
+  if(type&&!/(?:xml|text\/plain|application\/octet-stream)/i.test(type)){
+   try{await response.body?.cancel()}catch{}
+   return {...result,truncated:true,reason:'unexpected_content_type'};
+  }
+  const declared=Number(response.headers.get('content-length'));
+  if(Number.isFinite(declared)&&declared>500000){
+   try{await response.body?.cancel()}catch{}
+   return {...result,truncated:true,reason:'body_too_large'};
+  }
+  const reader=response.body?.getReader();
+  if(!reader)return {...result,truncated:true,reason:'body_unavailable'};
+  let total=0;const chunks=[];
+  while(true){
+   const next=await reader.read();if(next.done)break;
+   total+=next.value.byteLength;
+   if(total>500000){await reader.cancel();return {...result,truncated:true,reason:'body_too_large'}}
+   chunks.push(next.value);
+  }
+  const bytes=new Uint8Array(total);let offset=0;
+  for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength}
+  return {...result,body:new TextDecoder('utf-8',{fatal:false}).decode(bytes)};
+ }catch(error){
+  return {ok:true,observed:false,status:null,url:target.href,reason:error.name==='AbortError'?'timeout':'request_failed'};
+ }finally{clearTimeout(timeout)}
+}
 chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
  if(sender.id!==chrome.runtime.id)return false;
  // The first-party site bridge can request page inspection; reject other web-tab senders.
@@ -491,6 +528,10 @@ chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
  }
  if(message?.type==='READ_SEO_ROBOTS'){
   readRobotsTxt(message.url).then(sendResponse).catch(error=>sendResponse({ok:false,error:error.message||'Robots request failed'}));
+  return true;
+ }
+ if(message?.type==='READ_LINK_SITEMAP'){
+  readSitemapEvidence(message.url).then(sendResponse).catch(error=>sendResponse({ok:false,observed:false,error:error.message||'Sitemap inspection failed'}));
   return true;
  }
  if(message?.type==='READ_SEO_HTML'){
