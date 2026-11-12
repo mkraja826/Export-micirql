@@ -90,7 +90,7 @@ export function prioritiesFromRegister(register){
   .slice(0,25).map(item=>({
    priority:item.severity,source:item.sources.join(' / '),title:item.title,
    evidence:item.evidence[0]||item.affectedPages[0]||'Review affected page evidence',
-   details:item.affectedPages.length+' affected page(s); '+item.occurrences+' occurrence(s)',
+   details:item.affectedPages.length+' affected page(s); '+item.occurrences+' detector observation(s) (may overlap across tools)',
    issueId:item.id,verification:item.verification,status:item.status
   }));
 }
