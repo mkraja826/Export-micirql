@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Security Inspector | MiCirql Tools</title><meta name="description" content="Read-only checks of public HTTP security response headers with clearly scoped evidence and a printable PDF report.">
+<meta name="robots" content="noindex"><meta name="theme-color" content="#0b1020">
+<style>
+:root{font:16px/1.55 system-ui,-apple-system,Segoe UI,sans-serif;color-scheme:dark}
+*{box-sizing:border-box}body{margin:0;background:#090f1e;color:#f4f7ff}
+.shell{max-width:1050px;margin:auto;padding:26px}nav{display:flex;justify-content:space-between;gap:18px;border-bottom:1px solid #344964;padding-bottom:20px}
+a{color:#bcd0ff}h1{font-size:clamp(32px,5vw,50px);letter-spacing:-.05em;line-height:1.13;margin:14px 0}
+h2{font-size:22px}h3{font-size:17px;overflow-wrap:anywhere}p,.muted{color:#c5d1e5}
+.eyebrow{font-size:12px;letter-spacing:.14em;color:#a6bdff;font-weight:800;text-transform:uppercase}
+.small{font-size:13px}.card{background:#14243a;border:1px solid #3a5274;border-radius:16px;padding:23px;margin:23px 0}
+form{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}input,button{font:inherit;border-radius:10px;min-height:46px;padding:12px}
+input{flex:1;min-width:220px;background:#0d192d;border:1px solid #547296;color:white}button{background:#b5c9ff;color:#0d1b31;border:0;font-weight:750;cursor:pointer}
+button:disabled{opacity:.52;cursor:not-allowed}input:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid #bfceff;outline-offset:3px}
+.status{padding:12px 14px;background:#1b304d;border:1px solid #4a6385;border-radius:10px;color:#e8edff;overflow-wrap:anywhere}
+.note{border-left:3px solid #e0be80;background:#273449;border-radius:8px;padding:12px 14px}
+progress{height:15px;width:100%;accent-color:#aec6ff}.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.metric{padding:13px;background:#0f2139;border:1px solid #375271;border-radius:11px}.metric strong{display:block;font-size:26px}.metric span{font-size:12px;color:#c7d2e2}
+.page{padding:14px 0;border-top:1px solid #3e536f;break-inside:avoid}
+.review{border:1px solid #4b6080;border-radius:9px;padding:10px 13px;margin:9px 0;background:#1b2e46;overflow-wrap:anywhere}
+.review strong{display:block}.review p{margin:4px 0;font-size:13px}
+.raw{overflow-wrap:anywhere;font:12px/1.5 ui-monospace,monospace;color:#c6d8ec}
+.tag{font-weight:700;font-size:12px;color:#d9e5fa}ul{padding-left:22px}
+[hidden]{display:none!important}@media(max-width:650px){.shell{padding:16px}.card{padding:16px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}form button{width:100%}}
+@page{size:A4;margin:15mm}
+@media print{ :root{color-scheme:light}body{background:white!important;color:#171f30!important;font:10pt/1.4 Arial,sans-serif}
+.shell{padding:0;max-width:none}nav,.no-print,#progress-panel{display:none!important}
+h1{font-size:23pt}h2{font-size:15pt}h3{font-size:11pt}
+p,.muted,.metric span,.raw{color:#323a49!important}
+.card,.metric,.review{background:white!important;color:#171f30!important;border-color:#cad2df}
+.card{padding:11pt;margin:9pt 0}.metrics{grid-template-columns:repeat(4,1fr)}
+.metric strong{font-size:18pt}.page{break-inside:avoid}.review{break-inside:avoid}
+.status,.note{background:white!important;color:#171f30!important;border:1px solid #ccd5e0}
+}</style></head><body><div class="shell">
+<nav class="no-print"><a href="/tools/">← All MiCirql tools</a><a href="/tools/accessibility/">Accessibility Studio</a></nav>
+<main><header><p class="eyebrow">MiCirql Tools · Limited beta</p>
+<h1>Security Inspector</h1>
+<p>Review publicly observable HTTPS and response-header configurations without signing in, submitting forms or performing vulnerability attacks.</p></header>
+<section class="card no-print"><h2>Inspect a public website</h2>
+<form id="audit"><input id="url" aria-label="Public website URL" required maxlength="2048" placeholder="https://example.com" spellcheck="false"><button id="run" type="submit" disabled>Inspect security headers</button></form>
+<p class="muted small">This beta inspects up to 3 safe, same-origin public pages. It does not inspect logins, private IPs, cookies, DNS records, certificates, or open ports. Missing headers are review candidates, not proof of a vulnerability.</p>
+<p id="extension-status" class="status" role="status">Checking Chrome extension…</p>
+<p id="extension-help" class="small" hidden>Install/reload the latest <a href="/extension/micirql-tools-extension.zip">MiCirql Chrome extension v0.3.21+</a> in desktop Chrome, then refresh the page.</p>
+</section>
+<section id="progress-panel" class="card no-print" hidden><h2>Reading public response headers</h2><progress id="progress" max="100" value="0"></progress><p id="progress-text" role="status"></p></section>
+<section id="results" class="card" hidden>
+<p class="eyebrow">Evidence-based passive review</p><h2>Security Inspector Report</h2>
+<p id="website"></p><p id="date" class="muted small"></p>
+<div class="metrics" id="metrics"></div>
+<p class="note" id="scope"></p>
+<h2>Observed configuration</h2><div id="pages"></div>
+<h2>What this report does not verify</h2><ul class="small muted" id="limitations"></ul>
+<div class="no-print"><button id="pdf" type="button">Print / Save PDF report</button></div>
+</section></main></div><script type="module" src="/tools/security/app.js"></script></body></html>
