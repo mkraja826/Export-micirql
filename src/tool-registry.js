@@ -42,9 +42,9 @@ export const tools = [
   {
     "id": "accessibility",
     "name": "Accessibility Studio",
-    "description": "Keyboard access, contrast and WCAG checks.",
-    "status": "planned",
-    "path": null,
+    "description": "Read-only HTML and bounded browser accessibility review, with manual WCAG limitations.",
+    "status": "limited",
+    "path": "/tools/accessibility/",
     "icon": "accessibility"
   },
   {
