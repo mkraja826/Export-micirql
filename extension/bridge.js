@@ -2,7 +2,7 @@
 const ORIGIN=location.origin;
 const TRUSTED=new Set(['https://export.micirql.com','https://tools.micirql.com']);
 const reply=(type,id,result)=>window.postMessage({source:'micirql-extension',type,id,...result},ORIGIN);
-const announce=()=>reply('MICIRQL_EXTENSION_READY',null,{protocol:3,extensionVersion:chrome.runtime.getManifest?.()?.version||'unknown',capabilities:['discover','capture','bulk','progress','seo-http-evidence','qa-layout','links-sitemap']});
+const announce=()=>reply('MICIRQL_EXTENSION_READY',null,{protocol:3,extensionVersion:chrome.runtime.getManifest?.()?.version||'unknown',capabilities:['discover','capture','bulk','progress','seo-http-evidence','qa-layout','links-sitemap','security-headers']});
 window.addEventListener('message',async event=>{
  if(event.source!==window||event.origin!==ORIGIN||!TRUSTED.has(ORIGIN)||event.data?.source!=='micirql-web')return;
  const {type,id}=event.data;
@@ -62,6 +62,12 @@ window.addEventListener('message',async event=>{
   try{result=await chrome.runtime.sendMessage({type:'READ_LINK_SITEMAP',url:event.data.url})}
   catch(error){result={ok:false,observed:false,error:error.message||'Sitemap inspection failed'}}
   reply('MICIRQL_LINK_SITEMAP_RESULT',id,result||{ok:false,observed:false,error:'No sitemap response'});
+ }
+ if(type==='MICIRQL_SECURITY_HEADERS'){
+  let result;
+  try{result=await chrome.runtime.sendMessage({type:'READ_SECURITY_HEADERS',url:event.data.url})}
+  catch(error){result={ok:false,observed:false,error:error.message||'Security headers unavailable'}}
+  reply('MICIRQL_SECURITY_HEADERS_RESULT',id,result||{ok:false,observed:false,error:'No security response'});
  }
  if(type==='MICIRQL_SEO_READ'){
   let result;
