@@ -77,7 +77,7 @@ test('standalone beta uses trusted extension messages, printable report and no r
  const client=readFileSync(new URL('../public/tools/links/app.js',import.meta.url),'utf8');
  const bridge=readFileSync(new URL('../extension/bridge.js',import.meta.url),'utf8');
  const worker=readFileSync(new URL('../extension/background.js',import.meta.url),'utf8');
- assert.match(html,/Link & Sitemap Inspector/);assert.match(html,/window\.print/ .source ? /Print \/ Save PDF report/:/Print \/ Save PDF report/);
+ assert.match(html,/Link & Sitemap Inspector/);assert.match(html,/Print \/ Save PDF report/);
  assert.match(client,/MICIRQL_DISCOVER/);
  assert.match(client,/MICIRQL_SEO_READ/);
  assert.match(client,/MICIRQL_SEO_LINK_CHECK/);
