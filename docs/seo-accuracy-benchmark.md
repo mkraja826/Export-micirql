@@ -52,8 +52,12 @@ Supported `expected` values are `present`, `absent`, and `unknown`. Evidence typ
 ## Run locally, offline
 
 ```bash
-node scripts/evaluate-seo-accuracy.mjs --pair audit-jvdental.json labels-jvdental.json --pair audit-badseo.json labels-badseo.json --output results.json
+node scripts/evaluate-seo-accuracy.mjs --pair audit-jvdental.json labels-jvdental.json --pair audit-badseo.json labels-badseo.json --output results.json --coverage-output coverage.md
 ```
+
+**Issue-code coverage report:** Add `--coverage-output coverage.md` to generate an internal Markdown report alongside the machine-readable JSON. The JSON also includes `coverageReport` with per-issue evaluable case counts, positive/negative labels, false positives, false negatives, precision, recall, abstentions, sites and recommended investigation order. It covers only issue codes present in supplied ground-truth labels; an absent code does **not** mean a check passed or that the tool has no issue. The Markdown deliberately excludes individual URL-level examples.
+
+A **preliminary per-code review screen** requires at least 20 evaluable labels, five independently labeled positives, five independently labeled negatives, two websites and no more than 10% abstentions. Passing this limited coverage screen is not statistical accuracy certification and does not override the five-site, 100-label overall benchmark or the independent human sign-off requirement. False positives and false negatives are reviewer-labeled disagreements until supporting evidence is authenticated. The report prioritizes missed findings, then false alarms, then missing evidence; no production scoring changes are made.
 
 `--enforce` exits unsuccessfully if the proposed numeric benchmark target is not met. It is intended for a deliberately curated, independent benchmark suite and should **not** be enabled as a release gate while the dataset is incomplete.
 
