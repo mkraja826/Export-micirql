@@ -2,7 +2,7 @@
 const ORIGIN=location.origin;
 const TRUSTED=new Set(['https://export.micirql.com','https://tools.micirql.com']);
 const reply=(type,id,result)=>window.postMessage({source:'micirql-extension',type,id,...result},ORIGIN);
-const announce=()=>reply('MICIRQL_EXTENSION_READY',null,{protocol:3,extensionVersion:chrome.runtime.getManifest?.()?.version||'unknown',capabilities:['discover','capture','bulk','progress','seo-http-evidence','qa-layout','links-sitemap','security-headers','performance-navigation']});
+const announce=()=>reply('MICIRQL_EXTENSION_READY',null,{protocol:3,extensionVersion:chrome.runtime.getManifest?.()?.version||'unknown',capabilities:['discover','capture','bulk','progress','seo-http-evidence','qa-layout','links-sitemap','security-headers','performance-navigation','safe-page-discovery']});
 window.addEventListener('message',async event=>{
  if(event.source!==window||event.origin!==ORIGIN||!TRUSTED.has(ORIGIN)||event.data?.source!=='micirql-web')return;
  const {type,id}=event.data;
@@ -16,7 +16,7 @@ window.addEventListener('message',async event=>{
     reply('MICIRQL_DISCOVER_PROGRESS',id,{progress:changes.seoDiscoveryProgress.newValue});
    };
    chrome.storage.onChanged.addListener(listener);
-   result=await chrome.runtime.sendMessage({type:'DISCOVER_SUBPAGE',url:event.data.url});
+   result=await chrome.runtime.sendMessage({type:'DISCOVER_SUBPAGE',url:event.data.url,safeOnly:event.data.safeOnly===true});
   }catch(error){result={ok:false,error:error.message||'Discovery failed'}}
   finally{if(listener)chrome.storage.onChanged.removeListener(listener)}
   reply('MICIRQL_DISCOVER_RESULT',id,result||{ok:false,error:'No discovery response'});
