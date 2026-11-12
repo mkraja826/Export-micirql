@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Accessibility Studio | MiCirql Tools</title><meta name="description" content="Review observable website accessibility signals, labelled controls, image alternatives, document language and browser layout evidence.">
+<meta name="robots" content="noindex"><meta name="theme-color" content="#0b1020">
+<style>
+:root{font:16px/1.55 system-ui,-apple-system,Segoe UI,sans-serif;color-scheme:dark}*{box-sizing:border-box}
+body{margin:0;background:#090f1e;color:#f4f7ff}.shell{max-width:1050px;margin:auto;padding:26px}
+nav{display:flex;justify-content:space-between;gap:18px;border-bottom:1px solid #324867;padding-bottom:20px}a{color:#b8caff}
+h1{font-size:clamp(31px,5vw,50px);letter-spacing:-.05em;line-height:1.13;margin:14px 0}h2{font-size:21px}h3{font-size:16px;overflow-wrap:anywhere}
+p,.muted{color:#c3d1e6}.small{font-size:13px}.eyebrow{text-transform:uppercase;font-weight:800;letter-spacing:.14em;color:#a6c1ff;font-size:12px}
+.card{background:#14233a;border:1px solid #344c6e;border-radius:17px;padding:23px;margin:23px 0}
+form{display:flex;gap:10px;margin:19px 0;flex-wrap:wrap}input,button{font:inherit;border-radius:10px;min-height:46px;padding:12px}
+input{flex:1;min-width:220px;background:#0e192c;color:white;border:1px solid #557093}button{border:0;background:#b6cbff;color:#101a2f;font-weight:750;cursor:pointer}
+button:disabled{opacity:.5;cursor:not-allowed}button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #bfd2ff;outline-offset:3px}
+.status{background:#19304f;border:1px solid #446486;border-radius:10px;padding:13px 15px;color:#e5eeff;overflow-wrap:anywhere}
+.notice{background:#27344a;border-left:3px solid #e1c183;border-radius:8px;padding:11px 13px}
+progress{width:100%;height:14px;accent-color:#bed3ff}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:20px 0}
+.metric{background:#0e1f37;border:1px solid #354f73;border-radius:11px;padding:14px}.metric strong{display:block;font-size:25px}.metric span{font-size:12px;color:#c3d2e7}
+.finding{background:#1b2f4c;border:1px solid #3b5271;border-radius:10px;padding:12px;margin:10px 0;overflow-wrap:anywhere}
+.finding strong{display:block}.finding small{color:#c6d5ea}.page{margin-top:26px;border-top:1px solid #365072;padding-top:15px;overflow-wrap:anywhere}
+dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}dd{margin:0;font-weight:750}dt{font-size:13px;color:#c5d2e6}
+[hidden]{display:none!important}@media(max-width:650px){.shell{padding:16px}.card{padding:16px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}form button{width:100%}dl{grid-template-columns:1fr}}
+@page{size:A4;margin:15mm}
+@media print{
+:root{color-scheme:light}body{background:white!important;color:#172033!important;font:10pt/1.4 Arial,sans-serif}
+nav,.no-print,#progress-card{display:none!important}.shell{max-width:none;padding:0}
+h1{font-size:22pt}h2{font-size:15pt;margin-top:10pt}h3{font-size:11pt}
+p,.muted,.small,dt,.metric span{color:#30394b!important}
+.card,.metric,.finding{background:#fff!important;color:#171d2c;border-color:#cbd5e1}
+.card{margin:10pt 0;padding:10pt}.metrics{grid-template-columns:repeat(4,1fr)}.metric strong{font-size:17pt}
+.page{break-before:auto}.finding{break-inside:avoid}h2,h3{break-after:avoid}
+.status,.notice{background:white!important;color:#171d2c!important;border:1px solid #ccc}
+}
+</style></head><body><div class="shell">
+<nav class="no-print"><a href="/tools/">← All MiCirql tools</a><a href="/tools/qa/">QA Testing Lab</a></nav>
+<main><header><p class="eyebrow">MiCirql Tools · Limited beta</p>
+<h1>Accessibility Studio</h1>
+<p>Find accessibility review candidates in captured website HTML, then sample browser-observed control and navigation signals. No website changes, form submissions or claims of full WCAG compliance.</p></header>
+<section class="card no-print"><h2>Review a website</h2>
+<form id="audit"><input id="url" aria-label="Website URL" required maxlength="2048" placeholder="https://example.com" spellcheck="false"><button id="run" disabled type="submit">Start accessibility review</button></form>
+<p class="small muted">Inspects source HTML on up to 60 public pages. Read-only browser measurements on up to 3 representative pages (375px, 768px, 1440px). Color contrast, real keyboard operation and screen-reader output are not verified by this beta.</p>
+<p id="extension-status" class="status" role="status">Checking Chrome extension…</p>
+<p id="extension-help" class="small" hidden>Install/reload the latest <a href="/extension/micirql-tools-extension.zip">MiCirql Chrome extension</a> in desktop Chrome. An older extension can provide source-only checks, but browser observations require the QA layout capability.</p>
+</section>
+<section id="progress-card" class="card no-print" hidden><h2>Inspection progress</h2><progress id="progress" max="100" value="0"></progress><p id="progress-text" role="status"></p></section>
+<section class="card" id="results" hidden>
+<p class="eyebrow">Evidence-based accessibility review</p><h2>Accessibility Studio Report</h2>
+<p id="website"></p><p id="report-date" class="muted small"></p>
+<div class="metrics" id="metrics"></div><p id="coverage" class="notice"></p>
+<h2>Observed source signals</h2><p class="small muted">Items below are review candidates based on static HTML, not adjudicated WCAG violations. Some components require human interpretation.</p>
+<div id="source-findings"></div>
+<h2>Browser observation samples</h2><p id="browser-summary" class="small muted"></p><div id="browser-findings"></div>
+<h2>Pages examined</h2><div id="pages"></div>
+<h2>Manual verification still required</h2><ul class="muted small" id="manual"></ul>
+<div class="no-print"><button type="button" id="pdf">Print / Save PDF report</button></div>
+</section></main></div><script type="module" src="/tools/accessibility/app.js"></script></body></html>
