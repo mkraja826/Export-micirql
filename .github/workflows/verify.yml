@@ -32,6 +32,8 @@ jobs:
         run: node scripts/links-pdf-qa.mjs
       - name: Test Responsive Lab Chromium A4 PDF evidence and pagination
         run: node scripts/responsive-pdf-qa.mjs
+      - name: Test Accessibility Studio Chromium A4 PDF evidence and limitations
+        run: node scripts/accessibility-pdf-qa.mjs
       - name: Read-only QA extension smoke on public test sites (informational)
         continue-on-error: true
         timeout-minutes: 2
@@ -81,6 +83,8 @@ jobs:
           node --check public/tools/links/app.js
           node --check public/tools/responsive/analyzer.js
           node --check public/tools/responsive/app.js
+          node --check public/tools/accessibility/analyzer.js
+          node --check public/tools/accessibility/app.js
           node --check public/tools/screenshots/studio.js
           node --check extension/background.js
           node --check extension/bridge.js
