@@ -81,7 +81,11 @@ function inspectHeaderRows(url,headers){
  if(https&&hsts){
   const max=hsts.match(/(?:^|;)\s*max-age\s*=\s*(\d+)/i);
   if(!max)checks.find(x=>x.code==='hsts').detail+='; max-age not found';
-  else if(Number(max[1])===0)checks.find(x=>x.code==='hsts').detail+='; max-age=0 means HSTS disabled';
+  else if(Number(max[1])===0){
+   const check=checks.find(x=>x.code==='hsts');
+   check.state='review';
+   check.detail='HSTS max-age=0 observed; this disables HSTS persistence. Confirm whether intended.';
+  }
  }
  return checks;
 }
