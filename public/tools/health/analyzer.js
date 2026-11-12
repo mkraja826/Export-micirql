@@ -23,12 +23,12 @@ export function isSafeUnifiedPage(value){
   const u=new URL(value);
   if(!['http:','https:'].includes(u.protocol)||u.username||u.password||u.search)return false;
   if(u.port&&u.port!=='80'&&u.port!=='443')return false;
-  const host=u.hostname.toLowerCase().replace(/^\\[|\\]$/g,'');
+  const host=u.hostname.toLowerCase().replace(/^\[|\]$/g,'');
   if(!host.includes('.')||host==='localhost'||host.endsWith('.localhost')||
    host.endsWith('.local')||host.endsWith('.internal')||
-   /^\\d+\\.\\d+\\.\\d+\\.\\d+$/.test(host)||host.includes(':'))return false;
-  if(/\\.(?:pdf|zip|png|jpe?g|gif|svg|webp|css|js|json|xml|mp4|mp3|woff2?)$/i.test(u.pathname))return false;
-  if(/(?:^|\\/)(?:api|logout|log-out|signout|sign-out|delete|remove|destroy|edit|admin|login|signin|signup|register|account|auth|checkout|purchase|payment|reset-password|unsubscribe|cancel|download|export)(?:\\/|$)/i.test(u.pathname))return false;
+   /^\d+\.\d+\.\d+\.\d+$/.test(host)||host.includes(':'))return false;
+  if(/\.(?:pdf|zip|png|jpe?g|gif|svg|webp|css|js|json|xml|mp4|mp3|woff2?)$/i.test(u.pathname))return false;
+  if(/(?:^|\/)(?:api|logout|log-out|signout|sign-out|delete|remove|destroy|edit|admin|login|signin|signup|register|account|auth|checkout|purchase|payment|reset-password|unsubscribe|cancel|download|export)(?:\/|$)/i.test(u.pathname))return false;
   return true;
  }catch{return false}
 }
