@@ -80,7 +80,11 @@ function inspectHeaderRows(url,headers){
  ];
  if(https&&hsts){
   const max=hsts.match(/(?:^|;)\s*max-age\s*=\s*(\d+)/i);
-  if(!max)checks.find(x=>x.code==='hsts').detail+='; max-age not found';
+  if(!max){
+   const check=checks.find(x=>x.code==='hsts');
+   check.state='review';
+   check.detail='HSTS header observed without a valid max-age directive; the policy may be ineffective.';
+  }
   else if(Number(max[1])===0){
    const check=checks.find(x=>x.code==='hsts');
    check.state='review';
@@ -126,7 +130,7 @@ export function buildSecurityReport({website,observations=[],discoveredPages=0,d
    sampledPages:pages.length,selectionLimited:discoveredPages>pages.length,
    observedResponses:count('observed'),redirectsNotFollowed:count('redirect'),
    httpErrors:count('http_error'),unverified:count('unverified')},
-  summary:{observedHeaderChecks:checked.filter(x=>x.state==='observed').length,
+  summary:{observedHeaderChecks:checked.filter(x=>x.state==='observed'&&x.code!=='https_scheme').length,
    reviewCandidates:checked.filter(x=>x.state==='review').length},
   pages,limitations:[
    'Passive browser-side HTTP response inspection only; no vulnerability exploitation or penetration testing',
