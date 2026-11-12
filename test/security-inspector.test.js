@@ -43,6 +43,13 @@ test('observed HTTPS and supplied header policies remain contextual evidence, no
  assert.equal(SECURITY_ALLOWED_HEADERS.length,7);
  assert.ok(!('score' in data));
 });
+test('HSTS max-age=0 and invalid HSTS are review candidates rather than protective evidence',()=>{
+ const zero=result(observed({'strict-transport-security':'max-age=0'}));
+ const invalid=result(observed({'strict-transport-security':'includeSubDomains'}));
+ assert.equal(zero.checks.find(x=>x.code==='hsts').state,'review');
+ assert.equal(invalid.checks.find(x=>x.code==='hsts').state,'review');
+ assert.match(zero.checks.find(x=>x.code==='hsts').detail,/disables HSTS persistence/);
+});
 test('missing optional policies create review candidates, not proven vulnerabilities',()=>{
  const data=result(observed({}));
  assert.equal(data.state,'observed');
@@ -87,7 +94,7 @@ test('aggregates verified checks separately from unverified or redirected pages'
  assert.deepEqual({sampled:data.scope.sampledPages,observed:data.scope.observedResponses,
   redirected:data.scope.redirectsNotFollowed,unverified:data.scope.unverified},{sampled:3,observed:1,redirected:1,unverified:1});
  assert.equal(data.scope.selectionLimited,true);
- assert.equal(data.summary.observedHeaderChecks,2);
+ assert.equal(data.summary.observedHeaderChecks,1);
  assert.ok(data.summary.reviewCandidates>=3);
  assert.ok(data.limitations.some(x=>x.includes('no vulnerability exploitation')));
  assert.ok(!('score' in data));
