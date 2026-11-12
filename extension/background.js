@@ -505,6 +505,41 @@ async function readSitemapEvidence(rawUrl){
   return {ok:true,observed:false,status:null,url:target.href,reason:error.name==='AbortError'?'timeout':'request_failed'};
  }finally{clearTimeout(timeout)}
 }
+// Passive HTTP response-header observation. User-approved public pages only.
+// Never reads bodies, sends credentials, follows redirects, or performs an attack scan.
+async function readSecurityHeaders(rawUrl){
+ const target=new URL(rawUrl);
+ if(!['http:','https:'].includes(target.protocol)||target.username||target.password)
+  throw Error('Only HTTP(S) public sites without credentials can be inspected');
+ const host=target.hostname.toLowerCase().replace(/^\\[|\\]$/g,'');
+ if(!host||host==='localhost'||host.endsWith('.localhost')||host.endsWith('.local')||
+  host.endsWith('.internal')||/^\\d+\\.\\d+\\.\\d+\\.\\d+$/.test(host)||host.includes(':'))
+  throw Error('IP addresses and local/private hostnames are not supported');
+ if(target.search||target.hash||/(?:^|\\/)(?:api|logout|log-out|signout|sign-out|delete|remove|destroy|edit|admin|login|signin|signup|register|account|auth|checkout|purchase|payment|reset-password|unsubscribe|cancel|download|export)(?:\\/|$)/i.test(target.pathname))
+  throw Error('Security checks are limited to safe public page paths without query strings');
+ const timeout=new AbortController();
+ const timer=setTimeout(()=>timeout.abort(),12000);
+ try{
+  const response=await fetch(target.href,{method:'GET',redirect:'manual',credentials:'omit',cache:'no-store',signal:timeout.signal});
+  const status=response.status;
+  const location=response.headers.get('location')||null;
+  const names=['strict-transport-security','content-security-policy','x-content-type-options',
+   'referrer-policy','permissions-policy','x-frame-options','cross-origin-opener-policy'];
+  const headers={};
+  for(const name of names){
+   const value=response.headers.get(name);
+   if(value)headers[name]=value.slice(0,2048);
+  }
+  try{await response.body?.cancel()}catch{}
+  if(response.type==='opaqueredirect'||response.type==='opaque'||!Number.isInteger(status)||status<100)
+   return {ok:true,observed:false,url:target.href,status:null,reason:'response_not_exposed'};
+  return {ok:true,observed:true,url:response.url||target.href,status,headers,
+   location:status>=300&&status<400&&location?location.slice(0,250):null};
+ }catch(error){
+  return {ok:true,observed:false,url:target.href,status:null,
+   reason:error?.name==='AbortError'?'timeout':'network_or_cors_unverified'};
+ }finally{clearTimeout(timer)}
+}
 chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
  if(sender.id!==chrome.runtime.id)return false;
  // The first-party site bridge can request page inspection; reject other web-tab senders.
@@ -528,6 +563,10 @@ chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
  }
  if(message?.type==='READ_SEO_ROBOTS'){
   readRobotsTxt(message.url).then(sendResponse).catch(error=>sendResponse({ok:false,error:error.message||'Robots request failed'}));
+  return true;
+ }
+ if(message?.type==='READ_SECURITY_HEADERS'){
+  readSecurityHeaders(message.url).then(sendResponse).catch(error=>sendResponse({ok:false,observed:false,error:error.message||'Security header observation failed'}));
   return true;
  }
  if(message?.type==='READ_LINK_SITEMAP'){
