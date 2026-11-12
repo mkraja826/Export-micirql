@@ -145,7 +145,7 @@ try{
   .replace(/\s+/g,' ');
  for(const phrase of ['MiCirql Website Health Report','Link & Sitemap Inspector','HTTP 404',
   'Accessibility Studio','Security Inspector','Performance Lab',
-  'Screenshot Studio','not_run','/partial','unverified']){
+  'Screenshot Studio','not run','/partial','unverified']){
   if(!text.includes(phrase))throw Error('End-to-end PDF missing '+phrase);
  }
  const pages=Number(execFileSync('pdfinfo',[file],{encoding:'utf8'}).match(/^Pages:\s*(\d+)/m)?.[1]||0);
