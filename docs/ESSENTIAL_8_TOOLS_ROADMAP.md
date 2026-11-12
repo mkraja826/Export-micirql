@@ -15,7 +15,7 @@ One website URL → bounded, user-approved website inspection → explicit cover
 | QA Testing Lab | Limited beta | Consistent accessible-name/layout evidence, browser coverage and A4 PDF |
 | Link & Sitemap Inspector | Limited beta; release CI validated | Live site smoke with extension v0.3.20+; resume, redirects and sitemap indexes |
 | Responsive Lab | Limited beta implementation | 3 sampled pages / 375, 768, 1440 CSS-pixel observations; CI/PDF gates and real-browser smoke; screenshot-backed clipping detection remains future work |
-| Accessibility Studio | Planned | Automated WCAG-aligned checks, keyboard tests and honest manual-test caveats |
+| Accessibility Studio | Limited beta implementation | QA-derived source signals on up to 60 pages; Chrome viewport control observations on 3 pages; manual contrast, keyboard and screen-reader checks still required |
 | Security Inspector | Planned | Safe passive HTTPS/header checks, no intrusive scans, no unverifiable grades |
 | Performance Lab | Planned | Repeatable synthetic lab timings with clearly separated field Web Vitals |
 
@@ -25,7 +25,7 @@ One website URL → bounded, user-approved website inspection → explicit cover
 2. **Links milestone 2:** link-check retry and resume, sitemap index support, canonical sitemap comparison, redirect chain evidence and independent browser smoke. Do not count DNS/timeout/403 as confirmed broken links.
 3. **Responsive milestone 1 (implemented, release validation in progress):** reuse QA viewport observations at 375/768/1440 on three sampled pages; record overflow and mobile viewport signals, missing measurements and evidence. Screenshot-backed clipping or overlap detection is NOT in this beta. Avoid numerical design grades.
 4. **Unified report milestone 1:** read-only combination of SEO, Links, QA and Responsive summaries. Each section includes `checked / partial / not_verified`, inspection timestamps, evidence URLs and unscored failures.
-5. **Accessibility milestone 1:** automated semantic checks + keyboard tests. Explain that automated passes do not certify full WCAG conformance.
+5. **Accessibility milestone 1 (implemented; CI and browser QA pending):** reuse QA source checks for up to 60 pages, add HTML language/title review, sample up to 3 pages of read-only accessible-control observations, and produce an A4 review report. Keyboard traversal, computed contrast, and screen readers remain manual/out of scope. Never certify WCAG conformance from these signals.
 6. **Security milestone 1:** passive headers, TLS/HTTPS indicators and redirect policies. SSRF/cross-origin safety boundaries must be reviewed independently.
 7. **Performance milestone 1:** browser-local timing and resource metrics. Lab values are not equivalent to Core Web Vitals from real-user field data.
 8. **Hardening:** extension compatibility, 60-page stress/recovery, A4 PDF pagination, responsive QA, cross-site evidence benchmark, CI/deploy, accessibility, privacy, cost and scale.
