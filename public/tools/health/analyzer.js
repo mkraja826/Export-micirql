@@ -168,7 +168,7 @@ export function buildUnifiedHealthReport({website,pages=[],discoveredPages=0,dis
  report.priorities=derivePriorities(report);
  return report;
 }
-function derivePriorities(report){
+export function derivePriorities(report){
  const priorities=[],push=(priority,source,title,evidence,details)=>priorities.push({
   priority,source,title,evidence,details});
  for(const link of report.sections.links.report.links){
@@ -178,12 +178,12 @@ function derivePriorities(report){
    link.destination+' · HTTP '+link.status,link.referringPages.slice(0,3).join(', '));
  }
  for(const finding of report.sections.seo.findings){
-  if(finding.severity==='high')push('review','SEO',finding.label,
-   finding.affectedPages[0]||'unknown page',finding.affectedPages.length+' affected page(s)');
+  if(['high','medium','low'].includes(finding.severity))push(finding.severity==='high'?'review':finding.severity,'SEO',finding.label,
+   finding.affectedPages[0]||'unknown page',finding.affectedPages.length+' affected page(s); '+finding.occurrences+' occurrence(s)');
  }
  for(const finding of report.sections.qa.findings){
-  if(finding.severity==='high')push('review','QA',finding.label,
-   finding.affectedPages[0]||'unknown page',finding.affectedPages.length+' affected page(s)');
+  if(['high','medium','low'].includes(finding.severity))push(finding.severity==='high'?'review':finding.severity,'QA',finding.label,
+   finding.affectedPages[0]||'unknown page',finding.affectedPages.length+' affected page(s); '+finding.occurrences+' occurrence(s)');
  }
  for(const issue of report.sections.responsive.report.signals){
   if(issue.code==='document_horizontal_overflow')
@@ -196,7 +196,11 @@ function derivePriorities(report){
     push('review','Security','Review '+issue.label,sample.url,issue.detail);
   }
  }
- const order={high:0,review:1};
+ const linkSummary=report.sections.links.report.summary;
+ if(linkSummary.notChecked||linkSummary.unverified)push('review','Links','Finish verifying internal destinations',
+  (linkSummary.notChecked||0)+' not checked; '+(linkSummary.unverified||0)+' unverified',
+  'These URLs are not confirmed healthy or broken.');
+ const order={high:0,review:1,medium:2,low:3};
  priorities.sort((a,b)=>(order[a.priority]??2)-(order[b.priority]??2)||
   a.source.localeCompare(b.source)||a.evidence.localeCompare(b.evidence));
  return priorities.slice(0,25);
