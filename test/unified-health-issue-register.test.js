@@ -68,3 +68,23 @@ test('source evidence is retained and bounded without modifying page scores',()=
  assert.equal(report.sections.seo.perPage[0].score,96);
  assert.equal(register.version,1);
 });
+
+test('incomplete source HTML snapshots appear in priorities without fabricated defects',()=>{
+ const report=fixture();
+ report.scope={sourcePagesUnverified:2,discoveryTruncated:false};
+ const register=buildIssueRegister(report);
+ assert.equal(register.summary.high,0);
+ assert.equal(register.summary.incomplete,1);
+ assert.equal(register.items[0].verification,'not_verified');
+ assert.match(register.items[0].title,/Source HTML captures/);
+ assert.match(prioritiesFromRegister(register)[0].evidence,/2 source page/);
+});
+test('truncated discovery is disclosed separately from measured failures',()=>{
+ const report=fixture();
+ report.scope={sourcePagesUnverified:0,discoveryTruncated:true};
+ const register=buildIssueRegister(report);
+ assert.equal(register.summary.incomplete,1);
+ assert.equal(register.summary.actionable,0);
+ assert.equal(register.items[0].status,'incomplete');
+ assert.match(register.items[0].evidence[0],/not all site pages/);
+});
