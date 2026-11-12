@@ -2,7 +2,7 @@
 const ORIGIN=location.origin;
 const TRUSTED=new Set(['https://export.micirql.com','https://tools.micirql.com']);
 const reply=(type,id,result)=>window.postMessage({source:'micirql-extension',type,id,...result},ORIGIN);
-const announce=()=>reply('MICIRQL_EXTENSION_READY',null,{protocol:3,extensionVersion:chrome.runtime.getManifest?.()?.version||'unknown',capabilities:['discover','capture','bulk','progress','seo-http-evidence','qa-layout','links-sitemap','security-headers']});
+const announce=()=>reply('MICIRQL_EXTENSION_READY',null,{protocol:3,extensionVersion:chrome.runtime.getManifest?.()?.version||'unknown',capabilities:['discover','capture','bulk','progress','seo-http-evidence','qa-layout','links-sitemap','security-headers','performance-navigation']});
 window.addEventListener('message',async event=>{
  if(event.source!==window||event.origin!==ORIGIN||!TRUSTED.has(ORIGIN)||event.data?.source!=='micirql-web')return;
  const {type,id}=event.data;
@@ -68,6 +68,12 @@ window.addEventListener('message',async event=>{
   try{result=await chrome.runtime.sendMessage({type:'READ_SECURITY_HEADERS',url:event.data.url})}
   catch(error){result={ok:false,observed:false,error:error.message||'Security headers unavailable'}}
   reply('MICIRQL_SECURITY_HEADERS_RESULT',id,result||{ok:false,observed:false,error:'No security response'});
+ }
+ if(type==='MICIRQL_PERFORMANCE_OBSERVE'){
+  let result;
+  try{result=await chrome.runtime.sendMessage({type:'READ_PERFORMANCE_OBSERVATION',url:event.data.url})}
+  catch(error){result={ok:false,observed:false,error:error.message||'Performance evidence unavailable'}}
+  reply('MICIRQL_PERFORMANCE_RESULT',id,result||{ok:false,observed:false,error:'No browser performance observation'});
  }
  if(type==='MICIRQL_SEO_READ'){
   let result;
