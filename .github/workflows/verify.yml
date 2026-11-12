@@ -28,6 +28,8 @@ jobs:
         run: node scripts/qa-pdf-qa.mjs
       - name: Test SEO Studio Chromium A4 PDF risk evidence and pagination
         run: node scripts/seo-pdf-qa.mjs
+      - name: Test Link & Sitemap Inspector Chromium A4 PDF evidence and pagination
+        run: node scripts/links-pdf-qa.mjs
       - name: Read-only QA extension smoke on public test sites (informational)
         continue-on-error: true
         timeout-minutes: 2
@@ -73,6 +75,8 @@ jobs:
       - name: Validate SEO browser and extension scripts
         run: |
           node --check public/tools/seo/inspector.js
+          node --check public/tools/links/analyzer.js
+          node --check public/tools/links/app.js
           node --check public/tools/screenshots/studio.js
           node --check extension/background.js
           node --check extension/bridge.js
