@@ -49,6 +49,12 @@ try{
   try{
    await page.goto('https://tools.micirql.com/tools/seo/',{waitUntil:'domcontentloaded',timeout:25000});
    await page.waitForFunction(()=>document.querySelector('#extension-status')?.dataset.connected==='yes',null,{timeout:20000});
+   // The normal PDF-first UI intentionally hides JSON export and the page limit.
+   // Enable the existing developer switch only in this isolated QA browser.
+   await page.locator('#seo-advanced-controls > summary').click();
+   await page.locator('#developer-mode-toggle').click();
+   if(!await page.locator('body').evaluate(el=>el.classList.contains('developer-mode')))
+    throw Error('Could not enable the existing developer controls for evidence export');
    await page.locator('#site-url').fill(target.url);
    await page.locator('#site-limit').selectOption('10');
    await page.locator('#site-run').click();
