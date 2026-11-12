@@ -64,7 +64,7 @@ export function createSeoReviewQueue(audit,{maxCases=60,codes=null}={}){
  }));
  return {schemaVersion:SEO_REVIEW_QUEUE_VERSION,website:site,
   status:'draft_unreviewed',reviewer:null,
-  instructions:'Review each URL and issue independently. Set expected to present or absent only with timestamped independent-http, independent-html or independent-link evidence. Then copy approved labels into micirql-seo-ground-truth-v1 format.',
+  instructions:'Review each URL and issue independently. Set expected to present or absent only with timestamped independent-http, independent-html or independent-link evidence. Keep the unedited draft, review a separate copy, then run finalize-seo-review.mjs to create evaluator-ready labels. Never infer evidence from MiCirql findings.',
   provenance:{source:'MiCirql audit JSON',sourceScoringVersion:audit.scoringVersion||null,
    sourceGeneratedAt:audit.generatedAt||null,freshnessRequirement:'Independent evidence within 24 hours of audit generatedAt',
    inspectedPublicUrls:inspected.size,sourceIssueGroups:audit.issueCenter.length},
