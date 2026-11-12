@@ -47,15 +47,48 @@ export function createSeoReviewQueue(audit,{maxCases=60,codes=null}={}){
    negatives.push({url:address,code,detectedByMicirql:false});
   }
  }
- // Round robin spreads review effort across both detected and undetected cases.
+ // Alternate detected candidates and undetected controls, while rotating across
+ // issue codes within each type. A crowded issue group must not monopolize a
+ // bounded review queue. All cases remain unverified until a reviewer checks them.
+ const buckets=cases=>{
+  const grouped=new Map(allCodes.map(code=>[code,{items:[],next:0}]));
+  for(const item of cases)grouped.get(item.code).items.push(item);
+  return grouped;
+ };
+ const detectedBuckets=buckets(positives),controlBuckets=buckets(negatives);
+ const pointers={detected:0,control:0};
+ const take=(grouped,kind)=>{
+  for(let attempt=0;attempt<allCodes.length;attempt++){
+   const index=(pointers[kind]+attempt)%allCodes.length;
+   const bucket=grouped.get(allCodes[index]);
+   if(bucket.next<bucket.items.length){
+    pointers[kind]=(index+1)%allCodes.length;
+    return bucket.items[bucket.next++];
+   }
+  }
+  return null;
+ };
  const selected=[],count={detectedCandidates:0,undetectedControls:0};
- let pi=0,ni=0;
- while(selected.length<maxCases&&(pi<positives.length||ni<negatives.length)){
-  const next=selected.length%2===0?(positives[pi++]||negatives[ni++]):(negatives[ni++]||positives[pi++]);
+ let remainingDetected=positives.length,remainingControls=negatives.length;
+ while(selected.length<maxCases&&(remainingDetected||remainingControls)){
+  const preferDetected=selected.length%2===0;
+  const next=preferDetected?
+   (remainingDetected?take(detectedBuckets,'detected'):null)||
+    (remainingControls?take(controlBuckets,'control'):null):
+   (remainingControls?take(controlBuckets,'control'):null)||
+    (remainingDetected?take(detectedBuckets,'detected'):null);
   if(!next)break;
   selected.push(next);
-  if(next.detectedByMicirql)count.detectedCandidates++;else count.undetectedControls++;
+  if(next.detectedByMicirql){
+   count.detectedCandidates++;remainingDetected--;
+  }else{
+   count.undetectedControls++;remainingControls--;
+  }
  }
+ const selectedByCode=allCodes.map(code=>({
+  code,detectedCandidates:selected.filter(item=>item.code===code&&item.detectedByMicirql).length,
+  undetectedControls:selected.filter(item=>item.code===code&&!item.detectedByMicirql).length
+ })).filter(item=>item.detectedCandidates||item.undetectedControls);
  const labels=selected.map(x=>({url:x.url,code:x.code,expected:'unknown',
   // A detected finding is a candidate, not ground truth. No evidence is fabricated.
   reviewHint:x.detectedByMicirql?'MiCirql reported this finding — independently verify it.':
@@ -69,5 +102,8 @@ export function createSeoReviewQueue(audit,{maxCases=60,codes=null}={}){
    sourceGeneratedAt:audit.generatedAt||null,freshnessRequirement:'Independent evidence within 24 hours of audit generatedAt',
    inspectedPublicUrls:inspected.size,sourceIssueGroups:audit.issueCenter.length},
   candidates:count,totalCandidates:positives.length+negatives.length,
+  sampling:{strategy:'balanced_issue_code_round_robin_v1',
+   availableIssueCodes:allCodes.length,selectedIssueCodes:selectedByCode.length,
+   selectedByCode},
   selectedCount:labels.length,labels};
 }
