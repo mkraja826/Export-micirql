@@ -208,10 +208,12 @@ async function capture(url,widths,format,subpage='',returnImages=false,selectedP
   try{await chrome.tabs.remove(tab.id)}catch{}
  }
 }
-async function discoverLocalSubpage(url){
+async function discoverLocalSubpage(url,safeOnly=false){
  const parsed=new URL(url);
  if(!['http:','https:'].includes(parsed.protocol)||parsed.username||parsed.password)throw Error('Invalid website URL');
- const normalize=value=>{try{const u=new URL(value,parsed.href);if(u.origin!==parsed.origin||!['http:','https:'].includes(u.protocol)||u.username||u.password)return null;u.hash='';u.search='';if(/\.(pdf|jpg|jpeg|png|gif|svg|webp|zip|mp4|mp3|woff2?|css|js)$/i.test(u.pathname))return null;return u.href}catch{return null}};
+ const normalize=value=>{try{const u=new URL(value,parsed.href);if(u.origin!==parsed.origin||!['http:','https:'].includes(u.protocol)||u.username||u.password)return null;
+  if(safeOnly&&(u.search||/(?:^|\\/)(?:api|logout|log-out|signout|sign-out|delete|remove|destroy|edit|admin|login|signin|signup|register|account|auth|checkout|purchase|payment|reset-password|unsubscribe|cancel|download|export)(?:\\/|$)/i.test(u.pathname)))return null;
+  u.hash='';u.search='';if(/\.(pdf|jpg|jpeg|png|gif|svg|webp|zip|mp4|mp3|woff2?|css|js)$/i.test(u.pathname))return null;return u.href}catch{return null}};
  const start=normalize(parsed.href);
  if(!start)throw Error('Invalid starting page');
  const queued=[start],seen=new Set([start]),visited=new Set(),successful=[],errors=[];
@@ -614,7 +616,7 @@ chrome.runtime.onMessage.addListener((message,sender,sendResponse)=>{
  if(message?.type==='DISCOVER_SUBPAGE'){
   if(discoveryBusy){sendResponse({ok:false,error:'Another page discovery is already running. Finish it before starting a new one.'});return false;}
   discoveryBusy=true;
-  discoverLocalSubpage(message.url).then(sendResponse).catch(error=>sendResponse({ok:false,error:error.message||'Discovery failed'})).finally(()=>{discoveryBusy=false});
+  discoverLocalSubpage(message.url,message.safeOnly===true).then(sendResponse).catch(error=>sendResponse({ok:false,error:error.message||'Discovery failed'})).finally(()=>{discoveryBusy=false});
   return true;
  }
  if(message?.type==='READ_QA_LAYOUT'){
