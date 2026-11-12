@@ -85,13 +85,16 @@ test('duplicate labels cannot inflate benchmark denominator',()=>{
  ]);
  assert.throws(()=>evaluateSeoDetectionAccuracy([sample]),/Duplicate ground truth/);
 });
-test('100 independently labeled cases across five websites can qualify for target assessment',()=>{
+test('balanced multi-issue cases across five websites can qualify for target assessment',()=>{
+ const codes=['http_noindex','missing_title','missing_description','noindex','missing_viewport'];
  const pairs=Array.from({length:5},(_,i)=>{
   const website='https://benchmark-'+i+'.test/';
   const urls=Array.from({length:20},(_,j)=>website+'page-'+j);
-  return pair({reports:urls.map(u=>page(u)),
-   issueCenter:[issue('http_noindex',urls.slice(0,10))]},
-   urls.map((u,j)=>({url:u,code:'http_noindex',expected:j<10?'present':'absent'})),website);
+  const issueCenter=codes.map((code,index)=>issue(code,urls.slice(index*4,index*4+2)));
+  const labels=codes.flatMap((code,index)=>Array.from({length:4},(_,j)=>({
+   url:urls[index*4+j],code,expected:j<2?'present':'absent'
+  })));
+  return pair({reports:urls.map(u=>page(u)),issueCenter},labels,website);
  });
  const result=evaluateSeoDetectionAccuracy(pairs);
  assert.equal(result.totalLabels,100);
@@ -103,8 +106,58 @@ test('100 independently labeled cases across five websites can qualify for targe
  assert.equal(result.readyForReleaseClaim,false,'Human evidence review cannot be automated');
  assert.equal(result.independentReviewSignoffRequired,true);
  assert.equal(result.targetMet,true);
+ assert.equal(result.issueCodeCoverage.issueCodeCount,5);
+ assert.equal(result.issueCodeCoverage.crossSiteIssueCodes,5);
+ assert.equal(result.issueCodeCoverage.twoSidedIssueCodes,5);
+ assert.equal(result.issueCodeCoverage.dominantIssueCodeShare,0.2);
+ assert.equal(result.issueCodeCoverage.diversityThresholdMet,true);
  assert.equal(result.verdict,'proposed_target_met_for_submitted_labels');
  // These data are synthetic; this test only verifies the evaluator itself.
+});
+
+test('100 labels for only one rule do not establish broad SEO accuracy',()=>{
+ const pairs=Array.from({length:5},(_,i)=>{
+  const website='https://single-rule-'+i+'.test/';
+  const urls=Array.from({length:20},(_,j)=>website+'page-'+j);
+  return pair({reports:urls.map(u=>page(u)),
+   issueCenter:[issue('http_noindex',urls.slice(0,10))]},
+   urls.map((u,j)=>({url:u,code:'http_noindex',expected:j<10?'present':'absent'})),website);
+ });
+ const result=evaluateSeoDetectionAccuracy(pairs);
+ assert.equal(result.precision,1);assert.equal(result.recall,1);
+ assert.equal(result.eligibleLabels,100);
+ assert.equal(result.issueCodeCoverage.issueCodeCount,1);
+ assert.equal(result.issueCodeCoverage.diversityThresholdMet,false);
+ assert.equal(result.sampleThresholdMet,false);
+ assert.equal(result.targetMet,false);
+});
+
+test('issue-code coverage must recur across sites rather than being site-specific',()=>{
+ const codes=['http_noindex','missing_title','noindex','missing_viewport','missing_description'];
+ const pairs=Array.from({length:5},(_,i)=>{
+  const website='https://single-site-rule-'+i+'.test/';
+  const urls=Array.from({length:20},(_,j)=>website+'page-'+j);
+  return pair({reports:urls.map(u=>page(u)),
+   issueCenter:[issue(codes[i],urls.slice(0,10))]},
+   urls.map((u,j)=>({url:u,code:codes[i],expected:j<10?'present':'absent'})),website);
+ });
+ const result=evaluateSeoDetectionAccuracy(pairs);
+ assert.equal(result.issueCodeCoverage.issueCodeCount,5);
+ assert.equal(result.issueCodeCoverage.twoSidedIssueCodes,5);
+ assert.equal(result.issueCodeCoverage.crossSiteIssueCodes,0);
+ assert.equal(result.issueCodeCoverage.diversityThresholdMet,false);
+ assert.equal(result.sampleThresholdMet,false);
+});
+
+test('private and login pages abstain rather than inflate detection accuracy',()=>{
+ const url=site+'login';
+ const sample=pair({reports:[page(url,{pageRole:'login'})],
+  issueCenter:[issue('http_noindex',[url])]},
+  [{url,code:'http_noindex',expected:'present'}]);
+ const result=evaluateSeoDetectionAccuracy([sample]);
+ assert.equal(result.eligibleLabels,0);
+ assert.equal(result.abstainReasons.notInspected,1);
+ assert.equal(result.confusion.tp,0);
 });
 
 test('same site URL and issue cannot be counted twice across benchmark files',()=>{
