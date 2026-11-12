@@ -31,7 +31,8 @@ export function chooseSecurityPages(rawPages,website,limit=SECURITY_PAGE_SAMPLE_
  const urls=[...new Set([entry,...(Array.isArray(rawPages)?rawPages:[])]
   .map(clean).filter(url=>url&&new URL(url).origin===origin&&isSafePage(url)))].slice(0,60);
  const chosen=[entry];
- const priority=urls.find(url=>url!==entry&&/\/(?:about|services|contact|products|blog)(?:\/|$)/i.test(new URL(url).pathname));
+ const priority=urls.find(url=>url!==entry&&/\/(?:contact|contact-us)(?:\/|$)/i.test(new URL(url).pathname))
+  ||urls.find(url=>url!==entry&&/\/(?:about|services|products|blog)(?:\/|$)/i.test(new URL(url).pathname));
  if(priority)chosen.push(priority);
  for(const url of urls)if(chosen.length<limit&&!chosen.includes(url))chosen.push(url);
  return {website:entry,discoveredCandidatePages:urls.length,selectedPages:chosen,
