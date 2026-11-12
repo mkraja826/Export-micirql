@@ -40,6 +40,8 @@ jobs:
         run: node scripts/performance-pdf-qa.mjs
       - name: Test Unified Website Health 60-page Chromium A4 PDF
         run: node scripts/unified-health-pdf-qa.mjs
+      - name: End-to-end Unified Website Health browser scan and A4 PDF
+        run: node scripts/unified-health-browser-e2e.mjs
       - name: Read-only QA extension smoke on public test sites (informational)
         continue-on-error: true
         timeout-minutes: 2
