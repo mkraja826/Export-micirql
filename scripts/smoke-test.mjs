@@ -22,6 +22,7 @@ checks.push(['/tools/links/',async r=>{const t=await r.text();for(const marker o
 checks.push(['/tools/responsive/',async r=>{const t=await r.text();for(const marker of ['Responsive Lab','Print / Save PDF report','/tools/responsive/app.js'])if(!t.includes(marker))throw Error('Responsive Lab missing: '+marker)}]);
 checks.push(['/tools/accessibility/',async r=>{const t=await r.text();for(const marker of ['Accessibility Studio','Print / Save PDF report','/tools/accessibility/app.js'])if(!t.includes(marker))throw Error('Accessibility Studio missing marker: '+marker)}]);
 checks.push(['/tools/security/',async r=>{const t=await r.text();for(const marker of ['Security Inspector','Print / Save PDF report','/tools/security/app.js'])if(!t.includes(marker))throw Error('Security Inspector missing marker: '+marker)}]);
+checks.push(['/tools/performance/',async r=>{const t=await r.text();for(const marker of ['Performance Lab','Print / Save PDF report','/tools/performance/app.js'])if(!t.includes(marker))throw Error('Performance Lab missing marker: '+marker)}]);
 // A freshly uploaded ZIP may not be available at every Cloudflare edge immediately.
 // Retry only transient HTTP outcomes for this downloadable asset; a sustained 404
 // or an invalid ZIP must still fail the deployment.
