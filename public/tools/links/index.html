@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Link & Sitemap Inspector | MiCirql Tools</title>
+<meta name="description" content="Inspect up to 60 website pages for confirmed broken internal links, HTTP failures, redirects and sitemap evidence. Print a clear PDF report.">
+<meta name="robots" content="noindex"><meta name="theme-color" content="#0b1020">
+<style>
+:root{font:16px/1.55 system-ui,-apple-system,Segoe UI,sans-serif;color-scheme:dark}
+*{box-sizing:border-box}body{margin:0;background:#090f1e;color:#f2f6ff}.shell{max-width:1040px;margin:auto;padding:26px}
+a{color:#bdd0ff}nav{display:flex;justify-content:space-between;gap:18px;padding-bottom:21px;border-bottom:1px solid #334660}
+h1{font-size:clamp(31px,6vw,49px);letter-spacing:-.04em;line-height:1.13;margin:14px 0}
+h2{font-size:21px;margin:24px 0 11px}p,.muted{color:#becee4}.eyebrow{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#a4bdf9;font-weight:800}
+.card{background:#14233a;border:1px solid #334d71;border-radius:18px;padding:23px;margin-top:22px}
+form{display:flex;gap:10px;flex-wrap:wrap;margin:20px 0 8px}input,button{font:inherit;border-radius:10px;padding:13px;min-height:46px}
+input{flex:1;min-width:220px;background:#0c1729;color:white;border:1px solid #587096}
+button{border:0;background:#b3c8ff;color:#10182b;font-weight:750;cursor:pointer}button:disabled{opacity:.55;cursor:not-allowed}
+button.secondary{background:#253b5b;color:#f4f7ff;border:1px solid #526b90}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #a9c3ff;outline-offset:3px}
+.status{padding:11px 14px;background:#1b304e;border-radius:10px;color:#e0eaff;overflow-wrap:anywhere}
+progress{width:100%;height:15px;accent-color:#b5cbff;margin:15px 0 4px}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:17px 0}
+.metric{background:#101d31;border:1px solid #344a6c;border-radius:12px;padding:13px}.metric strong{display:block;font-size:27px}.metric small{color:#bfcfe5}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:12px 9px;text-align:left;border-bottom:1px solid #344762;overflow-wrap:anywhere;vertical-align:top}
+th{color:#c8d8ef}tbody tr:nth-child(odd){background:#182942}
+.tag{display:inline-block;border-radius:6px;border:1px solid #5c769b;padding:2px 7px;font-size:12px}
+.report-actions{display:flex;gap:12px;flex-wrap:wrap;margin:17px 0}.small{font-size:13px}.warning{border-left:3px solid #ddb779;padding:11px 14px;background:#263246}
+#results[hidden],#progress-wrap[hidden],#extension-help[hidden]{display:none}
+@media(max-width:650px){.shell{padding:16px}.card{padding:16px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}form button{width:100%}.scroll{overflow-x:auto}table{min-width:590px}}
+@page{size:A4;margin:15mm}
+@media print{
+:root{color-scheme:light}body{background:white!important;color:#151b29;font:10pt/1.4 Arial,sans-serif}
+.shell{padding:0;max-width:none}nav,.no-print,form,#progress-wrap{display:none!important}
+.card,.metric{background:white!important;border:1px solid #cbd5e1;color:#141b29}
+.card{padding:12px;margin:10px 0}h1{font-size:23pt;margin:0}h2{font-size:15pt;margin:12px 0 5px}
+p,.muted,.metric small,.eyebrow,th{color:#323c4d!important}
+.metrics{grid-template-columns:repeat(4,1fr)}.metric strong{font-size:17pt}
+table{min-width:0;font-size:8pt;table-layout:fixed}thead{display:table-header-group}
+tr{break-inside:avoid}td,th{border-color:#ddd;overflow-wrap:anywhere;word-break:break-word}
+tbody tr:nth-child(odd){background:white!important}.scroll{overflow:visible}
+.status,.warning{background:white!important;color:#222!important;border:1px solid #ccc}
+#results[hidden]{display:none!important}
+}
+</style></head><body><div class="shell">
+<nav class="no-print"><a href="/tools/">← All MiCirql tools</a><a href="/tools/seo/">SEO Studio</a></nav>
+<main><header><span class="eyebrow">MiCirql Tools · Beta</span><h1>Link & Sitemap Inspector</h1>
+<p>Find confirmed broken internal destinations, server errors, redirects and sitemap coverage. The scan runs through the Chrome extension without editing the website.</p></header>
+<section class="card no-print"><h2>Inspect a website</h2>
+<form id="audit"><input id="url" aria-label="Website URL" placeholder="https://example.com" required maxlength="2048" spellcheck="false"><button id="run" type="submit" disabled>Scan website</button></form>
+<p class="muted small">Scans up to 60 discovered public pages and checks up to 60 unique internal destinations. Missing, blocked or timed-out responses are not treated as confirmed broken links.</p>
+<p id="extension-status" class="status" role="status">Checking Chrome extension…</p>
+<p id="extension-help" class="small" hidden>Install or reload the latest <a href="/extension/micirql-tools-extension.zip">MiCirql Chrome extension</a> (v0.3.20 or newer). In desktop Chrome, open <code>chrome://extensions</code>, enable Developer mode, choose Load unpacked, then reload this page.</p>
+</section>
+<section id="progress-wrap" class="card no-print" hidden><h2>Scanning website</h2><progress id="progress" max="100" value="0"></progress><p id="progress-text" role="status"></p></section>
+<section id="results" class="card" hidden>
+<p class="eyebrow">Read-only website analysis</p><h2>Link & Sitemap Report</h2>
+<p id="website"></p><p id="report-date" class="muted small"></p>
+<div class="metrics" id="metrics"></div>
+<p id="scope" class="warning"></p><h2>Sitemap verification</h2><p id="sitemap"></p>
+<h2>Checked internal destinations</h2><p class="muted">Only observed HTTP 404/410 responses count as broken. HTTP 5xx, blocked checks and skipped URLs are separate.</p>
+<div class="scroll"><table><thead><tr><th>Destination</th><th>Result</th><th>HTTP</th><th>Linked from</th></tr></thead><tbody id="destinations"></tbody></table></div>
+<h2>Page inspection coverage</h2><p id="pages" class="muted"></p>
+<p class="muted small">This is not a full sitemap schema validation or a guarantee that all website pages were discovered. Reports describe only selected and inspected pages.</p>
+<div class="report-actions no-print"><button id="pdf" type="button">Print / Save PDF report</button></div>
+</section></main></div><script type="module" src="/tools/links/app.js"></script></body></html>
