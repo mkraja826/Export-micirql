@@ -12,8 +12,9 @@ const urlKey=value=>{
   return u.href;
  }catch{return null}
 };
-const pageInspected=p=>p?.auditStatus==='complete'&&p.partial!==true;
-const verifiedHttpError=p=>p?.auditStatus==='invalid_http_status'&&p.httpVerification?.verified===true&&
+const publicPage=p=>(p?.pageRole||'public')==='public';
+const pageInspected=p=>publicPage(p)&&p?.auditStatus==='complete'&&p.partial!==true;
+const verifiedHttpError=p=>publicPage(p)&&p?.auditStatus==='invalid_http_status'&&p.httpVerification?.verified===true&&
  Number.isInteger(p.httpVerification.status)&&p.httpVerification.status>=400;
 const isHttpCode=code=>/^http_/.test(code);
 const metric=(n,d)=>d?n/d:null;
@@ -105,13 +106,28 @@ export function evaluateSeoDetectionAccuracy(pairs){
  const recall=metric(count.tp,positives);
  const falsePositiveRate=metric(count.fp,negatives);
  const specificity=metric(count.tn,negatives);
- const perSite=new Map();
- for(const row of eligible)perSite.set(row.website,(perSite.get(row.website)||0)+1);
+ const perSite=new Map(),byCode=new Map();
+ for(const row of eligible){
+  perSite.set(row.website,(perSite.get(row.website)||0)+1);
+  const stats=byCode.get(row.code)||{labels:0,websites:new Set(),present:0,absent:0};
+  stats.labels++;
+  stats.websites.add(row.website);
+  stats[row.expected]++;
+  byCode.set(row.code,stats);
+ }
  const sites=perSite.size;
- // These are proposed dataset screening thresholds, NOT a certification of data quality.
+ // Prevent a one-rule or single-site benchmark from passing as broad SEO accuracy.
+ // These are proposed sampling screens, NOT independent certification of labels.
+ const issueCodeCount=byCode.size;
+ const crossSiteIssueCodes=[...byCode.values()].filter(s=>s.websites.size>=2).length;
+ const twoSidedIssueCodes=[...byCode.values()].filter(s=>s.present>0&&s.absent>0).length;
+ const dominantIssueCodeShare=eligible.length?
+  Math.max(...[...byCode.values()].map(s=>s.labels))/eligible.length:null;
+ const diversityThresholdMet=issueCodeCount>=5&&crossSiteIssueCodes>=5&&
+  twoSidedIssueCodes>=3&&dominantIssueCodeShare<=0.4;
  const sampleThresholdMet=eligible.length>=100&&positives>=30&&negatives>=30&&
   sites>=5&&[...perSite.values()].every(count=>count>=10)&&
-  (rows.length-eligible.length)<=Math.floor(rows.length*0.1);
+  (rows.length-eligible.length)<=Math.floor(rows.length*0.1)&&diversityThresholdMet;
  const meetsTargets=sampleThresholdMet&&precision!==null&&recall!==null&&
   precision>=0.95&&recall>=0.95;
  return {version:'micirql-detection-benchmark-v1',source:'independently-reviewed URL-level evidence',
@@ -124,6 +140,9 @@ export function evaluateSeoDetectionAccuracy(pairs){
    staleEvidence:rows.filter(r=>r.status==='stale_evidence').length
   },sites,positives,negatives,confusion:count,
   evidenceWindowHours:24,
+  issueCodeCoverage:{issueCodeCount,crossSiteIssueCodes,twoSidedIssueCodes,
+   dominantIssueCodeShare,diversityThresholdMet,
+   requirements:'At least 5 issue codes observed on 2+ websites each, 3 codes with positive and negative labels, and no code above 40% of eligible labels'},
   precision,recall,falsePositiveRate,specificity,
   sampleThresholdMet, targetMet:meetsTargets,
   // Human verification of provenance, sampling and independent labels is mandatory.
