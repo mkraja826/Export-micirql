@@ -187,3 +187,112 @@ function render(report){
  for(const note of report.limitations)$('limitations').append(el('li',note));
  $('screenshots-link').href='/tools/screenshots/?url='+encodeURIComponent(report.website);
 }
+
+function safePassiveLink(url,origin){
+ try{
+  const u=new URL(url);
+  if(u.origin!==origin||!['http:','https:'].includes(u.protocol)||u.username||u.password||u.search)return false;
+  if(/(?:^|\/)(?:api|logout|log-out|signout|sign-out|delete|remove|destroy|edit|admin|login|signin|signup|register|account|auth|checkout|purchase|payment|reset-password|unsubscribe|cancel|download|export)(?:\/|$)/i.test(u.pathname))return false;
+  if(/\.(?:pdf|zip|png|jpe?g|gif|svg|webp|css|js|json|xml|mp4|mp3|woff2?)$/i.test(u.pathname))return false;
+  return true;
+ }catch{return false}
+}
+form.addEventListener('submit',async event=>{
+ event.preventDefault();if(busy||!connected)return;
+ let entry;
+ try{entry=normalize(input.value)}catch(error){status.textContent=error.message;return}
+ busy=true;button.disabled=true;latest=null;
+ $('results').hidden=true;$('progress-panel').hidden=false;
+ const origin=new URL(entry).origin;
+ try{
+  progress('Discovering up to 60 public pages…',2);
+  let discovery={ok:false,pages:[],truncated:true};
+  try{discovery=await request('MICIRQL_DISCOVER','MICIRQL_DISCOVER_RESULT',entry,
+   600000,'MICIRQL_DISCOVER_PROGRESS')}
+  catch{/* The entry page can still be inspected, with discovery marked incomplete. */}
+  const urls=selectUnifiedPages(discovery.ok?discovery.pages:[],entry,60);
+  const discoveryTruncated=discovery.ok?discovery.truncated===true:true;
+  const discoveredPages=discovery.ok?
+   Math.max(urls.length,Number.isInteger(discovery.originalCount)?discovery.originalCount:
+    (discovery.pages||[]).length):1;
+  const pages=[];
+  for(let i=0;i<urls.length;i++){
+   const url=urls[i];
+   progress('Inspecting shared SEO, QA, accessibility and link HTML · page '+(i+1)+' of '+urls.length,
+    5+(i/urls.length)*50);
+   let observation;
+   try{observation=await request('MICIRQL_SEO_READ','MICIRQL_SEO_RESULT',url,70000)}
+   catch(error){observation={ok:false,error:String(error.message||error).slice(0,150)}}
+   pages.push(inspectUnifiedCapture({requestedUrl:url,result:observation}));
+  }
+  const targets=new Set();
+  for(const page of pages.filter(x=>x.status==='complete'))for(const target of page.linkTargets||[]){
+   try{const u=new URL(target);u.hash='';if(u.origin===origin)targets.add(u.href)}
+   catch{}
+  }
+  const limited=[...targets].filter(u=>safePassiveLink(u,origin)).sort().slice(0,60);
+  const diagnostics=[];
+  for(let i=0;i<limited.length;i++){
+   const url=limited[i];
+   progress('Checking safe internal destinations · '+(i+1)+' of '+limited.length,
+    57+(i/Math.max(1,limited.length))*18);
+   try{
+    const result=await request('MICIRQL_SEO_LINK_CHECK','MICIRQL_SEO_LINK_RESULT',url,17000);
+    diagnostics.push({destination:url,...result});
+   }catch(error){
+    diagnostics.push({destination:url,ok:false,reason:String(error.message||error)});
+   }
+  }
+  progress('Reading the standard sitemap…',76);
+  let sitemap={observed:false,reason:'sitemap_not_verified'};
+  try{sitemap=await request('MICIRQL_LINK_SITEMAP','MICIRQL_LINK_SITEMAP_RESULT',origin,18000)}
+  catch{/* Unavailable remains a separate sitemap evidence state. */}
+  const completed=pages.filter(p=>p.status==='complete');
+  const layoutSelection=selectQaLayoutSamples(completed.map(page=>({
+   url:page.url,requestedUrl:page.url,counts:page.qa.counts,partial:false
+  })),entry,3);
+  const layoutSamples=[];
+  for(let i=0;i<layoutSelection.length;i++){
+   const page=layoutSelection[i];
+   progress('Measuring 375px / 768px / 1440px layouts · '+(i+1)+' of '+layoutSelection.length,
+    78+(i/Math.max(1,layoutSelection.length))*7);
+   try{
+    const measured=await request('MICIRQL_QA_LAYOUT','MICIRQL_QA_LAYOUT_RESULT',page.url,100000);
+    layoutSamples.push({requestedUrl:page.url,observations:measured.ok?
+     (Array.isArray(measured.observations)?measured.observations:[]):[]});
+   }catch{layoutSamples.push({requestedUrl:page.url,observations:[]})}
+  }
+  const securitySamples=[];
+  let securityUrls=[];
+  try{securityUrls=chooseSecurityPages(discovery.ok?discovery.pages:[],entry,3).selectedPages}
+  catch{/* Some user-selected paths are ineligible for passive checks. */}
+  for(let i=0;i<securityUrls.length;i++){
+   const url=securityUrls[i];
+   progress('Observing public security response headers · '+(i+1)+' of '+securityUrls.length,
+    86+(i/Math.max(1,securityUrls.length))*7);
+   try{
+    const response=await request('MICIRQL_SECURITY_HEADERS','MICIRQL_SECURITY_HEADERS_RESULT',url,18000);
+    securitySamples.push({requestedUrl:url,response});
+   }catch(error){
+    securitySamples.push({requestedUrl:url,response:{ok:false,observed:false,
+     reason:String(error.message||error).slice(0,150)}});
+   }
+  }
+  progress('Measuring one unthrottled Chrome navigation…',95);
+  let performanceObservation={ok:false,observed:false,reason:'performance_not_measured'};
+  try{performanceObservation=await request('MICIRQL_PERFORMANCE_OBSERVE',
+   'MICIRQL_PERFORMANCE_RESULT',entry,45000)}
+  catch(error){performanceObservation={ok:false,observed:false,
+   reason:String(error.message||error).slice(0,150)}}
+  progress('Preparing combined report…',98);
+  const report=buildUnifiedHealthReport({website:entry,pages,discoveredPages,discoveryTruncated,
+   linkDiagnostics:diagnostics,sitemap,layoutSamples,securitySamples,performanceObservation});
+  render(report);
+  progress('Combined evidence report ready. Select Print / Save PDF report.',100);
+ }catch(error){
+  progress('Scan could not finish: '+String(error.message||error)+'. No complete report was fabricated.',0);
+ }finally{busy=false;button.disabled=!connected}
+});
+$('pdf').addEventListener('click',()=>{if(latest)window.print()});
+try{const inputUrl=new URLSearchParams(location.search).get('url');if(inputUrl)input.value=normalize(inputUrl)}
+catch{}
