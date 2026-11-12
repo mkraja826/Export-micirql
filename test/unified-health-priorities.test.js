@@ -21,7 +21,7 @@ test('medium SEO issue appears in executive priorities',()=>{
  assert.equal(priorities.length,1);
  assert.equal(priorities[0].priority,'medium');
  assert.match(priorities[0].title,/meta descriptions/);
- assert.match(priorities[0].details,/2 occurrence/);
+ assert.match(priorities[0].details,/2 detector observation/);
 });
 test('unchecked and unverified links remain visible without being called broken',()=>{
  const report=fixture();
