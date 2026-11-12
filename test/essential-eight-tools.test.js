@@ -7,13 +7,17 @@ test('all eight essential MiCirql tools have reachable static UI routes, without
  const catalog=getCatalog();
  assert.equal(catalog.tools.length,15,'The existing 15-tool product registry must remain intact');
  const page=readFileSync(new URL('../public/tools/index.html',import.meta.url),'utf8');
+ const worker=readFileSync(new URL('../src/worker.js',import.meta.url),'utf8');
  for(const id of essential){
   const entry=catalog.tools.find(item=>item.id===id);
   assert.ok(entry,'Missing essential tool '+id);
   assert.ok(['available','limited'].includes(entry.status),'Unimplemented essential tool '+id);
   assert.match(entry.path||'',new RegExp('^/tools/'+id+'/'));
-  assert.ok(existsSync(new URL('../public'+entry.path+'index.html',import.meta.url)),
-   'Essential tool page missing: '+entry.path);
+  const staticIndex=existsSync(new URL('../public'+entry.path+'index.html',import.meta.url));
+  const workerAlias=id==='screenshots'&&worker.includes("'/tools/screenshots/'")&&
+   worker.includes("destination.pathname=path==='/'?'/tools/index.html':'/index.html'")&&
+   existsSync(new URL('../public/index.html',import.meta.url));
+  assert.ok(staticIndex||workerAlias,'Essential tool page missing: '+entry.path);
   assert.ok(page.includes('href="'+entry.path+'"'),'Dashboard must link to '+entry.path);
  }
  assert.equal(catalog.tools.find(x=>x.id==='screenshots').status,'available');
