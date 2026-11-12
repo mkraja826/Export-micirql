@@ -37,9 +37,11 @@ export function buildPerformanceReport({website,observation}){
  const requested=validatePerformancePage(website);
  const finalUrl=typeof observation?.url==='string'?publicPage(observation.url):null;
  const samePage=finalUrl===requested;
+ const candidateTiming=observation?.timing||{};
+ const hasMeasuredTiming=PERFORMANCE_METRIC_CODES.some(code=>safeTime(candidateTiming[code])!==null);
  const verified=observation?.ok===true&&observation?.observed===true&&samePage&&
-  observation.scope==='one_unthrottled_browser_navigation'&&observation.readyState==='complete';
- const timing=verified?observation?.timing||{}:{};
+  observation.scope==='one_unthrottled_browser_navigation'&&observation.readyState==='complete'&&hasMeasuredTiming;
+ const timing=verified?candidateTiming:{};
  const metrics=Object.fromEntries(PERFORMANCE_METRIC_CODES.map(code=>[code,safeTime(timing[code])]));
  const counts=verified?observation?.resources||{}:{};
  const totalResources=safeCount(counts.entryCount);
@@ -52,7 +54,8 @@ export function buildPerformanceReport({website,observation}){
   countedResources+unknownSizedResources===totalResources&&bytes!==null;
  const state=verified?'observed':'unverified';
  const reason=verified?null:String(observation?.reason||observation?.error||
-   (observation?.observed&&(!samePage?'loaded_url_mismatch':'observation_incomplete'))||
+   (observation?.observed&&(!samePage?'loaded_url_mismatch':
+    !hasMeasuredTiming?'navigation_timing_not_observed':'observation_incomplete'))||
    'browser_measurement_unavailable').slice(0,180);
  return {schemaVersion:1,tool:'performance',generatedAt:new Date().toISOString(),website:requested,
   status:state,reason,scope:{pagesRequested:1,pagesMeasured:verified?1:0,
