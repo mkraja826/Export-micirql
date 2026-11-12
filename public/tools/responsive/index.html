@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Responsive Lab | MiCirql Tools</title><meta name="description" content="Check measured mobile, tablet and desktop viewport layout signals with browser evidence and a downloadable PDF.">
+<meta name="robots" content="noindex"><meta name="theme-color" content="#0b1020">
+<style>
+:root{font:16px/1.55 system-ui,-apple-system,Segoe UI,sans-serif;color-scheme:dark}*{box-sizing:border-box}
+body{background:#090f1e;color:#f4f7ff;margin:0}.shell{max-width:1050px;margin:auto;padding:26px}
+a{color:#b5cbff}nav{display:flex;gap:18px;justify-content:space-between;border-bottom:1px solid #354768;padding-bottom:22px}
+h1{font-size:clamp(30px,5vw,50px);line-height:1.1;letter-spacing:-.045em;margin:15px 0}
+h2{font-size:22px;letter-spacing:-.02em}h3{font-size:17px}.muted,p{color:#c3d0e6}
+.eyebrow{font-size:12px;letter-spacing:.14em;font-weight:800;color:#9fbbff;text-transform:uppercase}
+.card{background:#14243b;border:1px solid #364e70;padding:23px;border-radius:16px;margin:21px 0}
+form{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}input,button{font:inherit;border-radius:10px;min-height:47px;padding:12px 14px}
+input{background:#0e1c31;color:white;border:1px solid #637b9b;flex:1;min-width:220px}
+button{background:#b5caff;color:#0a1731;font-weight:750;border:0;cursor:pointer}
+button:disabled{opacity:.5;cursor:not-allowed}input:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid #d0dcff;outline-offset:2px}
+.note{background:#213553;border-left:3px solid #e0be83;padding:12px 14px;border-radius:8px}
+.status{background:#172c49;color:#e4eeff;border:1px solid #476083;border-radius:10px;padding:12px 14px}
+progress{width:100%;height:14px;accent-color:#b9d0ff}.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.metric{background:#102139;border:1px solid #3b5474;border-radius:12px;padding:12px}.metric strong{display:block;font-size:26px}.metric span{font-size:12px;color:#becfe7}
+table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}td,th{text-align:left;border-bottom:1px solid #334960;padding:11px 8px;word-break:break-word;vertical-align:top}
+th{color:#d0ddf3}tbody tr:nth-child(odd){background:#182c47}.page{margin-top:24px}
+.page h3{overflow-wrap:anywhere}.measurements{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.measure{background:#0e2036;border:1px solid #415b7e;border-radius:10px;padding:13px;overflow-wrap:anywhere}
+.measure strong{display:block}.measure p{font-size:13px;margin:5px 0}.small{font-size:13px}
+[hidden]{display:none!important}@media(max-width:700px){.shell{padding:16px}.card{padding:16px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.measurements{grid-template-columns:1fr}form button{width:100%}}
+@page{size:A4;margin:16mm 13mm}
+@media print{
+:root{color-scheme:light}body{color:#172035!important;background:#fff!important;font:10pt/1.4 Arial,sans-serif}
+.shell{padding:0;max-width:none}.no-print,nav,#progress-card{display:none!important}
+h1{font-size:23pt}h2{font-size:16pt}p,.muted,.metric span{color:#354058!important}
+.card,.metric,.measure{background:#fff!important;border-color:#cbd5e1;color:#171e30}
+.card{padding:10pt;margin:10pt 0}.metrics{grid-template-columns:repeat(4,1fr)}.metric strong{font-size:17pt}
+.measurements{grid-template-columns:repeat(3,1fr)}.measure{break-inside:avoid}
+.page{break-inside:avoid}tr{break-inside:avoid}thead{display:table-header-group}
+td,th{border-color:#ddd;color:#172035!important}tbody tr:nth-child(odd){background:white!important}
+.status,.note{background:#fff!important;color:#171e30!important;border:1px solid #d1d5db}
+}
+</style></head><body><div class="shell">
+<nav class="no-print"><a href="/tools/">← MiCirql Tools</a><a href="/tools/qa/">QA Lab</a></nav>
+<main><header><p class="eyebrow">MiCirql Tools · Limited beta</p><h1>Responsive Lab</h1>
+<p>Inspect browser-observed layout measurements at mobile, tablet and desktop widths. We check horizontal document overflow and mobile viewport configuration—not subjective design quality.</p></header>
+<section class="card no-print"><h2>Inspect your website</h2>
+<form id="audit"><input id="url" aria-label="Website address" placeholder="https://example.com" maxlength="2048" required><button id="run" type="submit" disabled>Scan responsive layouts</button></form>
+<p class="muted small">Current beta discovers up to 60 pages and samples up to 3 (entry page, a contact/booking/service page where found, and another page). Each sampled page is checked at 375px, 768px and 1440px. No form submissions or site changes.</p>
+<p id="extension-status" class="status" role="status">Checking Chrome extension…</p>
+<p id="extension-help" hidden class="small">Install or reload the latest <a href="/extension/micirql-tools-extension.zip">MiCirql Chrome extension</a> in desktop Chrome, then refresh this page. Browser layout inspection requires the QA layout capability.</p>
+</section>
+<section class="card no-print" id="progress-card" hidden><h2>Responsive measurements</h2><progress id="progress" max="100" value="0"></progress><p id="progress-text" role="status"></p></section>
+<section class="card" id="results" hidden>
+<p class="eyebrow">Read-only website evidence</p><h2>Responsive Layout Report</h2><p id="website"></p><p class="muted small" id="report-date"></p>
+<div class="metrics" id="metrics"></div><p id="coverage" class="note"></p>
+<h2>Observed layout signals</h2><p class="muted small">These are measured signals for review, not proof of clipping, visual overlap, accessibility failure, or full-site correctness.</p>
+<div id="signals"></div>
+<h2>Viewport observations</h2><div id="pages"></div>
+<h2>Limitations</h2><ul id="limitations" class="muted small"></ul>
+<div class="no-print"><button id="pdf" type="button">Print / Save PDF report</button></div>
+</section></main></div><script type="module" src="/tools/responsive/app.js"></script></body></html>
