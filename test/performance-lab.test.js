@@ -44,6 +44,16 @@ test('one navigation produces measured timelines without creating a field CWV or
  assert.equal(report.unavailableCoreWebVitals.INP,'not_measured');
  assert.ok(!('score' in report));
 });
+test('all absent navigation timings are not a completed performance measurement',()=>{
+ const report=buildPerformanceReport({website:site,observation:observed({
+  timing:{responseStartMs:0,responseEndMs:null,domContentLoadedMs:0,
+   loadEventMs:0,firstContentfulPaintMs:null}
+ })});
+ assert.equal(report.status,'unverified');
+ assert.equal(report.reason,'navigation_timing_not_observed');
+ assert.equal(report.scope.pagesMeasured,0);
+ assert.ok(Object.values(report.metrics).every(x=>x===null));
+});
 test('background-tab FCP can be unavailable even when navigation is observed',()=>{
  const report=buildPerformanceReport({website:site,observation:observed({
   timing:{responseStartMs:80,responseEndMs:100,domContentLoadedMs:210,loadEventMs:390,
